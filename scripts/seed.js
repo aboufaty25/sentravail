@@ -1,7 +1,8 @@
 // Demo data. WARNING: drops and recreates all tables.
 const bcrypt = require('bcryptjs');
 const env = require('../src/config/env');
-const { sequelize, User, Post, Reaction, Comment, Job, Follow } = require('../src/models');
+const { sequelize, User, Post, Reaction, Comment, Job, Follow, Report } = require('../src/models');
+const refs = require('../src/services/refs');
 const { buildSlug, featuredUntilDate } = require('../src/services/jobs');
 const { refreshRecentScores } = require('../src/services/feedRanking');
 
@@ -166,6 +167,12 @@ const people = [
       });
     }
     await Post.create({ authorId: users['aissatou-fall'].id, type: 'text', visibility: 'network', text: 'Petit message pour mon réseau : je cherche un poste de comptable à Dakar à partir de janvier. Merci de partager si vous entendez parler d\'une opportunité 🙏', createdAt: hoursAgo(6), updatedAt: hoursAgo(6) }, { silent: true });
+
+    // Reference lists and a few demo reports for the moderation screen
+    await refs.seedDefaults();
+    const spam = await Post.create({ authorId: users['moussa-sarr'].id, type: 'text', text: 'Gagnez 500 000 FCFA par semaine depuis chez vous !!! Envoyez 10 000 FCFA de frais d\'inscription par Wave pour recevoir le lien.' });
+    await Report.create({ reporterId: users['aissatou-fall'].id, targetType: 'post', targetId: spam.id, targetOwnerId: users['moussa-sarr'].id, reason: 'payment', details: "Demande de frais d'inscription" });
+    await Report.create({ reporterId: users['fatou-sow'].id, targetType: 'post', targetId: spam.id, targetOwnerId: users['moussa-sarr'].id, reason: 'scam' });
 
     await refreshRecentScores(365);
     console.log(`Seeded ${people.length} users, ${postsData.length + 1} posts, ${jobsData.length} jobs. Password for all accounts: ${env.SEED_PASSWORD}`);

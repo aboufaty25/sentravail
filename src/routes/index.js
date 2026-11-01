@@ -12,6 +12,8 @@ const cv = require('../controllers/cvController');
 const network = require('../controllers/followController');
 const search = require('../controllers/searchController');
 const reel = require('../controllers/reelController');
+const report = require('../controllers/reportController');
+const admin = require('../controllers/adminController');
 const { authLimiter, postLimiter, commentLimiter, actionLimiter, applyLimiter, serverMailLimiter, cvBuildLimiter } = require('../middlewares/rateLimit');
 const { imageUpload, cvUpload, reelUpload, handleUploadErrors } = require('../middlewares/upload');
 
@@ -107,7 +109,23 @@ router.get('/profil/:username/abonnes', (req, res, next) => network.lists(Object
 router.get('/profil/:username/abonnements', (req, res, next) => network.lists(Object.assign(req, { params: { ...req.params, list: 'abonnements' } }), res, next));
 router.get('/notifications', requireAuth, pages.upcoming('notifications'));
 router.get('/recherche', search.index);
-router.get('/admin', requireAuth, requireRole('admin'), pages.upcoming('admin'));
+// Reports (any logged-in user)
+router.post('/signalements', requireAuth, actionLimiter, report.create);
+
+// Administration (admin only, checked server-side on every route)
+const adminOnly = [requireAuth, requireRole('admin')];
+router.get('/admin', ...adminOnly, admin.dashboard);
+router.get('/admin/offres', ...adminOnly, admin.featureQueue);
+router.post('/admin/offres/:id/approuver', ...adminOnly, admin.approveFeature);
+router.post('/admin/offres/:id/refuser', ...adminOnly, admin.rejectFeature);
+router.post('/admin/offres/:id/retirer', ...adminOnly, admin.unfeature);
+router.get('/admin/signalements', ...adminOnly, admin.reportsIndex);
+router.post('/admin/signalements/:type/:id', ...adminOnly, admin.reportAction);
+router.get('/admin/utilisateurs', ...adminOnly, admin.usersIndex);
+router.post('/admin/utilisateurs/:id', ...adminOnly, admin.userAction);
+router.get('/admin/referentiels', ...adminOnly, admin.refsIndex);
+router.post('/admin/referentiels', ...adminOnly, admin.refsAdd);
+router.post('/admin/referentiels/:id', ...adminOnly, admin.refsUpdate);
 
 // Legal & information pages (required by AdSense)
 router.get('/a-propos', pages.staticPage('about'));

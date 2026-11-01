@@ -20,6 +20,9 @@
       <button type="button" @click="open = !open" class="flex h-9 w-9 items-center justify-center rounded-full text-gray-500 hover:bg-gray-100" aria-label="Plus d'options" :aria-expanded="open"><%- icon('dots', 'w-6 h-6') %></button>
       <div x-cloak x-show="open" @click.outside="open = false" x-transition.origin.top.right class="absolute right-0 z-30 mt-1 w-64 rounded-lg bg-white p-1.5 shadow-xl ring-1 ring-black/5">
         <button type="button" class="menu-item w-full" @click="navigator.clipboard?.writeText('<%= appUrl %>/publications/<%= post.id %>'); open = false; $dispatch('toast', { message: 'Lien copié.' })"><%- icon('link', 'w-5 h-5') %> Copier le lien</button>
+        <% if (currentUser && currentUser.id !== post.authorId) { %>
+          <button type="button" class="menu-item w-full" @click="open = false; $dispatch('open-report', { type: 'post', id: <%= post.id %> })"><%- icon('shield', 'w-5 h-5') %> Signaler</button>
+        <% } %>
         <% if (m.canDelete) { %>
           <button type="button" class="menu-item w-full text-red-600" hx-post="/publications/<%= post.id %>/supprimer" hx-target="#post-<%= post.id %>" hx-swap="outerHTML"
             hx-confirm="Supprimer cette publication ? Cette action est définitive."><%- icon('trash', 'w-5 h-5') %> Supprimer</button>

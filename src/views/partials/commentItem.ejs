@@ -12,6 +12,9 @@
       <% if (currentUser) { %>
         <button type="button" class="font-semibold hover:underline" @click="reply(<%= comment.parentCommentId || comment.id %>, '<%= ca.firstName.replace(/'/g, '') %>')">Répondre</button>
       <% } %>
+      <% if (currentUser && currentUser.id !== comment.authorId) { %>
+        <button type="button" class="hover:underline" @click="$dispatch('open-report', { type: 'comment', id: <%= comment.id %> })">Signaler</button>
+      <% } %>
       <% if (canDeleteComment(comment, post, currentUser)) { %>
         <button type="button" class="font-semibold hover:underline" hx-post="/commentaires/<%= comment.id %>/supprimer" hx-target="#comment-<%= comment.id %>" hx-swap="delete"
           <% if (locals.ctx === 'reel') { %>hx-vals='{"ctx":"reel"}'<% } %>

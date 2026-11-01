@@ -1,0 +1,60 @@
+<%- include('../../partials/adminNav') %>
+<section class="card rounded-lg p-4" aria-labelledby="pending-title">
+  <h2 id="pending-title" class="text-lg font-semibold">Demandes de mise à la une (<%= pending.length %>)</h2>
+  <% if (!pending.length) { %><p class="mt-2 text-sm text-gray-500">Aucune demande en attente.</p><% } %>
+  <ul class="mt-3 space-y-3">
+    <% pending.forEach(p => { const j = p.job; %>
+      <li class="rounded-lg border border-gray-200 p-3" x-data="{ reject: false }">
+        <div class="flex gap-3">
+          <%- include('../../partials/companyLogo', { job: j, size: 'w-12 h-12' }) %>
+          <div class="min-w-0 flex-1">
+            <a href="<%= j.url %>" target="_blank" class="font-semibold hover:underline"><%= j.title %></a>
+            <p class="text-sm text-gray-600"><%= j.companyName %> · <%= j.location %> · <%= j.contractType %></p>
+            <p class="text-xs text-gray-500">Par <a href="/profil/<%= p.author.username %>" class="hover:underline"><%= p.author.firstName %> <%= p.author.lastName %></a> · demandé <%= timeAgo(p.createdAt) %><%= j.deadline ? ` · jusqu'au ${formatDate(j.deadline)}` : '' %></p>
+            <p class="mt-2 line-clamp-3 text-sm text-gray-700"><%= j.description %></p>
+          </div>
+        </div>
+        <div class="mt-3 flex flex-wrap items-end gap-2">
+          <form method="post" action="/admin/offres/<%= p.id %>/approuver" class="flex items-end gap-2">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <label class="text-xs text-gray-500">Durée (jours)<input type="number" name="days" min="1" max="90" value="<%= defaultDays %>" class="input mt-0.5 !w-24 !py-1.5"></label>
+            <button class="btn-success !py-2"><%- icon('check', 'w-4 h-4') %> Approuver</button>
+          </form>
+          <button type="button" class="btn bg-red-50 !py-2 text-red-700 hover:bg-red-100" @click="reject = !reject">Refuser</button>
+        </div>
+        <form x-cloak x-show="reject" method="post" action="/admin/offres/<%= p.id %>/refuser" class="mt-2 flex gap-2">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <input name="reason" required maxlength="300" class="input !py-2" placeholder="Motif du refus (envoyé au recruteur)">
+          <button class="btn bg-red-600 !py-2 text-white hover:bg-red-700">Confirmer</button>
+        </form>
+      </li>
+    <% }) %>
+  </ul>
+</section>
+
+<section class="card mt-3 rounded-lg p-4" aria-labelledby="featured-now">
+  <div class="flex items-center justify-between">
+    <h2 id="featured-now" class="text-lg font-semibold">Actuellement à la une (<%= featured.length %>)</h2>
+    <a href="/offres/nouvelle" class="btn-primary !py-1.5 text-sm"><%- icon('plus', 'w-4 h-4') %> Offre officielle</a>
+  </div>
+  <% if (!featured.length) { %><p class="mt-2 text-sm text-gray-500">Aucune offre à la une.</p><% } %>
+  <ul class="mt-3 divide-y divide-gray-100">
+    <% featured.forEach(p => { const j = p.job; %>
+      <li class="flex flex-wrap items-center gap-3 py-3">
+        <%- include('../../partials/companyLogo', { job: j, size: 'w-10 h-10' }) %>
+        <div class="min-w-0 flex-1">
+          <a href="<%= j.url %>" class="font-semibold hover:underline"><%= j.title %></a>
+          <p class="text-xs text-gray-500"><%= j.companyName %> · <%= j.isOfficial ? 'Officielle · ' : '' %>jusqu'au <%= formatDate(p.featuredUntil) %></p>
+        </div>
+        <form method="post" action="/admin/offres/<%= p.id %>/approuver" class="flex items-center gap-1">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="days" value="7">
+          <button class="btn-light !py-1.5 text-sm">+7 jours</button>
+        </form>
+        <form method="post" action="/admin/offres/<%= p.id %>/retirer">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <button class="btn bg-white !py-1.5 text-sm text-red-600 ring-1 ring-red-200 hover:bg-red-50">Retirer de la une</button>
+        </form>
+      </li>
+    <% }) %>
+  </ul>
+</section>

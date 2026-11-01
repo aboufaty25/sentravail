@@ -29,6 +29,7 @@ const schema = z.object({
   FEED_PAGE_SIZE: z.coerce.number().int().min(3).max(50).default(10),
   VIRAL_THRESHOLD: z.coerce.number().default(5),
   FEATURED_DAYS: z.coerce.number().int().min(1).max(90).default(7),
+  REPORT_AUTOHIDE: z.coerce.number().int().min(1).max(100).default(5),
 });
 
 const parsed = schema.safeParse(process.env);

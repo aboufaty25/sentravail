@@ -1,0 +1,26 @@
+<%- include('../../partials/adminNav') %>
+<% const tile = (label, value, sub, href, alert) => `<a href="${href}" class="card block rounded-lg p-4 hover:ring-2 hover:ring-brand-200 ${alert ? 'ring-2 ring-amber-300' : ''}"><p class="text-sm text-gray-500">${label}</p><p class="mt-1 text-3xl font-bold">${value}</p>${sub ? `<p class="mt-1 text-xs text-gray-500">${sub}</p>` : ''}</a>`; %>
+<div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+  <%- tile('Utilisateurs', formatCount(stats.users), `+${stats.newUsers} cette semaine · ${stats.bannedUsers} suspendu(s)`, '/admin/utilisateurs') %>
+  <%- tile('Offres actives', formatCount(stats.jobsActive), `${stats.featuredNow} à la une`, '/offres') %>
+  <%- tile('Candidatures envoyées', formatCount(stats.applications), `+${stats.applications7} cette semaine`, '/admin') %>
+  <%- tile('Publications', formatCount(stats.postsCount), 'textes, photos et réels', '/') %>
+  <%- tile('Signalements à traiter', stats.openReports, 'contenus signalés', '/admin/signalements', stats.openReports > 0) %>
+  <%- tile('Demandes de mise à la une', stats.pendingFeature, 'en attente de décision', '/admin/offres', stats.pendingFeature > 0) %>
+  <%- tile('Candidats', formatCount(stats.roles.candidate || 0), '', '/admin/utilisateurs?role=candidate') %>
+  <%- tile('Recruteurs', formatCount(stats.roles.recruiter || 0), '', '/admin/utilisateurs?role=recruiter') %>
+</div>
+
+<% const max = Math.max(1, ...chart.map(c => c.n)); %>
+<section class="card mt-3 rounded-lg p-4" aria-labelledby="chart-title">
+  <h2 id="chart-title" class="font-semibold">Inscriptions — 14 derniers jours</h2>
+  <div class="mt-4 flex h-40 items-end gap-1" role="img" aria-label="Inscriptions par jour">
+    <% chart.forEach(c => { %>
+      <div class="flex h-full flex-1 flex-col items-center justify-end gap-1" title="<%= formatDate(c.day) %> : <%= c.n %>">
+        <span class="text-[10px] font-semibold text-gray-600"><%= c.n || '' %></span>
+        <span class="w-full rounded-t bg-brand-500" style="height: <%= Math.max(2, Math.round((c.n / max) * 120)) %>px"></span>
+        <span class="text-[10px] text-gray-400"><%= c.day.slice(8, 10) %></span>
+      </div>
+    <% }) %>
+  </div>
+</section>

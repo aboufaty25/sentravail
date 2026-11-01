@@ -1,0 +1,58 @@
+<%- include('../../partials/adminNav') %>
+<div class="mb-3 flex gap-2 text-sm font-semibold">
+  <% [['open', 'À traiter'], ['resolved', 'Traités'], ['dismissed', 'Classés sans suite']].forEach(([key, label]) => { %>
+    <a href="?statut=<%= key %>" class="rounded-full px-3 py-1.5 <%= status === key ? 'bg-gray-900 text-white' : 'bg-white text-gray-700 ring-1 ring-gray-200' %>"><%= label %></a>
+  <% }) %>
+</div>
+<% if (!groups.length) { %>
+  <section class="card rounded-lg px-4 py-10 text-center text-gray-500"><%= status === 'open' ? 'Aucun signalement à traiter. 🎉' : 'Aucun signalement.' %></section>
+<% } %>
+<ul class="space-y-3">
+  <% groups.forEach(g => { const t = g.target; const reasons = {}; g.reports.forEach(r => { reasons[r.reason] = (reasons[r.reason] || 0) + 1; }); %>
+    <li class="card rounded-lg p-4">
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="rounded-full bg-red-100 px-2 py-0.5 text-xs font-bold text-red-700"><%= g.reports.length %> signalement<%= g.reports.length > 1 ? 's' : '' %></span>
+        <span class="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-700"><%= { post: 'Publication', comment: 'Commentaire', user: 'Profil' }[g.type] %></span>
+        <% if (g.type === 'post' && t && t.status === 'pending_approval') { %><span class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">Masquée automatiquement</span><% } %>
+        <% if (g.owner) { %><span class="text-sm text-gray-600">Auteur : <a href="/profil/<%= g.owner.username %>" class="font-semibold hover:underline"><%= g.owner.firstName %> <%= g.owner.lastName %></a><%= g.owner.isBanned ? ' (suspendu)' : '' %></span><% } %>
+      </div>
+      <div class="mt-2 rounded-lg bg-gray-50 p-3 text-sm">
+        <% if (!t) { %><span class="text-gray-500">Contenu déjà supprimé.</span>
+        <% } else if (g.type === 'post') { %>
+          <% if (t.job) { %><p class="font-semibold"><%= t.job.title %> — <%= t.job.companyName %></p><% } %>
+          <p class="line-clamp-4 whitespace-pre-line"><%= t.text || (t.type === 'photo' ? '[Photo]' : t.type === 'reel' ? '[Réel]' : '') %></p>
+          <a href="/publications/<%= t.id %>" target="_blank" class="text-xs font-semibold text-brand-600 hover:underline">Voir la publication</a>
+        <% } else if (g.type === 'comment') { %><p class="whitespace-pre-line">« <%= t.text %> »</p><a href="/publications/<%= t.postId %>" target="_blank" class="text-xs font-semibold text-brand-600 hover:underline">Voir la publication</a>
+        <% } else { %><p><%= t.firstName %> <%= t.lastName %></p><% } %>
+      </div>
+      <ul class="mt-2 space-y-1 text-sm">
+        <% Object.entries(reasons).forEach(([reason, n]) => { %><li>• <%= REASONS[reason] %><%= n > 1 ? ` (×${n})` : '' %></li><% }) %>
+        <% g.reports.filter(r => r.details).slice(0, 5).forEach(r => { %>
+          <li class="text-gray-600">« <%= r.details %> » — <span class="text-xs"><%= r.reporter ? `${r.reporter.firstName} ${r.reporter.lastName}` : '' %>, <%= timeAgo(r.createdAt) %></span></li>
+        <% }) %>
+      </ul>
+      <% if (status === 'open') { %>
+        <div class="mt-3 flex flex-wrap gap-2">
+          <% if (g.type !== 'user') { %>
+            <form method="post" action="/admin/signalements/<%= g.type %>/<%= g.id %>" x-data @submit="confirm('Supprimer définitivement ce contenu ?') || $event.preventDefault()">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="action" value="remove">
+              <button class="btn bg-red-600 !py-1.5 text-sm text-white hover:bg-red-700"><%- icon('trash', 'w-4 h-4') %> Supprimer le contenu</button>
+            </form>
+          <% } %>
+          <% if (g.owner && !g.owner.isBanned && g.owner.role !== 'admin') { %>
+            <form method="post" action="/admin/signalements/<%= g.type %>/<%= g.id %>" x-data @submit="confirm('Suspendre le compte de l\'auteur ?') || $event.preventDefault()">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="action" value="ban">
+              <button class="btn bg-gray-900 !py-1.5 text-sm text-white hover:bg-black">Suspendre l'auteur</button>
+            </form>
+          <% } %>
+          <form method="post" action="/admin/signalements/<%= g.type %>/<%= g.id %>">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="action" value="dismiss">
+            <button class="btn-light !py-1.5 text-sm"><%= g.type === 'post' && t && t.status === 'pending_approval' ? 'Rétablir et classer' : 'Classer sans suite' %></button>
+          </form>
+        </div>
+      <% } else { %>
+        <p class="mt-2 text-xs text-gray-500">Décision : <%= { removed: 'contenu supprimé', banned: 'auteur suspendu', dismissed: 'classé sans suite' }[g.reports[0].resolution] || g.reports[0].resolution %> · <%= g.reports[0].resolvedAt ? timeAgo(g.reports[0].resolvedAt) : '' %></p>
+      <% } %>
+    </li>
+  <% }) %>
+</ul>

@@ -33,7 +33,7 @@
             <% } else { %>Vous gérez cette offre.<% } %>
           </span>
           <a href="<%= job.url %>/modifier" class="btn-light !py-1.5 text-sm"><%- icon('pencil', 'w-4 h-4') %> Modifier</a>
-          <form action="<%= job.url %>/supprimer" method="post" onsubmit="return confirm('Supprimer définitivement cette offre ?')">
+          <form action="<%= job.url %>/supprimer" method="post" x-data @submit="confirm('Supprimer définitivement cette offre ?') || $event.preventDefault()">
             <input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <button class="btn !py-1.5 text-sm bg-white text-red-600 hover:bg-red-50"><%- icon('trash', 'w-4 h-4') %> Supprimer</button>
           </form>

@@ -555,6 +555,26 @@
       closeComments() { this.commentsFor = null; },
     }));
 
+    Alpine.data('reportSheet', () => ({
+      open: false, target: null, reason: '', details: '', error: '', sending: false,
+      show(d) { Object.assign(this, { target: d, reason: '', details: '', error: '', open: true }); },
+      close() { this.open = false; },
+      async send() {
+        this.sending = true; this.error = '';
+        try {
+          const res = await fetch('/signalements', {
+            method: 'POST',
+            headers: { 'X-CSRF-Token': csrf(), 'Content-Type': 'application/json', Accept: 'application/json' },
+            body: JSON.stringify({ targetType: this.target.type, targetId: this.target.id, reason: this.reason, details: this.details }),
+          });
+          const json = await res.json().catch(() => ({}));
+          if (!res.ok) { this.error = json.error || 'Signalement impossible.'; return; }
+          toast(json.message);
+          this.close();
+        } catch (_) { this.error = 'Pas de connexion internet.'; } finally { this.sending = false; }
+      },
+    }));
+
     Alpine.data('toasts', () => ({
       items: [],
       push(d) {

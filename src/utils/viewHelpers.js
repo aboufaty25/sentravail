@@ -124,4 +124,6 @@ function queryString(params) {
   return qs ? `?${qs}` : '';
 }
 
-module.exports = { queryString, formatDate, daysLeft, icon, avatar, roleLabel, timeAgo, formatCount, escapeHtml, richText, imageUrl, reactionSummary, REACTIONS };
+const REPORT_REASONS = require('../models/Report').REASONS;
+
+module.exports = { REPORT_REASONS, queryString, formatDate, daysLeft, icon, avatar, roleLabel, timeAgo, formatCount, escapeHtml, richText, imageUrl, reactionSummary, REACTIONS };

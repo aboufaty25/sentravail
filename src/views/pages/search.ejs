@@ -14,10 +14,10 @@
         <% }) %>
       </nav>
       <div class="grid grid-cols-2 gap-2">
-        <select name="ville" class="input !py-2" onchange="this.form.requestSubmit()" aria-label="Ville">
+        <select name="ville" class="input !py-2" x-data @change="$el.form.requestSubmit()" aria-label="Ville">
           <option value="">Ville : toutes</option><% CITIES.forEach(c => { %><option <%= f.ville === c ? 'selected' : '' %>><%= c %></option><% }) %>
         </select>
-        <select name="secteur" class="input !py-2" onchange="this.form.requestSubmit()" aria-label="Secteur">
+        <select name="secteur" class="input !py-2" x-data @change="$el.form.requestSubmit()" aria-label="Secteur">
           <option value="">Secteur : tous</option><% SECTORS.forEach(s => { %><option <%= f.secteur === s ? 'selected' : '' %>><%= s %></option><% }) %>
         </select>
       </div>

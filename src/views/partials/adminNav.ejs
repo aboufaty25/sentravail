@@ -1,0 +1,9 @@
+<% const items = [['dashboard', '/admin', 'Tableau de bord'], ['features', '/admin/offres', 'Offres à la une'], ['reports', '/admin/signalements', 'Signalements'], ['users', '/admin/utilisateurs', 'Utilisateurs'], ['refs', '/admin/referentiels', 'Villes et secteurs']]; %>
+<div class="card mb-3 px-3 py-3 sm:rounded-lg">
+  <div class="flex items-center gap-2"><span class="text-brand-600"><%- icon('shield', 'w-6 h-6') %></span><h1 class="text-xl font-bold">Administration</h1></div>
+  <nav class="-mx-1 mt-3 flex gap-2 overflow-x-auto px-1 text-sm font-semibold [scrollbar-width:none]" aria-label="Administration">
+    <% items.forEach(([key, href, label]) => { %>
+      <a href="<%= href %>" class="shrink-0 rounded-full px-3 py-1.5 <%= section === key ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' %>" <%= section === key ? 'aria-current=page' : '' %>><%= label %></a>
+    <% }) %>
+  </nav>
+</div>

@@ -1,16 +1,21 @@
 // Reference lists used by forms (admin-editable in Phase 8).
-const CITIES = [
+// Default reference lists. The live CITIES / SECTORS arrays below are refreshed in place
+// from the database (admin-editable, see services/refs.js).
+const DEFAULT_CITIES = Object.freeze([
   'Dakar', 'Pikine', 'Guédiawaye', 'Rufisque', 'Thiès', 'Mbour', 'Saint-Louis', 'Kaolack',
   'Ziguinchor', 'Touba', 'Diourbel', 'Louga', 'Tambacounda', 'Kolda', 'Fatick', 'Matam',
   'Kaffrine', 'Kédougou', 'Sédhiou', 'Diamniadio',
-];
+]);
 
-const SECTORS = [
+const DEFAULT_SECTORS = Object.freeze([
   'Administration', 'Agriculture', 'Banque & Finance', 'BTP & Construction', 'Commerce & Vente',
   'Comptabilité', 'Éducation', 'Énergie & Mines', 'Hôtellerie & Restauration', 'Informatique & Télécoms',
   'Industrie', 'Juridique', 'Logistique & Transport', 'Marketing & Communication', 'ONG & Humanitaire',
   'Pêche', 'Ressources humaines', 'Santé', 'Sécurité', 'Services à la personne', 'Tourisme',
-];
+]);
+
+const CITIES = [...DEFAULT_CITIES];
+const SECTORS = [...DEFAULT_SECTORS];
 
 const CONTRACT_TYPES = ['CDI', 'CDD', 'Stage', 'Freelance', 'Temps partiel', 'Journalier'];
 
@@ -23,4 +28,4 @@ const REACTIONS = {
   support: { emoji: '🤝', label: 'Soutien', color: 'text-senegal-green' },
 };
 
-module.exports = { CITIES, SECTORS, CONTRACT_TYPES, ROLE_LABELS, REACTIONS };
+module.exports = { DEFAULT_CITIES, DEFAULT_SECTORS, CITIES, SECTORS, CONTRACT_TYPES, ROLE_LABELS, REACTIONS };

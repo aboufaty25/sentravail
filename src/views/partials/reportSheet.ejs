@@ -1,0 +1,24 @@
+<%# Global "Signaler" sheet: $dispatch('open-report', { type: 'post'|'comment'|'user', id }) %>
+<% if (currentUser) { %>
+<div x-data="reportSheet()" @open-report.window="show($event.detail)" @keydown.escape.window="close()">
+  <div x-cloak x-show="open" x-transition.opacity class="fixed inset-0 z-50 bg-black/50" @click="close()"></div>
+  <div x-cloak x-show="open" class="fixed inset-x-0 bottom-0 z-50 max-h-[90vh] overflow-y-auto rounded-t-2xl bg-white pb-[env(safe-area-inset-bottom)] shadow-2xl sm:inset-x-auto sm:left-1/2 sm:top-1/2 sm:bottom-auto sm:w-[460px] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-xl"
+    role="dialog" aria-modal="true" aria-labelledby="report-title">
+    <div class="flex items-center justify-between border-b border-gray-200 px-4 py-3">
+      <h2 id="report-title" class="text-lg font-semibold">Signaler</h2>
+      <button type="button" @click="close()" class="icon-btn" aria-label="Fermer"><%- icon('x', 'w-5 h-5') %></button>
+    </div>
+    <form class="space-y-2 p-4" @submit.prevent="send()">
+      <p class="text-sm text-gray-600">Pourquoi signalez-vous ce contenu ? La personne signalée ne saura pas que c'est vous.</p>
+      <% Object.entries(REPORT_REASONS).forEach(([key, label]) => { %>
+        <label class="flex cursor-pointer items-center gap-3 rounded-lg border p-3 text-[15px]" :class="reason === '<%= key %>' ? 'border-brand-600 bg-brand-50' : 'border-gray-200'">
+          <input type="radio" value="<%= key %>" x-model="reason" class="h-4 w-4"> <%= label %>
+        </label>
+      <% }) %>
+      <textarea x-model="details" rows="2" maxlength="500" class="input resize-none" placeholder="Précisions (facultatif)" aria-label="Précisions"></textarea>
+      <p x-show="error" x-text="error" class="text-sm text-red-600" role="alert"></p>
+      <button class="btn-primary w-full" :disabled="!reason || sending">Envoyer le signalement</button>
+    </form>
+  </div>
+</div>
+<% } %>

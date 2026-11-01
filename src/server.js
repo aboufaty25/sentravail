@@ -6,6 +6,7 @@ const { sequelize } = require('./models');
 const { closeStore } = require('./config/session');
 const { refreshRecentScores } = require('./services/feedRanking');
 const { runMigrations } = require('./config/migrate');
+const refs = require('./services/refs');
 
 const SCORE_REFRESH_MS = 15 * 60 * 1000;
 
@@ -25,6 +26,8 @@ async function start() {
   // Create missing tables on boot (no destructive changes), then apply migrations.
   await sequelize.sync();
   await runMigrations();
+  await refs.load();
+  setInterval(() => refs.load().catch(() => {}), 5 * 60 * 1000).unref();
   const server = http.createServer(app);
   server.listen(env.PORT, () => console.log(`SenTravail running on ${env.APP_URL} (port ${env.PORT})`));
 

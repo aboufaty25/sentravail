@@ -22,7 +22,7 @@
       <div x-cloak x-show="open" x-transition class="mt-3 grid gap-2 sm:grid-cols-3">
         <% [['ville', 'Ville', CITIES], ['secteur', 'Secteur', SECTORS], ['contrat', 'Contrat', CONTRACT_TYPES]].forEach(([name, label, options]) => { %>
           <label><span class="sr-only"><%= label %></span>
-            <select name="<%= name %>" class="input !py-2.5" onchange="this.form.requestSubmit()">
+            <select name="<%= name %>" class="input !py-2.5" x-data @change="$el.form.requestSubmit()">
               <option value=""><%= label %> : toutes</option>
               <% options.forEach(o => { %><option <%= filters[name] === o ? 'selected' : '' %>><%= o %></option><% }) %>
             </select>

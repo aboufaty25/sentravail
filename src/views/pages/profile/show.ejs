@@ -30,6 +30,7 @@
           <a href="/cv" class="btn-light flex-1 sm:flex-none"><%- icon('document', 'w-4 h-4') %> Mon CV</a>
         <% } else if (currentUser) { %>
           <%- include('../../partials/followButton', { targetId: p.id, following: followsProfile, variant: 'button' }) %>
+          <button type="button" x-data class="btn-light" @click="$dispatch('open-report', { type: 'user', id: <%= p.id %> })" aria-label="Signaler ce profil" title="Signaler ce profil"><%- icon('shield', 'w-4 h-4') %></button>
         <% } else { %>
           <a href="/connexion" class="btn-primary flex-1 sm:flex-none"><%- icon('plus', 'w-4 h-4') %> S'abonner</a>
         <% } %>
