@@ -1,0 +1,6 @@
+<% const size = locals.size || 'w-12 h-12'; %>
+<% if (job.companyLogo) { %>
+  <img src="<%= imageUrl(job.companyLogo, 160) %>" alt="Logo <%= job.companyName %>" loading="lazy" class="<%= size %> shrink-0 rounded-lg border border-gray-200 bg-white object-contain p-0.5">
+<% } else { %>
+  <span class="<%= size %> shrink-0 rounded-lg bg-gradient-to-br from-brand-600 to-senegal-green text-white font-bold inline-flex items-center justify-center text-lg" aria-hidden="true"><%= job.companyName.slice(0, 1).toUpperCase() %></span>
+<% } %>

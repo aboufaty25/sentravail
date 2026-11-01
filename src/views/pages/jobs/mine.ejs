@@ -1,0 +1,32 @@
+<div class="space-y-2 sm:space-y-4">
+  <div class="flex items-center justify-between px-3 sm:px-0">
+    <h1 class="text-2xl font-bold">Mes offres</h1>
+    <a href="/offres/nouvelle" class="btn-primary !py-1.5 text-sm"><%- icon('plus', 'w-4 h-4') %> Publier une offre</a>
+  </div>
+  <% if (!posts.length) { %>
+    <section class="card px-4 py-10 text-center">
+      <span class="mx-auto block w-fit text-brand-600"><%- icon('briefcase', 'w-12 h-12') %></span>
+      <p class="mt-3 font-semibold">Vous n'avez pas encore publié d'offre</p>
+      <p class="mt-1 text-sm text-gray-500">Publiez votre première offre : elle apparaîtra dans le fil de vos abonnés et dans la recherche.</p>
+    </section>
+  <% } %>
+  <ul class="card divide-y divide-gray-100">
+    <% posts.forEach(p => { const j = p.job; %>
+      <li class="flex items-start gap-3 px-4 py-3">
+        <%- include('../../partials/companyLogo', { job: j, size: 'w-10 h-10' }) %>
+        <div class="min-w-0 flex-1">
+          <a href="<%= j.url %>" class="font-semibold hover:underline"><%= j.title %></a>
+          <p class="text-sm text-gray-500"><%= j.location %> · <%= j.contractType %> · publiée le <%= formatDate(p.createdAt) %></p>
+          <div class="mt-1 flex flex-wrap items-center gap-1.5 text-xs">
+            <%- include('../../partials/jobBadges', { post: p, job: j }) %>
+            <% if (p.featureStatus === 'pending') { %><span class="rounded-full bg-brand-50 px-2 py-0.5 font-semibold text-brand-700">Mise à la une demandée</span><% } %>
+            <% if (p.featureStatus === 'rejected') { %><span class="rounded-full bg-red-50 px-2 py-0.5 font-semibold text-red-700">Mise à la une refusée</span><% } %>
+            <span class="text-gray-500"><%= formatCount(p.viewsCount) %> vues · <%= formatCount(p.likesCount) %> réactions · <%= formatCount(p.savesCount) %> enregistrements</span>
+          </div>
+          <p class="mt-1 text-xs text-gray-400">Candidatures reçues : bientôt disponible.</p>
+        </div>
+        <a href="<%= j.url %>/modifier" class="icon-btn shrink-0" aria-label="Modifier"><%- icon('pencil', 'w-4 h-4') %></a>
+      </li>
+    <% }) %>
+  </ul>
+</div>

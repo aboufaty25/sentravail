@@ -5,6 +5,9 @@ const jsonColumn = require('../utils/jsonColumn');
 const POST_TYPES = ['text', 'photo', 'reel', 'job'];
 const VISIBILITIES = ['network', 'public'];
 const STATUSES = ['published', 'pending_approval', 'rejected'];
+// "À la une" request workflow, independent from visibility: a recruiter's job stays
+// visible to their network while the admin reviews the featuring request.
+const FEATURE_STATUSES = ['none', 'pending', 'approved', 'rejected'];
 
 class Post extends Model {}
 
@@ -21,6 +24,8 @@ Post.init(
     status: { type: DataTypes.ENUM(...STATUSES), allowNull: false, defaultValue: 'published' },
     isFeatured: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
     featuredUntil: { type: DataTypes.DATE },
+    featureStatus: { type: DataTypes.ENUM(...FEATURE_STATUSES), allowNull: false, defaultValue: 'none' },
+    featureRejectReason: { type: DataTypes.STRING(300) },
     likesCount: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false, defaultValue: 0 },
     commentsCount: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false, defaultValue: 0 },
     sharesCount: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false, defaultValue: 0 },
@@ -37,6 +42,7 @@ Post.init(
       { fields: ['status', 'score'] },
       { fields: ['authorId', 'createdAt'] },
       { fields: ['isFeatured', 'featuredUntil'] },
+      { fields: ['type', 'status', 'createdAt'] },
       { fields: ['createdAt'] },
       { fields: ['sharedPostId'] },
     ],
@@ -45,4 +51,5 @@ Post.init(
 
 Post.TYPES = POST_TYPES;
 Post.VISIBILITIES = VISIBILITIES;
+Post.FEATURE_STATUSES = FEATURE_STATUSES;
 module.exports = Post;

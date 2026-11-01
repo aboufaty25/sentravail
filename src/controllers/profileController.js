@@ -3,6 +3,7 @@ const { profileSchema } = require('../validators/profile');
 const { fieldErrors } = require('../validators/auth');
 const { CITIES, SECTORS } = require('../config/constants');
 const { byAuthor } = require('./postController');
+const { byRecruiter } = require('./jobController');
 
 async function show(req, res, next) {
   const profileUser = await User.findOne({ where: { username: req.params.username } });
@@ -13,7 +14,9 @@ async function show(req, res, next) {
   }
   const isOwner = !!req.user && req.user.id === profileUser.id;
   const tab = req.query.onglet || 'publications';
-  const posts = tab === 'publications' ? await byAuthor(profileUser, req.user) : [];
+  let posts = [];
+  if (tab === 'publications') posts = await byAuthor(profileUser, req.user);
+  else if (tab === 'offres') posts = await byRecruiter(profileUser, req.user);
   return res.render('pages/profile/show', {
     title: `${profileUser.displayName}${profileUser.headline ? ` — ${profileUser.headline}` : ''}`,
     metaDescription: profileUser.bio ? profileUser.bio.slice(0, 160) : `Profil de ${profileUser.displayName} sur SenTravail.`,

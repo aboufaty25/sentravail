@@ -1,7 +1,8 @@
 // Demo data. WARNING: drops and recreates all tables.
 const bcrypt = require('bcryptjs');
 const env = require('../src/config/env');
-const { sequelize, User, Post, Reaction, Comment } = require('../src/models');
+const { sequelize, User, Post, Reaction, Comment, Job } = require('../src/models');
+const { buildSlug, featuredUntilDate } = require('../src/services/jobs');
 const { refreshRecentScores } = require('../src/services/feedRanking');
 
 if (env.isProd && !process.argv.includes('--force')) {
@@ -93,8 +94,62 @@ const people = [
     await Post.create({ authorId: users['moussa-sarr'].id, type: 'text', text: 'Très bon conseil, à lire pour tous ceux qui cherchent un emploi 👇', sharedPostId: created[3].id, createdAt: hoursAgo(12), updatedAt: hoursAgo(12) }, { silent: true });
     await created[3].update({ sharesCount: 1 }, { silent: true });
 
+    const day = (n) => new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 10);
+    const jobsData = [
+      {
+        author: 'admin', h: 3, official: true, text: 'Offre vérifiée par SenTravail ✅',
+        job: { title: 'Agent de saisie (H/F)', companyName: 'Société Sénégalaise de Logistique', location: 'Dakar', contractType: 'CDD', sector: 'Logistique & Transport',
+          salary: '150 000 FCFA / mois', deadline: day(10), applyEmail: 'rh@ssl-logistique.example',
+          description: "Au sein du service des opérations, vous assurez la saisie des bons de livraison et la mise à jour des stocks dans notre logiciel de gestion.\n\n• Saisie et contrôle des documents de transport\n• Mise à jour quotidienne des tableaux de bord\n• Archivage",
+          requirements: '• Niveau BAC minimum\n• Maîtrise d\'Excel\n• Rigueur et rapidité', benefits: 'Transport pris en charge · Mutuelle' },
+      },
+      {
+        author: 'admin', h: 26, official: true,
+        job: { title: 'Infirmier(ère) diplômé(e) d\'État', companyName: 'Clinique Les Filaos', location: 'Saint-Louis', contractType: 'CDI', sector: 'Santé',
+          deadline: day(20), applyEmail: 'recrutement@clinique-filaos.example',
+          description: 'La Clinique Les Filaos recherche un(e) infirmier(ère) pour son service de pédiatrie. Vous assurez les soins, le suivi des patients et l\'accueil des familles en lien avec l\'équipe médicale.',
+          requirements: '• Diplôme d\'État d\'infirmier\n• 2 ans d\'expérience\n• Disponibilité pour les gardes' },
+      },
+      {
+        author: 'teranga-digital', h: 4, feature: 'pending', text: 'Nous recrutons ! Partagez autour de vous 🙏',
+        job: { title: 'Développeur(se) Node.js', companyName: 'Teranga Digital', location: 'Dakar', contractType: 'CDI', sector: 'Informatique & Télécoms',
+          salary: '600 000 – 900 000 FCFA / mois', deadline: day(15), applyEmail: 'recruteur@sentravail.com',
+          description: "Rejoignez notre équipe produit pour développer des applications web utilisées par des milliers de clients au Sénégal.\n\n• Développement d'API Node.js / Express\n• Bases de données MySQL\n• Revue de code et tests",
+          requirements: '• 2 ans d\'expérience en JavaScript\n• Git, SQL\n• Esprit d\'équipe', benefits: 'Télétravail partiel · Assurance santé · Formation' },
+      },
+      {
+        author: 'teranga-digital', h: 30,
+        job: { title: 'Chargé(e) de clientèle', companyName: 'Teranga Digital', location: 'Thiès', contractType: 'CDD', sector: 'Commerce & Vente',
+          deadline: day(2), applyEmail: 'recruteur@sentravail.com',
+          description: "Vous accueillez et conseillez nos clients par téléphone et WhatsApp, traitez leurs demandes et assurez leur satisfaction.",
+          requirements: '• BAC+2\n• Excellente expression en français et en wolof' },
+      },
+      {
+        author: 'cabinet-ndiaye', h: 48,
+        job: { title: 'Comptable confirmé(e)', companyName: 'Cabinet Ndiaye & Associés', location: 'Thiès', contractType: 'CDI', sector: 'Comptabilité',
+          applyEmail: 'ousmane@cabinet-ndiaye.sn',
+          description: 'Tenue de la comptabilité d\'un portefeuille de PME, déclarations fiscales et sociales, préparation des bilans selon le SYSCOHADA révisé.',
+          requirements: '• BAC+3 en comptabilité\n• 3 ans d\'expérience\n• Maîtrise de Sage' },
+      },
+      {
+        author: 'cabinet-ndiaye', h: 24 * 20,
+        job: { title: 'Stagiaire en audit', companyName: 'Cabinet Ndiaye & Associés', location: 'Dakar', contractType: 'Stage', sector: 'Comptabilité',
+          deadline: day(-5), applyEmail: 'ousmane@cabinet-ndiaye.sn',
+          description: 'Stage de 6 mois au sein de notre pôle audit : participation aux missions de commissariat aux comptes et d\'audit contractuel.' },
+      },
+    ];
+    for (const d of jobsData) {
+      const createdAt = hoursAgo(d.h);
+      const post = await Post.create({
+        authorId: users[d.author].id, type: 'job', text: d.text || null, createdAt, updatedAt: createdAt,
+        isFeatured: !!d.official, featuredUntil: d.official ? featuredUntilDate(createdAt) : null,
+        featureStatus: d.official ? 'approved' : d.feature || 'none',
+      }, { silent: true });
+      await Job.create({ ...d.job, postId: post.id, slug: buildSlug(d.job.title, d.job.location), isOfficial: !!d.official });
+    }
+
     await refreshRecentScores(365);
-    console.log(`Seeded ${people.length} users, ${postsData.length + 1} posts. Password for all accounts: ${env.SEED_PASSWORD}`);
+    console.log(`Seeded ${people.length} users, ${postsData.length + 1} posts, ${jobsData.length} jobs. Password for all accounts: ${env.SEED_PASSWORD}`);
     console.log('  admin@sentravail.com (admin) · recruteur@sentravail.com (recruteur) · candidat@sentravail.com (candidat)');
   } catch (err) {
     console.error('Seed failed:', err);

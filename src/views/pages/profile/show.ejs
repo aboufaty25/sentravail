@@ -67,7 +67,7 @@
         </ul>
       <% } %>
     </section>
-  <% } else if (tab === 'publications' && posts.length) { %>
+  <% } else if ((tab === 'publications' || tab === 'offres') && posts.length) { %>
     <% posts.forEach(post => { %><%- include('../../partials/postCard', { post }) %><% }) %>
   <% } else { %>
     <section class="card px-4 py-10 text-center text-gray-500">

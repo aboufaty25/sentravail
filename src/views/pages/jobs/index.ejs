@@ -1,0 +1,54 @@
+<% const activeFilters = [filters.ville, filters.secteur, filters.contrat].filter(Boolean).length; %>
+<div class="space-y-2 sm:space-y-4">
+  <section class="card px-3 py-3 sm:px-4" x-data="{ open: <%= activeFilters ? 'true' : 'false' %> }">
+    <div class="flex items-center justify-between">
+      <h1 class="text-xl font-bold">Offres d'emploi</h1>
+      <% if (currentUser && currentUser.hasRole('recruiter', 'admin')) { %>
+        <a href="/offres/nouvelle" class="btn-primary !py-1.5 text-sm"><%- icon('plus', 'w-4 h-4') %> Publier</a>
+      <% } %>
+    </div>
+    <form method="get" action="/offres" class="mt-3" role="search">
+      <div class="flex gap-2">
+        <label class="relative flex-1">
+          <span class="sr-only">Métier, entreprise, mot-clé</span>
+          <span class="absolute inset-y-0 left-3 flex items-center text-gray-500"><%- icon('search', 'w-5 h-5') %></span>
+          <input name="q" type="search" value="<%= filters.q %>" placeholder="Métier, entreprise, mot-clé" class="input !rounded-full !bg-gray-100 !py-2.5 pl-10 border-transparent">
+        </label>
+        <button type="button" @click="open = !open" class="relative flex h-11 w-11 items-center justify-center rounded-full bg-gray-100 text-gray-700" aria-label="Filtres" :aria-expanded="open">
+          <%- icon('filter', 'w-5 h-5') %>
+          <% if (activeFilters) { %><span class="absolute -right-0.5 -top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-brand-600 text-[11px] font-bold text-white"><%= activeFilters %></span><% } %>
+        </button>
+      </div>
+      <div x-cloak x-show="open" x-transition class="mt-3 grid gap-2 sm:grid-cols-3">
+        <% [['ville', 'Ville', CITIES], ['secteur', 'Secteur', SECTORS], ['contrat', 'Contrat', CONTRACT_TYPES]].forEach(([name, label, options]) => { %>
+          <label><span class="sr-only"><%= label %></span>
+            <select name="<%= name %>" class="input !py-2.5" onchange="this.form.requestSubmit()">
+              <option value=""><%= label %> : toutes</option>
+              <% options.forEach(o => { %><option <%= filters[name] === o ? 'selected' : '' %>><%= o %></option><% }) %>
+            </select>
+          </label>
+        <% }) %>
+      </div>
+      <div class="-mx-1 mt-3 flex gap-2 overflow-x-auto px-1 pb-1 text-sm [scrollbar-width:none]">
+        <% CONTRACT_TYPES.forEach(c => { const on = filters.contrat === c; %>
+          <a href="/offres<%= queryString({ q: filters.q, ville: filters.ville, secteur: filters.secteur, contrat: on ? '' : c }) %>"
+            class="shrink-0 rounded-full px-3 py-1.5 font-semibold <%= on ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' %>"><%= c %></a>
+        <% }) %>
+      </div>
+    </form>
+  </section>
+
+  <p class="px-3 text-sm text-gray-600 sm:px-1">
+    <strong><%= total %></strong> offre<%= total > 1 ? 's' : '' %> disponible<%= total > 1 ? 's' : '' %>
+    <% if (filters.q || activeFilters) { %> · <a href="/offres" class="font-semibold text-brand-600 hover:underline">Effacer les filtres</a><% } %>
+  </p>
+
+  <% if (!posts.length) { %>
+    <section class="card px-4 py-10 text-center">
+      <span class="mx-auto block w-fit text-gray-400"><%- icon('briefcase', 'w-12 h-12') %></span>
+      <p class="mt-3 font-semibold">Aucune offre ne correspond à votre recherche</p>
+      <p class="mt-1 text-sm text-gray-500">Essayez d'autres mots-clés ou retirez des filtres.</p>
+    </section>
+  <% } %>
+  <div class="space-y-2 sm:space-y-4"><%- include('../../partials/jobResults') %></div>
+</div>

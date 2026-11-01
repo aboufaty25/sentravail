@@ -6,8 +6,12 @@ const { requireAuth, requireGuest } = require('../middlewares/auth');
 const { requireRole } = require('../middlewares/roles');
 const post = require('../controllers/postController');
 const comment = require('../controllers/commentController');
+const job = require('../controllers/jobController');
 const { authLimiter, postLimiter, commentLimiter, actionLimiter } = require('../middlewares/rateLimit');
 const { imageUpload, handleUploadErrors } = require('../middlewares/upload');
+
+const recruiterOnly = [requireAuth, requireRole('recruiter', 'admin')];
+const logoUpload = handleUploadErrors(imageUpload.single('companyLogo'));
 
 const router = express.Router();
 
@@ -31,7 +35,7 @@ router.post('/parametres/profil', requireAuth, profile.update);
 
 // Feed & posts
 router.get('/fil', post.feed);
-router.get('/publier', requireAuth, post.newForm);
+router.get('/publier', requireAuth, (req, res, next) => (req.query.type === 'job' ? res.redirect('/offres/nouvelle') : next()), post.newForm);
 router.post('/publier', requireAuth, postLimiter, handleUploadErrors(imageUpload.array('photos', 4)), post.create);
 router.get('/publications/:id', post.show);
 router.post('/publications/:id/supprimer', requireAuth, post.destroy);
@@ -39,6 +43,17 @@ router.post('/publications/:id/reaction', requireAuth, actionLimiter, post.react
 router.post('/publications/:id/enregistrer', requireAuth, actionLimiter, post.toggleSave);
 router.post('/publications/:id/partager', requireAuth, postLimiter, post.share);
 router.get('/enregistrements', requireAuth, post.savedList);
+
+// Jobs (static paths before /offres/:slug)
+router.get('/offres', job.index);
+router.get('/offres-a-la-une', job.sidebarFeatured);
+router.get('/offres/nouvelle', ...recruiterOnly, job.newForm);
+router.post('/offres/nouvelle', ...recruiterOnly, postLimiter, logoUpload, job.create);
+router.get('/offres/:slug', job.show);
+router.get('/offres/:slug/modifier', requireAuth, job.editForm);
+router.post('/offres/:slug/modifier', requireAuth, logoUpload, job.update);
+router.post('/offres/:slug/supprimer', requireAuth, job.destroy);
+router.get('/mes-offres', ...recruiterOnly, job.mine);
 
 // Comments
 router.get('/publications/:id/commentaires', comment.list);
@@ -49,13 +64,12 @@ router.post('/commentaires/:commentId/jaime', requireAuth, actionLimiter, commen
 // App tabs
 router.get('/menu', requireAuth, pages.menu);
 router.get('/reels', requireAuth, pages.upcoming('reels'));
-router.get('/offres', pages.upcoming('jobs'));
 router.get('/reseau', requireAuth, pages.upcoming('network'));
 router.get('/notifications', requireAuth, pages.upcoming('notifications'));
-router.get('/recherche', pages.upcoming('search'));
+// Global search (people & companies arrive in Phase 6): jobs for now.
+router.get('/recherche', (req, res) => res.redirect(`/offres${req.query.q ? `?q=${encodeURIComponent(String(req.query.q))}` : ''}`));
 router.get('/cv', requireAuth, pages.upcoming('cv'));
 router.get('/mes-candidatures', requireAuth, pages.upcoming('applications'));
-router.get('/mes-offres', requireAuth, requireRole('recruiter', 'admin'), pages.upcoming('myJobs'));
 router.get('/admin', requireAuth, requireRole('admin'), pages.upcoming('admin'));
 
 // Legal & information pages (required by AdSense)

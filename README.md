@@ -28,7 +28,7 @@ Comptes de démo (mot de passe : `SEED_PASSWORD`, par défaut `Sentravail2026!`)
 | `npm run dev` | Serveur de développement + watch Tailwind |
 | `npm start` | Production |
 | `npm run build` | Compile le CSS (à lancer avant `npm start`) |
-| `npm run db:sync` | Crée les tables manquantes (`-- --alter` pour mettre à jour les colonnes) |
+| `npm run db:sync` | Crée les tables manquantes et applique les migrations (`src/migrations`) — fait aussi automatiquement au démarrage |
 | `npm run seed` | Données de démonstration (refuse de tourner en production) |
 | `npm run scores` | Recalcule les scores du fil (à mettre en tâche Cron hPanel toutes les 15 min) |
 | `npm test` | Tests Jest + Supertest (base `DB_NAME_TEST`, vidée à chaque exécution) |
@@ -55,7 +55,7 @@ Comptes de démo (mot de passe : `SEED_PASSWORD`, par défaut `Sentravail2026!`)
 
 - [x] **Phase 1 — Socle** : projet, Tailwind, MySQL, inscription/connexion (email ou téléphone) avec choix du rôle, mot de passe oublié, layout mobile façon Facebook + desktop 3 colonnes, profil public + modification, pages légales, seed, tests
 - [x] **Phase 2 — Fil** : publications texte/photo (redimensionnées dans le navigateur avant envoi), fil classé par score avec défilement infini, réactions (appui long), commentaires et réponses, j'aime sur commentaires, partages (fil, WhatsApp, Facebook, lien), enregistrements
-- [ ] Phase 3 — Offres
+- [x] **Phase 3 — Offres** : publication d'offres (recruteurs/admin, logo), offres officielles et demandes de mise à la une, carte offre dans le fil, page `/offres/:slug` avec données structurées JobPosting, modification/suppression, recherche (mot-clé, ville, secteur, contrat), « Mes offres »
 - [ ] Phase 4 — Candidature
 - [ ] Phase 5 — Créateur de CV
 - [ ] Phase 6 — Réseau

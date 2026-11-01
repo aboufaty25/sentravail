@@ -5,6 +5,7 @@ const app = require('./app');
 const { sequelize } = require('./models');
 const { closeStore } = require('./config/session');
 const { refreshRecentScores } = require('./services/feedRanking');
+const { runMigrations } = require('./config/migrate');
 
 const SCORE_REFRESH_MS = 15 * 60 * 1000;
 
@@ -21,8 +22,9 @@ async function ensureUploadDir() {
 async function start() {
   await ensureUploadDir();
   await sequelize.authenticate();
-  // Create missing tables on boot (no destructive changes).
+  // Create missing tables on boot (no destructive changes), then apply migrations.
   await sequelize.sync();
+  await runMigrations();
   const server = http.createServer(app);
   server.listen(env.PORT, () => console.log(`SenTravail running on ${env.APP_URL} (port ${env.PORT})`));
 

@@ -43,7 +43,11 @@ app.use(
   })
 );
 app.use(compression());
-if (!env.isTest) app.use(morgan(env.isProd ? 'combined' : 'dev'));
+// Never log CSRF tokens passed in URLs.
+morgan.token('safe-url', (req) => (req.originalUrl || req.url).replace(/([?&]_csrf=)[^&]+/, '$1***'));
+if (!env.isTest) {
+  app.use(morgan(env.isProd ? ':remote-addr - [:date[clf]] ":method :safe-url" :status :res[content-length] ":user-agent"' : ':method :safe-url :status :response-time ms'));
+}
 
 const staticOpts = { maxAge: env.isProd ? '7d' : 0 };
 app.use(express.static(path.join(root, 'public'), staticOpts));

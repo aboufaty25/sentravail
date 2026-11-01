@@ -1,14 +1,25 @@
 const { Op, fn, col } = require('sequelize');
-const { Post, User, Reaction, Save } = require('../models');
+const { Post, User, Reaction, Save, Job } = require('../models');
 const env = require('../config/env');
 const { REACTIONS } = require('../config/constants');
 
 const AUTHOR_ATTRS = ['id', 'username', 'firstName', 'lastName', 'role', 'avatarUrl', 'headline', 'companyName', 'isVerified', 'isBanned'];
 
-const POST_INCLUDE = [
-  { model: User, as: 'author', attributes: AUTHOR_ATTRS },
-  { model: Post, as: 'sharedPost', include: [{ model: User, as: 'author', attributes: AUTHOR_ATTRS }] },
-];
+// Always build a fresh include tree: Sequelize mutates include definitions.
+function postInclude() {
+  return [
+    { model: User, as: 'author', attributes: AUTHOR_ATTRS },
+    { model: Job, as: 'job' },
+    {
+      model: Post,
+      as: 'sharedPost',
+      include: [
+        { model: User, as: 'author', attributes: AUTHOR_ATTRS },
+        { model: Job, as: 'job' },
+      ],
+    },
+  ];
+}
 
 
 // Who may see a post. Network/follower rules are added in Phase 6.
@@ -77,8 +88,13 @@ async function hydrate(posts, viewer) {
 async function feedPage({ viewer, page = 1, since = new Date() }) {
   const limit = env.FEED_PAGE_SIZE;
   const rows = await Post.findAll({
-    where: { ...visibleWhere(viewer), createdAt: { [Op.lte]: since } },
-    include: POST_INCLUDE,
+    where: {
+      ...visibleWhere(viewer),
+      createdAt: { [Op.lte]: since },
+      // Featured jobs are pinned separately on top of the first page.
+      [Op.not]: { type: 'job', isFeatured: true, featuredUntil: { [Op.gt]: new Date() } },
+    },
+    include: postInclude(),
     order: [['score', 'DESC'], ['id', 'DESC']],
     limit: limit + 1,
     offset: (page - 1) * limit,
@@ -90,8 +106,8 @@ async function feedPage({ viewer, page = 1, since = new Date() }) {
 
 async function findVisiblePost(id, viewer) {
   if (!/^\d+$/.test(String(id))) return null;
-  const post = await Post.findByPk(id, { include: POST_INCLUDE });
+  const post = await Post.findByPk(id, { include: postInclude() });
   return canView(post, viewer) ? post : null;
 }
 
-module.exports = { REACTIONS, POST_INCLUDE, AUTHOR_ATTRS, canView, canDelete, visibleWhere, hydrate, feedPage, findVisiblePost };
+module.exports = { REACTIONS, postInclude, AUTHOR_ATTRS, canView, canDelete, visibleWhere, hydrate, feedPage, findVisiblePost };

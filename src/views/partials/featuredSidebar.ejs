@@ -1,0 +1,14 @@
+<% if (!posts.length) { %>
+  <p class="text-sm text-gray-500">Aucune offre à la une pour le moment.</p>
+<% } %>
+<ul class="space-y-3">
+  <% posts.forEach(p => { const j = p.job; %>
+    <li class="flex gap-2.5">
+      <%- include('companyLogo', { job: j, size: 'w-10 h-10' }) %>
+      <div class="min-w-0">
+        <a href="<%= j.url %>" class="line-clamp-2 text-sm font-semibold leading-snug hover:underline"><%= j.title %></a>
+        <p class="truncate text-xs text-gray-500"><%= j.companyName %> · <%= j.location %> · <%= j.contractType %></p>
+      </div>
+    </li>
+  <% }) %>
+</ul>

@@ -3,6 +3,13 @@
 <title><%= title === 'SenTravail' ? title : `${title} | SenTravail` %></title>
 <meta name="description" content="<%= metaDescription %>">
 <meta name="theme-color" content="#1668e3">
+<% if (locals.canonical) { %><link rel="canonical" href="<%= canonical %>"><% } %>
+<meta property="og:site_name" content="SenTravail">
+<meta property="og:type" content="<%= locals.ogType || 'website' %>">
+<meta property="og:title" content="<%= title %>">
+<meta property="og:description" content="<%= metaDescription %>">
+<% if (locals.canonical) { %><meta property="og:url" content="<%= canonical %>"><% } %>
+<% if (locals.jsonLd) { %><script type="application/ld+json"><%- jsonLd %></script><% } %>
 <link rel="icon" href="/icons/logo.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/css/app.css">
 <meta name="csrf-token" content="<%= csrfToken %>">

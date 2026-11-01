@@ -1,0 +1,69 @@
+<% const left = daysLeft(job.deadline); %>
+<div class="space-y-2 pb-20 sm:space-y-4 lg:pb-0">
+  <article class="card" aria-labelledby="job-title">
+    <div class="px-4 pt-4 sm:px-6 sm:pt-6">
+      <a href="/offres" class="mb-3 inline-flex items-center gap-1 text-sm font-medium text-gray-500 hover:underline"><%- icon('arrowLeft', 'w-4 h-4') %> Toutes les offres</a>
+      <div class="flex gap-3">
+        <%- include('../../partials/companyLogo', { job, size: 'w-16 h-16' }) %>
+        <div class="min-w-0">
+          <div class="flex flex-wrap gap-1.5"><%- include('../../partials/jobBadges', { post, job }) %></div>
+          <h1 id="job-title" class="mt-1 text-2xl font-bold leading-tight"><%= job.title %></h1>
+          <p class="mt-0.5 font-medium text-gray-700"><%= job.companyName %></p>
+        </div>
+      </div>
+
+      <dl class="mt-4 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
+        <div class="rounded-lg bg-gray-50 p-2.5"><dt class="text-xs text-gray-500">Lieu</dt><dd class="font-semibold"><%= job.location %></dd></div>
+        <div class="rounded-lg bg-gray-50 p-2.5"><dt class="text-xs text-gray-500">Contrat</dt><dd class="font-semibold"><%= job.contractType %></dd></div>
+        <div class="rounded-lg bg-gray-50 p-2.5"><dt class="text-xs text-gray-500">Secteur</dt><dd class="font-semibold"><%= job.sector %></dd></div>
+        <div class="rounded-lg bg-gray-50 p-2.5"><dt class="text-xs text-gray-500">Date limite</dt>
+          <dd class="font-semibold <%= left !== null && left >= 0 && left <= 3 ? 'text-red-600' : '' %>"><%= job.deadline ? formatDate(job.deadline) : 'Non précisée' %></dd></div>
+        <% if (job.salary) { %><div class="col-span-2 rounded-lg bg-gray-50 p-2.5 sm:col-span-4"><dt class="text-xs text-gray-500">Salaire</dt><dd class="font-semibold"><%= job.salary %></dd></div><% } %>
+      </dl>
+      <p class="mt-3 text-xs text-gray-500">Publiée <%= timeAgo(post.createdAt) === "À l'instant" ? "à l'instant" : `il y a ${timeAgo(post.createdAt)}` %> par
+        <a href="/profil/<%= post.author.username %>" class="font-medium hover:underline"><%= post.author.firstName %> <%= post.author.lastName %></a> · <%= formatCount(post.viewsCount) %> vue<%= post.viewsCount > 1 ? 's' : '' %></p>
+
+      <% if (canManage) { %>
+        <div class="mt-4 flex flex-wrap items-center gap-2 rounded-lg bg-brand-50 p-3 text-sm">
+          <span class="flex-1 text-brand-800">
+            <% if (post.featureStatus === 'pending') { %>Demande de mise à la une : <strong>en attente de validation</strong>.
+            <% } else if (post.featureStatus === 'rejected') { %>Mise à la une refusée<%= post.featureRejectReason ? ` : ${post.featureRejectReason}` : '' %>.
+            <% } else if (post.isFeatured) { %>À la une jusqu'au <strong><%= formatDate(post.featuredUntil) %></strong>.
+            <% } else { %>Vous gérez cette offre.<% } %>
+          </span>
+          <a href="<%= job.url %>/modifier" class="btn-light !py-1.5 text-sm"><%- icon('pencil', 'w-4 h-4') %> Modifier</a>
+          <form action="<%= job.url %>/supprimer" method="post" onsubmit="return confirm('Supprimer définitivement cette offre ?')">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <button class="btn !py-1.5 text-sm bg-white text-red-600 hover:bg-red-50"><%- icon('trash', 'w-4 h-4') %> Supprimer</button>
+          </form>
+        </div>
+      <% } %>
+    </div>
+
+    <div class="space-y-5 px-4 py-5 sm:px-6">
+      <% if (post.text) { %><p class="whitespace-pre-line rounded-lg border-l-4 border-brand-200 pl-3 text-[15px] text-gray-700"><%- richText(post.text) %></p><% } %>
+      <section><h2 class="mb-2 text-lg font-semibold">Description du poste</h2><div class="whitespace-pre-line text-[15px] leading-relaxed text-gray-800"><%- richText(job.description) %></div></section>
+      <% if (job.requirements) { %><section><h2 class="mb-2 text-lg font-semibold">Profil recherché</h2><div class="whitespace-pre-line text-[15px] leading-relaxed text-gray-800"><%- richText(job.requirements) %></div></section><% } %>
+      <% if (job.benefits) { %><section><h2 class="mb-2 text-lg font-semibold">Avantages</h2><div class="whitespace-pre-line text-[15px] leading-relaxed text-gray-800"><%- richText(job.benefits) %></div></section><% } %>
+
+      <section id="postuler" class="scroll-mt-32 rounded-lg border border-gray-200 p-4">
+        <h2 class="text-lg font-semibold">Postuler</h2>
+        <% if (job.isExpired) { %>
+          <p class="mt-1 text-sm text-gray-600">Cette offre est clôturée depuis le <%= formatDate(job.deadline) %>.</p>
+        <% } else { %>
+          <p class="mt-1 text-sm text-gray-600">Envoyez votre candidature (CV + message) au recruteur.</p>
+          <a href="mailto:<%= job.applyEmail %>?subject=<%= encodeURIComponent(`Candidature — ${job.title} — via SenTravail`) %>" class="btn-primary mt-3 hidden w-full lg:flex">Postuler par email</a>
+        <% } %>
+        <p class="mt-3 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">⚠️ Aucun recruteur ne doit vous demander d'argent pour un emploi. Signalez toute demande de paiement.</p>
+      </section>
+    </div>
+
+    <%- include('../../partials/postSocial', { post, oob: false }) %>
+  </article>
+
+  <% if (!job.isExpired) { %>
+    <div class="fixed inset-x-0 bottom-0 z-30 border-t border-gray-200 bg-white px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] lg:hidden">
+      <a href="mailto:<%= job.applyEmail %>?subject=<%= encodeURIComponent(`Candidature — ${job.title} — via SenTravail`) %>" class="btn-primary w-full !py-3 text-base">Postuler</a>
+    </div>
+  <% } %>
+</div>

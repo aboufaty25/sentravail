@@ -111,7 +111,7 @@ async function destroy(req, res, next) {
 // ---------- Social actions (htmx: each returns the refreshed social block) ----------
 
 async function renderSocial(req, res, postId) {
-  const post = await Post.findByPk(postId, { include: posts.POST_INCLUDE });
+  const post = await Post.findByPk(postId, { include: posts.postInclude() });
   await posts.hydrate([post], req.user);
   return res.render('partials/postSocial', { layout: false, post, oob: false });
 }
@@ -194,7 +194,7 @@ async function share(req, res) {
 async function savedList(req, res) {
   const saves = await Save.findAll({
     where: { userId: req.user.id },
-    include: [{ model: Post, as: 'post', include: posts.POST_INCLUDE }],
+    include: [{ model: Post, as: 'post', include: posts.postInclude() }],
     order: [['createdAt', 'DESC']],
     limit: 50,
   });
@@ -205,7 +205,7 @@ async function savedList(req, res) {
 async function byAuthor(user, viewer, limit = 20) {
   const list = await Post.findAll({
     where: { authorId: user.id, ...posts.visibleWhere(viewer) },
-    include: posts.POST_INCLUDE,
+    include: posts.postInclude(),
     order: [['createdAt', 'DESC']],
     limit,
   });

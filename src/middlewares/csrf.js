@@ -10,7 +10,10 @@ function csrfProtection(req, res, next) {
 
   if (SAFE_METHODS.has(req.method)) return next();
 
-  const sent = (req.body && req.body._csrf) || req.get('x-csrf-token');
+  // Multipart bodies are parsed later (multer), so file-upload forms send the token in
+  // their action URL (?_csrf=…). Only accepted for multipart requests.
+  const multipartToken = req.is('multipart/form-data') ? req.query._csrf : undefined;
+  const sent = (req.body && req.body._csrf) || req.get('x-csrf-token') || multipartToken;
   const expected = req.session.csrfToken;
   if (
     typeof sent === 'string' &&

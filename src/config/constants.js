@@ -12,6 +12,8 @@ const SECTORS = [
   'Pêche', 'Ressources humaines', 'Santé', 'Sécurité', 'Services à la personne', 'Tourisme',
 ];
 
+const CONTRACT_TYPES = ['CDI', 'CDD', 'Stage', 'Freelance', 'Temps partiel', 'Journalier'];
+
 const ROLE_LABELS = { candidate: 'Candidat', recruiter: 'Recruteur', admin: 'Administrateur' };
 
 const REACTIONS = {
@@ -21,4 +23,4 @@ const REACTIONS = {
   support: { emoji: '🤝', label: 'Soutien', color: 'text-senegal-green' },
 };
 
-module.exports = { CITIES, SECTORS, ROLE_LABELS, REACTIONS };
+module.exports = { CITIES, SECTORS, CONTRACT_TYPES, ROLE_LABELS, REACTIONS };

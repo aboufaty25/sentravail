@@ -41,7 +41,7 @@ async function list(req, res, next) {
 }
 
 async function socialOob(req, postId) {
-  const post = await Post.findByPk(postId, { include: posts.POST_INCLUDE });
+  const post = await Post.findByPk(postId, { include: posts.postInclude() });
   await posts.hydrate([post], req.user);
   return post;
 }

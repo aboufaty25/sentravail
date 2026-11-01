@@ -5,6 +5,7 @@ const Reaction = require('./Reaction');
 const Comment = require('./Comment');
 const CommentLike = require('./CommentLike');
 const Save = require('./Save');
+const Job = require('./Job');
 
 const cascade = { onDelete: 'CASCADE', onUpdate: 'CASCADE' };
 
@@ -36,4 +37,7 @@ Save.belongsTo(Post, { foreignKey: 'postId', as: 'post', ...cascade });
 User.hasMany(Save, { foreignKey: 'userId', ...cascade });
 Save.belongsTo(User, { foreignKey: 'userId', ...cascade });
 
-module.exports = { sequelize, User, Post, Reaction, Comment, CommentLike, Save };
+Post.hasOne(Job, { foreignKey: 'postId', as: 'job', ...cascade });
+Job.belongsTo(Post, { foreignKey: 'postId', as: 'post', ...cascade });
+
+module.exports = { sequelize, User, Post, Reaction, Comment, CommentLike, Save, Job };

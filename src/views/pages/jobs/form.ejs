@@ -1,0 +1,66 @@
+<% const v = values; const err = errors; const action = mode === 'edit' ? `${job.url}/modifier` : '/offres/nouvelle'; %>
+<div class="card rounded-lg px-4 py-5 sm:px-6">
+  <div class="mb-4 flex items-center gap-2">
+    <a href="<%= mode === 'edit' ? job.url : '/' %>" class="icon-btn !bg-transparent" aria-label="Retour"><%- icon('arrowLeft', 'w-5 h-5') %></a>
+    <h1 class="text-xl font-semibold"><%= mode === 'edit' ? "Modifier l'offre" : "Publier une offre d'emploi" %></h1>
+  </div>
+  <% if (Object.keys(err).length) { %><p class="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">Corrigez les champs indiqués en rouge.</p><% } %>
+
+  <form method="post" action="<%= action %>?_csrf=<%= csrfToken %>" enctype="multipart/form-data" class="space-y-4" novalidate>
+    <%- include('../../partials/field', { name: 'title', label: 'Intitulé du poste *', placeholder: 'Ex. Comptable confirmé(e)', required: true }) %>
+    <div class="grid gap-4 sm:grid-cols-2">
+      <%- include('../../partials/field', { name: 'companyName', label: 'Entreprise *', autocomplete: 'organization', required: true }) %>
+      <div>
+        <label for="f-companyLogo" class="label">Logo (facultatif)</label>
+        <input id="f-companyLogo" name="companyLogo" type="file" accept="image/jpeg,image/png,image/webp" class="block w-full text-sm text-gray-600 file:mr-3 file:rounded-md file:border-0 file:bg-gray-200 file:px-3 file:py-2.5 file:font-semibold">
+      </div>
+    </div>
+    <div class="grid gap-4 sm:grid-cols-3">
+      <% [['location', 'Ville *', CITIES], ['contractType', 'Contrat *', CONTRACT_TYPES], ['sector', 'Secteur *', SECTORS]].forEach(([name, label, options]) => { %>
+        <div>
+          <label for="f-<%= name %>" class="label"><%= label %></label>
+          <select id="f-<%= name %>" name="<%= name %>" class="input <%= err[name] ? 'input-error' : '' %>" required>
+            <option value="">— Choisir —</option>
+            <% options.forEach(o => { %><option <%= v[name] === o ? 'selected' : '' %>><%= o %></option><% }) %>
+          </select>
+          <% if (err[name]) { %><p class="field-error"><%= err[name] %></p><% } %>
+        </div>
+      <% }) %>
+    </div>
+    <div class="grid gap-4 sm:grid-cols-2">
+      <%- include('../../partials/field', { name: 'salary', label: 'Salaire (facultatif)', placeholder: 'Ex. 350 000 – 450 000 FCFA / mois' }) %>
+      <%- include('../../partials/field', { name: 'deadline', type: 'date', label: 'Date limite de candidature' }) %>
+    </div>
+    <% [['description', 'Description du poste *', 8, 'Missions, responsabilités, contexte…'], ['requirements', 'Profil recherché', 5, 'Diplômes, expérience, compétences…'], ['benefits', 'Avantages', 3, 'Transport, assurance, primes…']].forEach(([name, label, rows, ph]) => { %>
+      <div>
+        <label for="f-<%= name %>" class="label"><%= label %></label>
+        <textarea id="f-<%= name %>" name="<%= name %>" rows="<%= rows %>" class="input <%= err[name] ? 'input-error' : '' %>" placeholder="<%= ph %>"><%= v[name] || '' %></textarea>
+        <% if (err[name]) { %><p class="field-error"><%= err[name] %></p><% } %>
+      </div>
+    <% }) %>
+    <%- include('../../partials/field', { name: 'applyEmail', type: 'email', label: 'Email de réception des candidatures *', autocomplete: 'email', required: true }) %>
+    <div>
+      <label for="f-text" class="label">Message d'accompagnement dans le fil (facultatif)</label>
+      <textarea id="f-text" name="text" rows="2" maxlength="2000" class="input" placeholder="Ex. Nous recrutons ! Partagez autour de vous 🙏"><%= v.text || '' %></textarea>
+    </div>
+
+    <% if (mode === 'create') { %>
+      <% if (currentUser.role === 'admin') { %>
+        <label class="flex items-start gap-3 rounded-lg border border-gray-200 p-3">
+          <input type="checkbox" name="isOfficial" class="mt-1 h-4 w-4" <%= v.isOfficial ? 'checked' : '' %>>
+          <span><span class="font-semibold">Offre officielle</span><span class="block text-sm text-gray-500">Badge « Officielle » et mise à la une immédiate pour tous les utilisateurs.</span></span>
+        </label>
+      <% } else { %>
+        <label class="flex items-start gap-3 rounded-lg border border-gray-200 p-3">
+          <input type="checkbox" name="requestFeatured" class="mt-1 h-4 w-4" <%= v.requestFeatured ? 'checked' : '' %>>
+          <span><span class="font-semibold">Demander la mise à la une</span><span class="block text-sm text-gray-500">Après validation par SenTravail, votre offre sera épinglée en haut du fil de tous les utilisateurs. En attendant, elle est visible par vous et vos abonnés.</span></span>
+        </label>
+      <% } %>
+    <% } %>
+
+    <div class="flex justify-end gap-2 pt-2">
+      <a href="<%= mode === 'edit' ? job.url : '/' %>" class="btn-light">Annuler</a>
+      <button type="submit" class="btn-primary"><%= mode === 'edit' ? 'Enregistrer' : "Publier l'offre" %></button>
+    </div>
+  </form>
+</div>

@@ -6,7 +6,8 @@
     <div class="min-w-0 flex-1 leading-tight">
       <a href="/profil/<%= a.username %>" class="font-semibold hover:underline"><%= a.firstName %> <%= a.lastName %></a>
       <% if (a.isVerified) { %><span class="inline-block align-[-2px] text-brand-600" title="Compte vérifié"><%- icon('check', 'w-4 h-4') %></span><% } %>
-      <% if (post.sharedPostId) { %><span class="text-gray-500"> a partagé une publication</span><% } %>
+      <% if (post.sharedPostId) { %><span class="text-gray-500"> a partagé <%= post.sharedPost && post.sharedPost.type === 'job' ? 'une offre' : 'une publication' %></span><% } %>
+      <% if (post.type === 'job') { %><span class="text-gray-500"> a publié une offre</span><% } %>
       <% if (a.headline || a.companyName) { %><p class="truncate text-[13px] text-gray-500"><%= a.headline || a.companyName %></p><% } %>
       <p class="flex items-center gap-1 text-[13px] text-gray-500">
         <a href="/publications/<%= post.id %>" class="hover:underline"><time datetime="<%= new Date(post.createdAt).toISOString() %>"><%= timeAgo(post.createdAt) %></time></a> ·
@@ -26,6 +27,7 @@
   </header>
 
   <%- include('postBody', { p: post }) %>
+  <% if (post.type === 'job' && post.job) { %><%- include('jobCard', { p: post }) %><% } %>
 
   <% if (post.sharedPostId) { %>
     <div class="mx-3 sm:mx-4 mb-2 overflow-hidden rounded-lg border border-gray-200">
@@ -38,6 +40,7 @@
           </div>
         </div>
         <%- include('postBody', { p: o }) %>
+        <% if (o.type === 'job' && o.job) { %><%- include('jobCard', { p: o, compact: true }) %><% } %>
       <% } else { %>
         <p class="px-3 py-4 text-sm text-gray-500">Cette publication n'est plus disponible.</p>
       <% } %>

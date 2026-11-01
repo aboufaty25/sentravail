@@ -1,16 +1,17 @@
 const { Post } = require('../models');
-const { feedPage, hydrate, POST_INCLUDE } = require('../services/posts');
+const { feedPage, hydrate, postInclude } = require('../services/posts');
+const { featuredJobs } = require('../services/jobs');
 
 async function home(req, res) {
   if (!req.user) {
     return res.render('pages/landing', { title: "SenTravail — Le réseau social de l'emploi au Sénégal", layout: 'layouts/auth', noAds: true, wide: true });
   }
   const since = new Date();
-  const { posts, hasMore } = await feedPage({ viewer: req.user, page: 1, since });
+  const [{ posts, hasMore }, featured] = await Promise.all([feedPage({ viewer: req.user, page: 1, since }), featuredJobs(req.user)]);
   // Just-published post: pin it on top for its author, once.
   const freshId = Number.parseInt(req.query.nouveau, 10);
   if (freshId) {
-    const fresh = await Post.findOne({ where: { id: freshId, authorId: req.user.id }, include: POST_INCLUDE });
+    const fresh = await Post.findOne({ where: { id: freshId, authorId: req.user.id }, include: postInclude() });
     if (fresh) {
       await hydrate([fresh], req.user);
       const rest = posts.filter((p) => p.id !== fresh.id);
@@ -18,7 +19,7 @@ async function home(req, res) {
       posts.push(fresh, ...rest);
     }
   }
-  return res.render('pages/home', { title: 'Accueil', activeTab: 'home', posts, hasMore, page: 1, since: since.getTime() });
+  return res.render('pages/home', { title: 'Accueil', activeTab: 'home', posts, featured, hasMore, page: 1, since: since.getTime() });
 }
 
 function menu(req, res) {
