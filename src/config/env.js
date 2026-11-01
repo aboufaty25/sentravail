@@ -39,6 +39,10 @@ env.isProd = env.NODE_ENV === 'production';
 env.isTest = env.NODE_ENV === 'test';
 if (env.isTest) env.DB_NAME = env.DB_NAME_TEST;
 env.cloudinaryEnabled = !!(env.CLOUDINARY_CLOUD_NAME && env.CLOUDINARY_API_KEY && env.CLOUDINARY_API_SECRET);
-env.uploadDir = env.UPLOAD_DIR || path.join(__dirname, '../../public/uploads');
+// Uploaded files must live OUTSIDE the app folder in production, otherwise a redeploy
+// from GitHub can wipe them. Default: ~/sentravail-uploads (e.g. /home/u123456789/sentravail-uploads).
+env.uploadDir =
+  env.UPLOAD_DIR ||
+  (env.isProd ? path.join(require('os').homedir(), 'sentravail-uploads') : path.join(__dirname, '../../public/uploads'));
 
 module.exports = env;

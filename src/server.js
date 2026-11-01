@@ -1,4 +1,5 @@
 const http = require('http');
+const fs = require('fs/promises');
 const env = require('./config/env');
 const app = require('./app');
 const { sequelize } = require('./models');
@@ -7,7 +8,18 @@ const { refreshRecentScores } = require('./services/feedRanking');
 
 const SCORE_REFRESH_MS = 15 * 60 * 1000;
 
+async function ensureUploadDir() {
+  try {
+    await fs.mkdir(env.uploadDir, { recursive: true });
+    await fs.access(env.uploadDir, fs.constants.W_OK);
+    console.log(`Uploads stored in ${env.uploadDir}`);
+  } catch (err) {
+    console.error(`Upload folder ${env.uploadDir} is not writable (${err.code}). Set UPLOAD_DIR to a writable folder.`);
+  }
+}
+
 async function start() {
+  await ensureUploadDir();
   await sequelize.authenticate();
   // Create missing tables on boot (no destructive changes).
   await sequelize.sync();

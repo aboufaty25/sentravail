@@ -48,7 +48,7 @@ Comptes de démo (mot de passe : `SEED_PASSWORD`, par défaut `Sentravail2026!`)
 2. hPanel → **Node.js** (offres Business / Cloud) : créer l'application, fichier d'entrée `src/server.js`, Node 20+.
 3. Variables d'environnement : copier `.env.example`, mettre `NODE_ENV=production`, un `SESSION_SECRET` long et aléatoire, `APP_URL=https://sentravail.com`, la configuration SMTP (adresse email Hostinger).
 4. Build : `npm install && npm run build`. Les tables sont créées au démarrage.
-5. **Photos** : renseigner `CLOUDINARY_*`. Sans Cloudinary, les photos sont stockées dans `public/uploads`, qui peut être effacé à chaque redéploiement.
+5. **Photos** : sans Cloudinary, elles sont stockées automatiquement dans `~/sentravail-uploads` (dossier personnel Hostinger, hors de l'application, donc conservé lors des redéploiements). Le chemin exact s'affiche dans les logs au démarrage : « Uploads stored in … ». Pensez à inclure ce dossier dans vos sauvegardes.
 6. hPanel → Avancé → **Tâches Cron** : `npm run scores` toutes les 15 minutes (le serveur le fait aussi tant qu'il est actif).
 
 ## Feuille de route
