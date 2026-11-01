@@ -21,8 +21,11 @@ function getStore() {
   return store;
 }
 
+// Single instance shared by Express and Socket.io.
+let middleware;
 function sessionMiddleware() {
-  return session({
+  if (middleware) return middleware;
+  middleware = session({
     name: 'st.sid',
     secret: env.SESSION_SECRET,
     store: getStore(),
@@ -36,6 +39,7 @@ function sessionMiddleware() {
       maxAge: 30 * 24 * 60 * 60 * 1000,
     },
   });
+  return middleware;
 }
 
 async function closeStore() {

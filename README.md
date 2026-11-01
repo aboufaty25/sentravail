@@ -53,7 +53,8 @@ Comptes de démo (mot de passe : `SEED_PASSWORD`, par défaut `Sentravail2026!`)
 6. **Réels** : les vidéos (jusqu'à 40 Mo) sont stockées dans `~/sentravail-uploads/reels`. Vérifiez que la limite de taille d'envoi de l'hébergement accepte 40 Mo. Les vidéos ne sont pas réencodées : une vidéo iPhone en HEVC peut ne pas se lire sur certains Android (réglage iPhone : Appareil photo → Formats → « Le plus compatible »).
 7. **CV** : stockés en privé dans `~/sentravail-private/cvs` (jamais accessibles publiquement, téléchargeables uniquement par lien signé). À inclure dans les sauvegardes.
 8. **SMTP** (obligatoire pour « Envoyer via SenTravail » et « Mot de passe oublié ») : hPanel → Emails → créer `no-reply@sentravail.com`, puis `SMTP_HOST=smtp.hostinger.com`, `SMTP_PORT=465`, `SMTP_SECURE=true`, `SMTP_USER` / `SMTP_PASSWORD` = cette adresse et son mot de passe.
-9. hPanel → Avancé → **Tâches Cron** : `npm run scores` toutes les 15 minutes (le serveur le fait aussi tant qu'il est actif).
+9. **Temps réel** : Socket.io utilise les WebSockets si l'hébergement les autorise, sinon des requêtes HTTP régulières (aucun réglage nécessaire). Une seule instance de l'application doit tourner (pas de mode cluster).
+10. hPanel → Avancé → **Tâches Cron** : `npm run scores` toutes les 15 minutes (le serveur le fait aussi tant qu'il est actif).
 
 ## Feuille de route
 
@@ -65,6 +66,6 @@ Comptes de démo (mot de passe : `SEED_PASSWORD`, par défaut `Sentravail2026!`)
 - [x] **Phase 6 — Réseau** : abonnements (profil, en-tête des publications, suggestions), onglet Réseau (même ville, même secteur, populaires), listes abonnés/abonnements, visibilité « Mon réseau », offres de recruteur non approuvées réservées aux abonnés sauf viralité (`VIRAL_THRESHOLD`), fil personnalisé (auteur suivi ×1,5, offre de ma ville/mon secteur ×1,3), recherche globale personnes/entreprises/offres
 - [x] **Phase 7 — Réels** : vidéos de 30 s max (MP4/MOV, 40 Mo) stockées sur le serveur, durée vérifiée dans le navigateur et côté serveur (lecture de l'en-tête MP4, sans ffmpeg), miniature générée dans le navigateur, envoi avec barre de progression, onglet Réels plein écran (lecture auto, son coupé, j'aime/commentaires/partage/abonnement), réels dans le fil (lecture auto sauf connexion lente) et sur le profil, vues comptées une fois par session
 - [x] **Phase 8 — Admin** : tableau de bord, file d'approbation des mises à la une (durée ou refus motivé), gestion des offres à la une, signalements (publications, commentaires, profils) avec masquage automatique (`REPORT_AUTOHIDE`) et modération (supprimer, suspendre, classer), gestion des utilisateurs (suspension, rôle, badge vérifié), villes et secteurs modifiables
-- [ ] Phase 9 — Notifications
+- [x] **Phase 9 — Notifications** : notifications en temps réel (Socket.io, repli automatique en long-polling), pastille de compteur, regroupement (« X et 3 autres »), page Notifications, emails pour les décisions de candidature et de mise à la une (désactivables), nouvelles offres des recruteurs suivis
 - [ ] Phase 10 — PWA, SEO, AdSense
 - [ ] Phase 11 — Production

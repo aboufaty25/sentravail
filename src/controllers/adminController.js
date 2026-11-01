@@ -9,6 +9,8 @@ const { removeLocalMedia } = require('../services/video');
 const { adjustCounter } = require('../utils/counters');
 const { refreshScore } = require('../services/feedRanking');
 const { ROLE_LABELS } = require('../config/constants');
+const notifications = require('../services/notifications');
+const { formatDate } = require('../utils/viewHelpers');
 
 const view = (res, tpl, locals) => res.render(`pages/admin/${tpl}`, { noAds: true, wide: true, ...locals });
 
@@ -86,7 +88,19 @@ async function approveFeature(req, res) {
   const n = z.coerce.number().int().min(1).max(90).catch(env.FEATURED_DAYS).parse(req.body?.days);
   const from = post.isFeatured && post.featuredUntil > new Date() ? new Date(post.featuredUntil) : new Date();
   await post.update({ isFeatured: true, featuredUntil: new Date(from.getTime() + n * 86_400_000), featureStatus: 'approved', featureRejectReason: null });
-  // Recruiter notification arrives with Phase 9.
+  if (post.authorId !== req.user.id) {
+    const until = formatDate(post.featuredUntil);
+    await notifications.notify({
+      userId: post.authorId, actorId: req.user.id, type: 'job_approved', postId: post.id,
+      data: { jobTitle: post.job.title, until, url: post.job.url },
+      email: (r) => ({
+        subject: `Votre offre « ${post.job.title} » est à la une`,
+        title: 'Votre offre est à la une 🎉',
+        lines: [`Bonjour ${r.firstName},`, `Votre offre « ${post.job.title} » est épinglée en haut du fil de tous les utilisateurs de SenTravail jusqu'au ${until}.`],
+        cta: { label: "Voir l'offre", url: `${env.APP_URL}${post.job.url}` },
+      }),
+    });
+  }
   req.flash('success', `« ${post.job.title} » est à la une pour ${n} jour${n > 1 ? 's' : ''}.`);
   return res.redirect('/admin/offres');
 }
@@ -99,6 +113,16 @@ async function rejectFeature(req, res) {
     return res.redirect('/admin/offres');
   }
   await post.update({ featureStatus: 'rejected', featureRejectReason: reason.data, isFeatured: false, featuredUntil: null });
+  await notifications.notify({
+    userId: post.authorId, actorId: req.user.id, type: 'job_rejected', postId: post.id,
+    data: { jobTitle: post.job.title, reason: reason.data, url: post.job.url },
+    email: (r) => ({
+      subject: `Mise à la une de « ${post.job.title} »`,
+      title: 'Mise à la une non retenue',
+      lines: [`Bonjour ${r.firstName},`, `Votre demande de mise à la une pour « ${post.job.title} » n'a pas été retenue.`, `Motif : ${reason.data}`, 'Votre offre reste visible par vos abonnés et dans la recherche.'],
+      cta: { label: "Voir l'offre", url: `${env.APP_URL}${post.job.url}` },
+    }),
+  });
   req.flash('success', `Mise à la une refusée pour « ${post.job.title} ».`);
   return res.redirect('/admin/offres');
 }

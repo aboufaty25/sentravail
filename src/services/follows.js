@@ -43,6 +43,7 @@ async function follow(follower, targetId) {
   }
   await adjustCounter(User, follower.id, 'followingCount', 1);
   await adjustCounter(User, targetId, 'followersCount', 1);
+  await require('./notifications').notify({ userId: targetId, actorId: follower.id, type: 'follow' });
   return true;
 }
 

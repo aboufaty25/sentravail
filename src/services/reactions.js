@@ -2,6 +2,7 @@ const { UniqueConstraintError } = require('sequelize');
 const { Post, Reaction } = require('../models');
 const { adjustCounter } = require('../utils/counters');
 const { refreshScore } = require('./feedRanking');
+const { notify } = require('./notifications');
 
 // Same type again = remove; other type = change; none = add. One reaction per user and post.
 async function toggleReaction(post, user, type) {
@@ -15,6 +16,7 @@ async function toggleReaction(post, user, type) {
     try {
       await Reaction.create({ userId: user.id, postId: post.id, type });
       await adjustCounter(Post, post.id, 'likesCount', 1);
+      await notify({ userId: post.authorId, actorId: user.id, type: 'like', postId: post.id, data: { snippet: post.text || post.job?.title || '' } });
     } catch (err) {
       if (!(err instanceof UniqueConstraintError)) throw err; // double tap: already counted
     }

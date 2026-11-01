@@ -9,6 +9,7 @@ const env = require('../config/env');
 const { isFollowing, followingAmong } = require('../services/follows');
 const { adjustCounter } = require('../utils/counters');
 const { toggleReaction } = require('../services/reactions');
+const { notify } = require('../services/notifications');
 const { removeLocalMedia } = require('../services/video');
 
 function notFound() {
@@ -182,6 +183,7 @@ async function share(req, res) {
   });
   await adjustCounter(Post, original.id, 'sharesCount', 1);
   await refreshScore(original.id);
+  await notify({ userId: original.authorId, actorId: req.user.id, type: 'share', postId: original.id, data: { snippet: original.text || original.job?.title || '' } });
   return res.status(201).json({ id: post.id, message: 'Publication partagée dans votre fil.' });
 }
 

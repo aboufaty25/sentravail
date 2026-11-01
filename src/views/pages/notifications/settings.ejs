@@ -1,0 +1,14 @@
+<div class="card rounded-lg px-4 py-5 sm:px-6">
+  <h1 class="text-xl font-semibold">Notifications par email</h1>
+  <p class="mt-1 text-sm text-gray-500">Les notifications dans l'application restent toujours actives.</p>
+  <form method="post" action="/parametres/notifications" class="mt-4 space-y-4">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <label class="flex items-start gap-3 rounded-lg border border-gray-200 p-3">
+      <input type="checkbox" name="emailNotifications" class="mt-1 h-4 w-4" <%= currentUser.emailNotifications ? 'checked' : '' %>>
+      <span><span class="font-semibold">Recevoir les emails importants</span>
+        <span class="block text-sm text-gray-500">Réponse du recruteur à vos candidatures (présélection ou refus), décision sur la mise à la une de vos offres.</span></span>
+    </label>
+    <p class="text-xs text-gray-500">Les emails de sécurité (réinitialisation du mot de passe) sont toujours envoyés.</p>
+    <button class="btn-primary">Enregistrer</button>
+  </form>
+</div>

@@ -25,7 +25,7 @@
     <nav class="hidden lg:flex flex-1 justify-center gap-1 px-6" aria-label="Navigation principale">
       <% tabs.filter(t => t.key !== 'menu').forEach(t => { %>
         <a href="<%= t.href %>" class="tab-link max-w-[110px] h-14 <%= activeTab === t.key ? 'is-active' : '' %>" title="<%= t.label %>" aria-label="<%= t.label %>" <%= activeTab === t.key ? 'aria-current=page' : '' %>>
-          <%- icon(t.icon, 'w-7 h-7') %>
+          <span class="relative"><%- icon(t.icon, 'w-7 h-7') %><% if (t.key === 'notifications') { %><span data-notif-badge class="absolute -right-1 -top-1 min-w-[20px] rounded-full bg-red-600 px-1.5 text-center text-[11px] font-bold leading-5 text-white <%= unseenNotifications ? '' : 'hidden' %>"><%= unseenNotifications > 99 ? '99+' : unseenNotifications %></span><% } %></span>
         </a>
       <% }) %>
     </nav>
@@ -34,7 +34,7 @@
       <% if (currentUser) { %>
         <a href="/publier" class="icon-btn" title="Publier" aria-label="Publier"><%- icon('plus', 'w-5 h-5') %></a>
         <a href="/recherche" class="icon-btn lg:hidden" aria-label="Rechercher"><%- icon('search', 'w-5 h-5') %></a>
-        <a href="/notifications" class="icon-btn relative" aria-label="Notifications"><%- icon('bell', 'w-5 h-5') %></a>
+        <a href="/notifications" class="icon-btn relative" aria-label="Notifications"><%- icon('bell', 'w-5 h-5') %><span data-notif-badge class="absolute -right-1 -top-1 min-w-[20px] rounded-full bg-red-600 px-1.5 text-center text-[11px] font-bold leading-5 text-white <%= unseenNotifications ? '' : 'hidden' %>"><%= unseenNotifications > 99 ? '99+' : unseenNotifications %></span></a>
         <div class="relative hidden lg:block" x-data="{ open: false }" @keydown.escape="open = false">
           <button type="button" @click="open = !open" class="block rounded-full" aria-label="Mon compte" :aria-expanded="open">
             <%- avatar(currentUser, 'w-10 h-10') %>
@@ -55,7 +55,7 @@
   <nav class="lg:hidden flex border-t border-gray-200 bg-white" aria-label="Onglets">
     <% tabs.forEach(t => { %>
       <a href="<%= t.href %>" class="tab-link <%= activeTab === t.key ? 'is-active' : '' %>" aria-label="<%= t.label %>" <%= activeTab === t.key ? 'aria-current=page' : '' %>>
-        <%- icon(t.icon, 'w-[26px] h-[26px]') %>
+        <span class="relative"><%- icon(t.icon, 'w-[26px] h-[26px]') %><% if (t.key === 'notifications') { %><span data-notif-badge class="absolute -right-1 -top-1 min-w-[20px] rounded-full bg-red-600 px-1.5 text-center text-[11px] font-bold leading-5 text-white <%= unseenNotifications ? '' : 'hidden' %>"><%= unseenNotifications > 99 ? '99+' : unseenNotifications %></span><% } %></span>
       </a>
     <% }) %>
   </nav>

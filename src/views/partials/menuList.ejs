@@ -13,7 +13,8 @@
 <% if (u.hasRole('admin')) { %>
   <a href="/admin" class="menu-item"><span class="text-brand-600"><%- icon('shield') %></span> Administration</a>
 <% } %>
-<a href="/parametres/profil" class="menu-item"><span class="text-gray-600"><%- icon('cog') %></span> Paramètres</a>
+<a href="/parametres/profil" class="menu-item"><span class="text-gray-600"><%- icon('cog') %></span> Paramètres du profil</a>
+<a href="/parametres/notifications" class="menu-item"><span class="text-gray-600"><%- icon('bell') %></span> Notifications par email</a>
 <form action="/deconnexion" method="post">
   <input type="hidden" name="_csrf" value="<%= csrfToken %>">
   <button type="submit" class="menu-item w-full text-left"><span class="text-gray-600"><%- icon('logout') %></span> Déconnexion</button>

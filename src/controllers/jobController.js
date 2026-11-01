@@ -5,6 +5,7 @@ const { fieldErrors } = require('../validators/auth');
 const jobs = require('../services/jobs');
 const posts = require('../services/posts');
 const { saveImage } = require('../services/storage');
+const notifications = require('../services/notifications');
 const { baseScore, refreshScore } = require('../services/feedRanking');
 const { adjustCounter } = require('../utils/counters');
 const { CITIES, SECTORS, CONTRACT_TYPES } = require('../config/constants');
@@ -93,6 +94,7 @@ async function create(req, res) {
     isOfficial: official,
   });
 
+  await notifications.notifyFollowersOfJob(req.user, post, job);
   req.flash(
     'success',
     post.featureStatus === 'pending'

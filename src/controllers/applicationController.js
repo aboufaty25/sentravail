@@ -6,6 +6,8 @@ const { fieldErrors } = require('../validators/auth');
 const cvStorage = require('../services/cvStorage');
 const applications = require('../services/applications');
 const jobs = require('../services/jobs');
+const notifications = require('../services/notifications');
+const env = require('../config/env');
 
 function httpError(status, message) {
   const err = new Error(message);
@@ -89,11 +91,25 @@ async function loadOwnApplication(req) {
   return app;
 }
 
+// In-app notification for the recruiter (the application itself already reached them by email).
+function notifyRecruiter(app) {
+  return notifications.notify({
+    userId: app.recruiterId,
+    actorId: app.candidateId,
+    type: 'application',
+    postId: app.jobPostId,
+    applicationId: app.id,
+    data: { jobTitle: app.jobTitle, actorName: `${app.firstName} ${app.lastName}` },
+  });
+}
+
 // "Oui, c'est envoyé"
 async function confirm(req, res) {
   const app = await loadOwnApplication(req);
-  if (app.status === 'opened_mail') await app.update({ status: 'confirmed_sent', sentVia: 'mailto', sentAt: new Date() });
-  // Recruiter notification (in-app + email) is added with the notifications system (Phase 9).
+  if (app.status === 'opened_mail') {
+    await app.update({ status: 'confirmed_sent', sentVia: 'mailto', sentAt: new Date() });
+    await notifyRecruiter(app);
+  }
   return res.json({ status: app.status, message: 'Candidature envoyée ! Retrouvez-la dans « Mes candidatures ».' });
 }
 
@@ -105,6 +121,7 @@ async function sendViaServer(req, res) {
   if (!job) throw httpError(410, "Cette offre n'existe plus.");
   await applications.sendViaServer(app, job.applyEmail);
   await app.update({ status: 'confirmed_sent', sentVia: 'server', sentAt: new Date() });
+  await notifyRecruiter(app);
   return res.json({ status: app.status, message: 'Candidature envoyée par SenTravail. Une copie vous a été envoyée par email.' });
 }
 
@@ -167,8 +184,9 @@ async function setStatus(req, res) {
   if (!canManageApplication(req, app)) throw httpError(403, "Vous ne pouvez pas modifier cette candidature.");
   const parsed = statusSchema.safeParse(req.body || {});
   if (!parsed.success) throw httpError(422, 'Statut invalide.');
+  const previous = app.status;
   await app.update({ status: parsed.data.status });
-  // Candidate notification arrives with Phase 9.
+  if (previous !== app.status) await notifyCandidate(app);
   if (req.get('HX-Request')) {
     res.set('HX-Trigger', JSON.stringify({ toast: { message: 'Statut mis à jour.' } }));
     return res.render('partials/applicationStatus', { layout: false, app, LABELS: Application.STATUS_LABELS });
@@ -229,6 +247,27 @@ async function countsByJob(postIds) {
   for (const r of rows) out[r.jobPostId] = { total: Number(r.count), fresh: 0 };
   for (const r of fresh) (out[r.jobPostId] ||= { total: 0, fresh: 0 }).fresh = Number(r.count);
   return out;
+}
+
+// Candidate: in-app (members) + email for decisions (members and guests).
+async function notifyCandidate(app) {
+  const statusLabel = Application.STATUS_LABELS[app.status].candidate;
+  const decision = app.status === 'shortlisted' || app.status === 'rejected';
+  const email = decision
+    ? {
+        subject: app.status === 'shortlisted' ? `Bonne nouvelle pour votre candidature « ${app.jobTitle} »` : `Votre candidature « ${app.jobTitle} »`,
+        title: app.status === 'shortlisted' ? 'Vous êtes présélectionné(e) !' : 'Réponse à votre candidature',
+        lines: app.status === 'shortlisted'
+          ? [`Bonjour ${app.firstName},`, `${app.companyName} a présélectionné votre candidature au poste « ${app.jobTitle} ». Le recruteur va vous contacter par email ou par téléphone.`]
+          : [`Bonjour ${app.firstName},`, `${app.companyName} n'a pas retenu votre candidature au poste « ${app.jobTitle} ». Ne vous découragez pas : de nouvelles offres sont publiées chaque jour.`],
+        cta: app.status === 'shortlisted' ? { label: 'Voir mes candidatures', url: `${env.APP_URL}/mes-candidatures` } : { label: 'Voir les offres', url: `${env.APP_URL}/offres` },
+      }
+    : null;
+  if (app.candidateId) {
+    await notifications.notify({ userId: app.candidateId, type: 'application_status', postId: app.jobPostId, applicationId: app.id, data: { jobTitle: app.jobTitle, statusLabel: statusLabel.replace(' 🎉', '') }, email: email ? () => email : null });
+  } else if (email) {
+    notifications.emailAddress(app.email, email);
+  }
 }
 
 module.exports = { apply, confirm, sendViaServer, mailto, mine, forJob, show, setStatus, downloadCv, myCv, uploadMyCv, removeMyCv, countsByJob };

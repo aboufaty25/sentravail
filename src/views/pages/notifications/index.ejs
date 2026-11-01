@@ -1,0 +1,37 @@
+<div class="space-y-2 sm:space-y-4">
+  <div class="flex items-center justify-between px-3 sm:px-0">
+    <h1 class="text-2xl font-bold">Notifications</h1>
+    <% if (items.some(i => !i.n.read)) { %>
+      <form method="post" action="/notifications/tout-lire">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <button class="text-sm font-semibold text-brand-600 hover:underline">Tout marquer comme lu</button>
+      </form>
+    <% } %>
+  </div>
+  <% if (!items.length) { %>
+    <section class="card px-4 py-10 text-center">
+      <span class="mx-auto block w-fit text-brand-600"><%- icon('bell', 'w-12 h-12') %></span>
+      <p class="mt-3 font-semibold">Aucune notification pour le moment</p>
+      <p class="mt-1 text-sm text-gray-500">Vous serez prévenu(e) des réactions, commentaires, abonnés et de l'avancement de vos candidatures.</p>
+    </section>
+  <% } else { %>
+    <ul class="card divide-y divide-gray-100 overflow-hidden" id="notification-list">
+      <% items.forEach(({ n, text, icon: emoji }) => { %>
+        <li>
+          <a href="/notifications/<%= n.id %>" class="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 <%= n.read ? '' : 'bg-brand-50/70' %>">
+            <span class="relative shrink-0">
+              <% if (n.actor) { %><%- avatar(n.actor, 'w-12 h-12', 'text-base') %><% } else { %><span class="flex h-12 w-12 items-center justify-center rounded-full bg-brand-600 text-white"><%- icon('briefcase', 'w-6 h-6') %></span><% } %>
+              <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-sm shadow" aria-hidden="true"><%= emoji %></span>
+            </span>
+            <span class="min-w-0 flex-1">
+              <span class="block text-[15px] leading-snug <%= n.read ? 'text-gray-700' : 'font-medium text-gray-900' %>"><%= text %></span>
+              <span class="mt-0.5 block text-xs <%= n.read ? 'text-gray-500' : 'font-semibold text-brand-600' %>"><%= timeAgo(n.updatedAt) %></span>
+            </span>
+            <% if (!n.read) { %><span class="mt-2 h-3 w-3 shrink-0 rounded-full bg-brand-600" aria-label="Non lue"></span><% } %>
+          </a>
+        </li>
+      <% }) %>
+    </ul>
+  <% } %>
+  <p class="px-3 text-center text-xs text-gray-500 sm:px-0"><a href="/parametres/notifications" class="hover:underline">Gérer les emails de notification</a></p>
+</div>

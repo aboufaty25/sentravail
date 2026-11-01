@@ -5,6 +5,7 @@ const posts = require('../services/posts');
 const { refreshScore } = require('../services/feedRanking');
 const { adjustCounter } = require('../utils/counters');
 const { notFound } = require('./postController');
+const { notify } = require('../services/notifications');
 
 // Fresh object each time: Sequelize mutates include definitions.
 const author = () => ({ model: User, as: 'author', attributes: posts.AUTHOR_ATTRS });
@@ -65,6 +66,13 @@ async function create(req, res, next) {
   }
 
   const comment = await Comment.create({ postId: post.id, authorId: req.user.id, text: parsed.data.text, parentCommentId: parentId });
+  await notify({ userId: post.authorId, actorId: req.user.id, type: 'comment', postId: post.id, data: { snippet: post.text || post.job?.title || '' } });
+  if (parentId) {
+    const parent = await Comment.findByPk(parentId, { attributes: ['authorId'] });
+    if (parent && parent.authorId !== post.authorId) {
+      await notify({ userId: parent.authorId, actorId: req.user.id, type: 'reply', postId: post.id, data: { snippet: parsed.data.text } });
+    }
+  }
   comment.author = req.user;
   comment.replies = [];
   await adjustCounter(Post, post.id, 'commentsCount', 1);

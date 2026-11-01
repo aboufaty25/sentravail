@@ -13,6 +13,7 @@ const { globalLimiter } = require('./middlewares/rateLimit');
 const { notFound, errorHandler } = require('./middlewares/errors');
 const viewHelpers = require('./utils/viewHelpers');
 const routes = require('./routes');
+const { unseenCount } = require('./services/notifications');
 
 const app = express();
 const root = path.join(__dirname, '..');
@@ -34,7 +35,7 @@ app.use(
         styleSrc: ["'self'", "'unsafe-inline'"],
         imgSrc: ["'self'", 'data:', 'blob:', 'https://res.cloudinary.com'],
         mediaSrc: ["'self'", 'blob:', 'https://res.cloudinary.com'],
-        connectSrc: ["'self'"],
+        connectSrc: ["'self'", env.APP_URL.replace(/^http/, 'ws')], // Socket.io
         formAction: ["'self'"],
         upgradeInsecureRequests: env.isProd ? [] : null,
       },
@@ -75,6 +76,13 @@ app.use((req, res, next) => {
     wide: false,
     builtCvName: req.session.builtCv?.name || null, // guest CV made with the builder
   });
+  next();
+});
+
+// Notification badge (logged-in HTML pages only).
+app.use(async (req, res, next) => {
+  res.locals.unseenNotifications = 0;
+  if (req.user && req.method === 'GET' && !req.get('HX-Request')) res.locals.unseenNotifications = await unseenCount(req.user.id);
   next();
 });
 

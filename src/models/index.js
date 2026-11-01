@@ -10,6 +10,7 @@ const Application = require('./Application');
 const Follow = require('./Follow');
 const Report = require('./Report');
 const RefItem = require('./RefItem');
+const Notification = require('./Notification');
 
 const cascade = { onDelete: 'CASCADE', onUpdate: 'CASCADE' };
 
@@ -59,4 +60,9 @@ Report.belongsTo(User, { foreignKey: 'reporterId', as: 'reporter', ...cascade })
 Report.belongsTo(User, { foreignKey: 'targetOwnerId', as: 'targetOwner', onDelete: 'SET NULL', onUpdate: 'CASCADE' });
 Report.belongsTo(User, { foreignKey: 'resolvedById', as: 'resolvedBy', onDelete: 'SET NULL', onUpdate: 'CASCADE' });
 
-module.exports = { sequelize, User, Post, Reaction, Comment, CommentLike, Save, Job, Application, Follow, Report, RefItem };
+Notification.belongsTo(User, { foreignKey: 'userId', as: 'recipient', ...cascade });
+Notification.belongsTo(User, { foreignKey: 'actorId', as: 'actor', ...cascade });
+Notification.belongsTo(Post, { foreignKey: 'postId', as: 'post', ...cascade });
+Notification.belongsTo(Application, { foreignKey: 'applicationId', as: 'application', ...cascade });
+
+module.exports = { sequelize, User, Post, Reaction, Comment, CommentLike, Save, Job, Application, Follow, Report, RefItem, Notification };

@@ -3,7 +3,8 @@ const fs = require('fs/promises');
 const env = require('./config/env');
 const app = require('./app');
 const { sequelize } = require('./models');
-const { closeStore } = require('./config/session');
+const { closeStore, sessionMiddleware } = require('./config/session');
+const { initSocket, closeSocket } = require('./config/socket');
 const { refreshRecentScores } = require('./services/feedRanking');
 const { runMigrations } = require('./config/migrate');
 const refs = require('./services/refs');
@@ -29,6 +30,7 @@ async function start() {
   await refs.load();
   setInterval(() => refs.load().catch(() => {}), 5 * 60 * 1000).unref();
   const server = http.createServer(app);
+  initSocket(server, sessionMiddleware());
   server.listen(env.PORT, () => console.log(`SenTravail running on ${env.APP_URL} (port ${env.PORT})`));
 
   // Feed scores decay with time: recompute them every 15 minutes (also available as `npm run scores`).
@@ -39,6 +41,7 @@ async function start() {
 
   const shutdown = async () => {
     server.close();
+    await closeSocket();
     await closeStore();
     await sequelize.close();
     process.exit(0);

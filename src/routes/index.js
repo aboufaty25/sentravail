@@ -14,6 +14,7 @@ const search = require('../controllers/searchController');
 const reel = require('../controllers/reelController');
 const report = require('../controllers/reportController');
 const admin = require('../controllers/adminController');
+const notification = require('../controllers/notificationController');
 const { authLimiter, postLimiter, commentLimiter, actionLimiter, applyLimiter, serverMailLimiter, cvBuildLimiter } = require('../middlewares/rateLimit');
 const { imageUpload, cvUpload, reelUpload, handleUploadErrors } = require('../middlewares/upload');
 
@@ -107,7 +108,11 @@ router.post('/abonnements/:id', requireAuth, actionLimiter, network.toggle);
 router.get('/abonnements/:id/bouton', requireAuth, network.button);
 router.get('/profil/:username/abonnes', (req, res, next) => network.lists(Object.assign(req, { params: { ...req.params, list: 'abonnes' } }), res, next));
 router.get('/profil/:username/abonnements', (req, res, next) => network.lists(Object.assign(req, { params: { ...req.params, list: 'abonnements' } }), res, next));
-router.get('/notifications', requireAuth, pages.upcoming('notifications'));
+router.get('/notifications', requireAuth, notification.index);
+router.post('/notifications/tout-lire', requireAuth, notification.readAll);
+router.get('/notifications/:id', requireAuth, notification.open);
+router.get('/parametres/notifications', requireAuth, notification.settings);
+router.post('/parametres/notifications', requireAuth, notification.saveSettings);
 router.get('/recherche', search.index);
 // Reports (any logged-in user)
 router.post('/signalements', requireAuth, actionLimiter, report.create);

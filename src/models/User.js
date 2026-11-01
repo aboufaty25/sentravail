@@ -60,6 +60,7 @@ User.init(
     resetTokenHash: { type: DataTypes.STRING(64) },
     resetTokenExpires: { type: DataTypes.DATE },
     lastLoginAt: { type: DataTypes.DATE },
+    emailNotifications: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
   },
   {
     sequelize,

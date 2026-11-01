@@ -54,6 +54,24 @@
     }
   }
 
+  // ---------- Real-time notifications (Socket.io; long-polling fallback if WebSockets are blocked) ----------
+  function setBadges(n) {
+    document.querySelectorAll('[data-notif-badge]').forEach((b) => {
+      b.textContent = n > 99 ? '99+' : String(n);
+      b.classList.toggle('hidden', !n);
+    });
+  }
+  document.addEventListener('DOMContentLoaded', () => {
+    if (!window.io || !document.querySelector('[data-notif-badge]')) return;
+    const socket = window.io({ withCredentials: true });
+    socket.on('notification', (d) => {
+      if (location.pathname === '/notifications') { location.reload(); return; }
+      setBadges(d.unseen);
+      toast(d.text);
+    });
+    socket.on('notification:count', (d) => setBadges(d.unseen));
+  });
+
   // ---------- Videos ----------
   // Slow or data-saving connections: no autoplay in the feed (tap to open the reel).
   function slowConnection() {
