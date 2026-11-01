@@ -1,0 +1,29 @@
+<div class="card space-y-4 px-4 py-5 sm:px-6">
+  <a href="<%= app.jobSlug ? `/mes-offres/${app.jobSlug}/candidatures` : '/mes-offres' %>" class="inline-flex items-center gap-1 text-sm font-medium text-gray-500 hover:underline"><%- icon('arrowLeft', 'w-4 h-4') %> Candidatures</a>
+  <div class="flex items-start justify-between gap-3">
+    <div>
+      <h1 class="text-2xl font-bold"><%= app.firstName %> <%= app.lastName %></h1>
+      <p class="text-sm text-gray-600">Pour « <%= app.jobTitle %> » · le <%= formatDate(app.createdAt) %></p>
+    </div>
+    <%- include('../../partials/applicationStatus', { app }) %>
+  </div>
+  <dl class="grid gap-2 text-sm sm:grid-cols-2">
+    <div class="rounded-lg bg-gray-50 p-3"><dt class="text-xs text-gray-500">Email</dt><dd><a href="mailto:<%= app.email %>" class="font-semibold text-brand-600 hover:underline"><%= app.email %></a></dd></div>
+    <div class="rounded-lg bg-gray-50 p-3"><dt class="text-xs text-gray-500">Téléphone</dt><dd><a href="tel:<%= app.phone %>" class="font-semibold text-brand-600 hover:underline"><%= app.phone %></a></dd></div>
+  </dl>
+  <% if (app.message) { %>
+    <section><h2 class="mb-1 font-semibold">Message</h2><p class="whitespace-pre-line rounded-lg bg-gray-50 p-3 text-[15px]"><%= app.message %></p></section>
+  <% } %>
+  <a href="<%= cvPath %>" class="btn-primary w-full sm:w-auto"><%- icon('document', 'w-5 h-5') %> Télécharger le CV (<%= app.cvName || 'CV' %>)</a>
+  <section>
+    <h2 class="mb-2 font-semibold">Décision</h2>
+    <div class="grid grid-cols-3 gap-2">
+      <% [['viewed', 'À étudier', 'btn-light'], ['shortlisted', 'Présélectionner', 'btn-success'], ['rejected', 'Refuser', 'btn bg-red-50 text-red-700 hover:bg-red-100']].forEach(([st, label, cls]) => { %>
+        <form method="post" action="/candidatures/<%= app.id %>/statut">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="status" value="<%= st %>">
+          <button class="<%= cls %> w-full !px-2 text-sm <%= app.status === st ? 'ring-2 ring-offset-1 ring-brand-500' : '' %>"><%= label %></button>
+        </form>
+      <% }) %>
+    </div>
+  </section>
+</div>

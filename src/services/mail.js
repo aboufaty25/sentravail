@@ -4,9 +4,9 @@ const env = require('../config/env');
 // In tests, sent messages are kept here so assertions can read them.
 const outbox = [];
 
-async function sendMail({ to, subject, text, html }) {
-  const info = await getTransporter().sendMail({ from: env.MAIL_FROM, to, subject, text, html });
-  if (env.isTest) outbox.push({ to, subject, text, html });
+async function sendMail({ to, subject, text, html, replyTo, attachments }) {
+  const info = await getTransporter().sendMail({ from: env.MAIL_FROM, to, subject, text, html, replyTo, attachments });
+  if (env.isTest) outbox.push({ to, subject, text, html, replyTo, attachments });
   else if (!env.SMTP_HOST) console.log(`[mail:dev] To: ${to} | ${subject}\n${text}`);
   return info;
 }

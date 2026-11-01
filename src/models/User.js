@@ -48,7 +48,8 @@ User.init(
     experiences: jsonColumn('experiences'),
     educations: jsonColumn('educations'),
     languages: jsonColumn('languages'),
-    cvUrl: { type: DataTypes.STRING(500) },
+    cvUrl: { type: DataTypes.STRING(500) }, // key of the imported CV (private storage)
+    cvName: { type: DataTypes.STRING(160) },
     cvBuilt: jsonColumn('cvBuilt', null),
     companyName: { type: DataTypes.STRING(120) },
     companyLogo: { type: DataTypes.STRING(500) },

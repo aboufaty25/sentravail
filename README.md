@@ -49,14 +49,16 @@ Comptes de démo (mot de passe : `SEED_PASSWORD`, par défaut `Sentravail2026!`)
 3. Variables d'environnement : copier `.env.example`, mettre `NODE_ENV=production`, un `SESSION_SECRET` long et aléatoire, `APP_URL=https://sentravail.com`, la configuration SMTP (adresse email Hostinger).
 4. Build : `npm install && npm run build`. Les tables sont créées au démarrage.
 5. **Photos** : sans Cloudinary, elles sont stockées automatiquement dans `~/sentravail-uploads` (dossier personnel Hostinger, hors de l'application, donc conservé lors des redéploiements). Le chemin exact s'affiche dans les logs au démarrage : « Uploads stored in … ». Pensez à inclure ce dossier dans vos sauvegardes.
-6. hPanel → Avancé → **Tâches Cron** : `npm run scores` toutes les 15 minutes (le serveur le fait aussi tant qu'il est actif).
+6. **CV** : stockés en privé dans `~/sentravail-private/cvs` (jamais accessibles publiquement, téléchargeables uniquement par lien signé). À inclure dans les sauvegardes.
+7. **SMTP** (obligatoire pour « Envoyer via SenTravail » et « Mot de passe oublié ») : hPanel → Emails → créer `no-reply@sentravail.com`, puis `SMTP_HOST=smtp.hostinger.com`, `SMTP_PORT=465`, `SMTP_SECURE=true`, `SMTP_USER` / `SMTP_PASSWORD` = cette adresse et son mot de passe.
+8. hPanel → Avancé → **Tâches Cron** : `npm run scores` toutes les 15 minutes (le serveur le fait aussi tant qu'il est actif).
 
 ## Feuille de route
 
 - [x] **Phase 1 — Socle** : projet, Tailwind, MySQL, inscription/connexion (email ou téléphone) avec choix du rôle, mot de passe oublié, layout mobile façon Facebook + desktop 3 colonnes, profil public + modification, pages légales, seed, tests
 - [x] **Phase 2 — Fil** : publications texte/photo (redimensionnées dans le navigateur avant envoi), fil classé par score avec défilement infini, réactions (appui long), commentaires et réponses, j'aime sur commentaires, partages (fil, WhatsApp, Facebook, lien), enregistrements
 - [x] **Phase 3 — Offres** : publication d'offres (recruteurs/admin, logo), offres officielles et demandes de mise à la une, carte offre dans le fil, page `/offres/:slug` avec données structurées JobPosting, modification/suppression, recherche (mot-clé, ville, secteur, contrat), « Mes offres »
-- [ ] Phase 4 — Candidature
+- [x] **Phase 4 — Candidature** : modal « Postuler » (pré-rempli si connecté, invités acceptés), import de CV PDF/Word stocké en privé, email `mailto:` avec lien de CV signé 90 jours, écran « Avez-vous bien envoyé l'email ? », envoi de secours par SenTravail (CV en pièce jointe + accusé au candidat), « Mes candidatures », candidatures reçues et décisions côté recruteur, page « Mon CV »
 - [ ] Phase 5 — Créateur de CV
 - [ ] Phase 6 — Réseau
 - [ ] Phase 7 — Réels

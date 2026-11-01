@@ -43,3 +43,22 @@ const actionLimiter = userLimiter({ windowMs: 60 * 1000, limit: 120, message: 'T
 module.exports.postLimiter = postLimiter;
 module.exports.commentLimiter = commentLimiter;
 module.exports.actionLimiter = actionLimiter;
+
+// Applications are open to guests: limit per IP, and stricter for server-sent emails.
+const applyLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: env.isTest ? 10000 : 15,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { error: 'Trop de candidatures envoyées. Réessayez dans une heure.' },
+});
+const serverMailLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: env.isTest ? 10000 : 5,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { error: "Trop d'envois par SenTravail. Utilisez votre messagerie ou réessayez plus tard." },
+});
+
+module.exports.applyLimiter = applyLimiter;
+module.exports.serverMailLimiter = serverMailLimiter;

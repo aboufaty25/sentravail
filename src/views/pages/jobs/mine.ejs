@@ -23,7 +23,11 @@
             <% if (p.featureStatus === 'rejected') { %><span class="rounded-full bg-red-50 px-2 py-0.5 font-semibold text-red-700">Mise à la une refusée</span><% } %>
             <span class="text-gray-500"><%= formatCount(p.viewsCount) %> vues · <%= formatCount(p.likesCount) %> réactions · <%= formatCount(p.savesCount) %> enregistrements</span>
           </div>
-          <p class="mt-1 text-xs text-gray-400">Candidatures reçues : bientôt disponible.</p>
+          <% const c = counts[p.id] || { total: 0, fresh: 0 }; %>
+          <a href="/mes-offres/<%= j.slug %>/candidatures" class="mt-2 inline-flex items-center gap-1.5 rounded-md bg-brand-50 px-2.5 py-1 text-sm font-semibold text-brand-700 hover:bg-brand-100">
+            <%- icon('inbox', 'w-4 h-4') %> <%= c.total %> candidature<%= c.total > 1 ? 's' : '' %>
+            <% if (c.fresh) { %><span class="rounded-full bg-red-600 px-1.5 text-[11px] text-white"><%= c.fresh %> nouvelle<%= c.fresh > 1 ? 's' : '' %></span><% } %>
+          </a>
         </div>
         <a href="<%= j.url %>/modifier" class="icon-btn shrink-0" aria-label="Modifier"><%- icon('pencil', 'w-4 h-4') %></a>
       </li>

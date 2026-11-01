@@ -27,7 +27,8 @@
       <% if (job.isExpired) { %>
         <span class="btn bg-gray-100 !py-2 text-gray-400" aria-disabled="true">Clôturée</span>
       <% } else { %>
-        <a href="<%= job.url %>#postuler" class="btn-primary !py-2">Postuler</a>
+        <% const applyEvt = `$dispatch('open-apply', { slug: '${job.slug}', title: ${JSON.stringify(job.title)}, company: ${JSON.stringify(job.companyName)} })`; %>
+        <a href="<%= job.url %>#postuler" class="btn-primary !py-2" @click.prevent="<%= applyEvt %>">Postuler</a>
       <% } %>
     </div>
   </div>

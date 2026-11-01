@@ -1,0 +1,35 @@
+<% const total = Object.values(counts).reduce((a, b) => a + b, 0); %>
+<div class="space-y-2 sm:space-y-4">
+  <div class="card px-4 py-4">
+    <a href="/mes-offres" class="mb-2 inline-flex items-center gap-1 text-sm font-medium text-gray-500 hover:underline"><%- icon('arrowLeft', 'w-4 h-4') %> Mes offres</a>
+    <h1 class="text-xl font-bold">Candidatures reçues</h1>
+    <p class="text-sm text-gray-600"><a href="<%= job.url %>" class="font-medium hover:underline"><%= job.title %></a> · <%= job.location %> · <%= job.contractType %></p>
+    <nav class="-mx-1 mt-3 flex gap-2 overflow-x-auto px-1 text-sm [scrollbar-width:none]" aria-label="Filtrer">
+      <a href="?" class="shrink-0 rounded-full px-3 py-1.5 font-semibold <%= !filter ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-700' %>">Toutes (<%= total %>)</a>
+      <% ['confirmed_sent', 'viewed', 'shortlisted', 'rejected', 'opened_mail'].forEach(st => { if (!counts[st]) return; %>
+        <a href="?statut=<%= st %>" class="shrink-0 rounded-full px-3 py-1.5 font-semibold <%= filter === st ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-700' %>"><%= LABELS[st].recruiter %> (<%= counts[st] %>)</a>
+      <% }) %>
+    </nav>
+  </div>
+
+  <% if (!applications.length) { %>
+    <section class="card px-4 py-10 text-center text-gray-500">Aucune candidature pour le moment. Partagez votre offre pour la faire connaître !</section>
+  <% } else { %>
+    <ul class="card divide-y divide-gray-100">
+      <% applications.forEach(a => { %>
+        <li class="flex items-center gap-3 px-4 py-3">
+          <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gray-200 font-semibold text-gray-700"><%= (a.firstName[0] + a.lastName[0]).toUpperCase() %></span>
+          <div class="min-w-0 flex-1">
+            <a href="/candidatures/<%= a.id %>" class="font-semibold hover:underline"><%= a.firstName %> <%= a.lastName %></a>
+            <p class="truncate text-sm text-gray-500"><%= a.email %> · <%= a.phone %></p>
+            <p class="text-xs text-gray-400"><%= timeAgo(a.createdAt) %></p>
+          </div>
+          <div class="flex flex-col items-end gap-1.5">
+            <%- include('../../partials/applicationStatus', { app: a }) %>
+            <a href="<%= cvLink(a) %>" class="text-sm font-semibold text-brand-600 hover:underline">CV</a>
+          </div>
+        </li>
+      <% }) %>
+    </ul>
+  <% } %>
+</div>

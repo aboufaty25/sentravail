@@ -24,6 +24,8 @@ const schema = z.object({
   CLOUDINARY_API_KEY: z.string().optional().default(''),
   CLOUDINARY_API_SECRET: z.string().optional().default(''),
   UPLOAD_DIR: z.string().optional().default(''),
+  CV_DIR: z.string().optional().default(''),
+  CV_LINK_DAYS: z.coerce.number().int().min(1).max(365).default(90),
   FEED_PAGE_SIZE: z.coerce.number().int().min(3).max(50).default(10),
   VIRAL_THRESHOLD: z.coerce.number().default(5),
   FEATURED_DAYS: z.coerce.number().int().min(1).max(90).default(7),
@@ -45,5 +47,10 @@ env.cloudinaryEnabled = !!(env.CLOUDINARY_CLOUD_NAME && env.CLOUDINARY_API_KEY &
 env.uploadDir =
   env.UPLOAD_DIR ||
   (env.isProd ? path.join(require('os').homedir(), 'sentravail-uploads') : path.join(__dirname, '../../public/uploads'));
+
+// CVs are private: never inside a publicly served folder. Downloaded via signed links only.
+env.cvDir =
+  env.CV_DIR ||
+  (env.isProd ? path.join(require('os').homedir(), 'sentravail-private', 'cvs') : path.join(__dirname, '../../storage/cvs'));
 
 module.exports = env;

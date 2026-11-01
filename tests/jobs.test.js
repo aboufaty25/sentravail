@@ -249,9 +249,9 @@ describe('Search', () => {
 describe('Featured jobs in the feed', () => {
   test('featured jobs are pinned on top of the feed, once', async () => {
     const res = await cand.agent.get('/');
-    const first = res.text.indexOf('Officielle à la une');
-    expect(first).toBeGreaterThan(-1);
-    expect(res.text.indexOf('Officielle à la une', first + 1)).toBe(-1);
+    // Count rendered job titles (the title also appears inside the Postuler button handler).
+    const titleLinks = res.text.match(/>Officielle à la une<\/a>/g) || [];
+    expect(titleLinks).toHaveLength(1);
     expect(res.text.indexOf('À la une')).toBeLessThan(res.text.indexOf('Comptable Dakar') === -1 ? Infinity : res.text.indexOf('Comptable Dakar'));
   });
 

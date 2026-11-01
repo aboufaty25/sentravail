@@ -1,0 +1,100 @@
+<%# Global "Postuler" modal. Opened with $dispatch('open-apply', { slug, title, company, pendingId? }). No ads here. %>
+<% const u = currentUser; %>
+<div x-data="applyModal(<%= JSON.stringify({
+    loggedIn: !!u,
+    profileCv: u && u.cvUrl ? (u.cvName || 'CV') : null,
+    prefill: u ? { firstName: u.firstName, lastName: u.lastName, email: u.email, phone: u.phone ? u.phone.replace('+221', '') : '' } : {},
+  }).replace(/</g, '\\u003c') %>)" @open-apply.window="show($event.detail)" @keydown.escape.window="close()">
+  <div x-cloak x-show="open" x-transition.opacity class="fixed inset-0 z-50 bg-black/50" @click="step === 'form' && close()"></div>
+  <div x-cloak x-show="open" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="translate-y-full sm:translate-y-4 sm:opacity-0" x-transition:enter-end="translate-y-0 sm:opacity-100"
+    class="fixed inset-x-0 bottom-0 z-50 flex max-h-[94vh] flex-col rounded-t-2xl bg-white shadow-2xl sm:inset-x-auto sm:left-1/2 sm:top-1/2 sm:bottom-auto sm:max-h-[90vh] sm:w-[520px] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-xl"
+    role="dialog" aria-modal="true" aria-labelledby="apply-title">
+    <div class="flex items-start gap-3 border-b border-gray-200 px-4 py-3">
+      <div class="min-w-0 flex-1">
+        <h2 id="apply-title" class="text-lg font-semibold">Postuler</h2>
+        <p class="truncate text-sm text-gray-500"><span x-text="job.title"></span> · <span x-text="job.company"></span></p>
+      </div>
+      <button type="button" @click="close()" class="icon-btn shrink-0" aria-label="Fermer"><%- icon('x', 'w-5 h-5') %></button>
+    </div>
+
+    <%# Step 1: form %>
+    <form x-show="step === 'form'" @submit.prevent="submit($el)" class="flex-1 space-y-3 overflow-y-auto px-4 py-4" novalidate>
+      <template x-if="!loggedIn">
+        <p class="rounded-md bg-brand-50 px-3 py-2 text-sm text-brand-800">Déjà inscrit ? <a href="/connexion" class="font-semibold underline">Connectez-vous</a> pour pré-remplir le formulaire et suivre vos candidatures.</p>
+      </template>
+      <div class="grid grid-cols-2 gap-2">
+        <div><label class="label" for="ap-firstName">Prénom</label><input id="ap-firstName" name="firstName" x-model="f.firstName" autocomplete="given-name" class="input" :class="errors.firstName && 'input-error'" required><p class="field-error" x-show="errors.firstName" x-text="errors.firstName"></p></div>
+        <div><label class="label" for="ap-lastName">Nom</label><input id="ap-lastName" name="lastName" x-model="f.lastName" autocomplete="family-name" class="input" :class="errors.lastName && 'input-error'" required><p class="field-error" x-show="errors.lastName" x-text="errors.lastName"></p></div>
+      </div>
+      <div><label class="label" for="ap-email">Email</label><input id="ap-email" type="email" name="email" x-model="f.email" autocomplete="email" inputmode="email" class="input" :class="errors.email && 'input-error'" required><p class="field-error" x-show="errors.email" x-text="errors.email"></p></div>
+      <div><label class="label" for="ap-phone">Téléphone</label><input id="ap-phone" type="tel" name="phone" x-model="f.phone" autocomplete="tel" inputmode="tel" placeholder="77 123 45 67" class="input" :class="errors.phone && 'input-error'" required><p class="field-error" x-show="errors.phone" x-text="errors.phone"></p></div>
+
+      <fieldset>
+        <legend class="label">Votre CV</legend>
+        <div class="space-y-2">
+          <template x-if="profileCv">
+            <label class="flex cursor-pointer items-center gap-3 rounded-lg border-2 p-3" :class="cvSource === 'profile' ? 'border-brand-600 bg-brand-50' : 'border-gray-200'">
+              <input type="radio" value="profile" x-model="cvSource" class="h-4 w-4">
+              <span class="min-w-0"><span class="block font-semibold">Utiliser mon CV</span><span class="block truncate text-sm text-gray-500" x-text="profileCv"></span></span>
+            </label>
+          </template>
+          <label class="flex cursor-pointer items-center gap-3 rounded-lg border-2 p-3" :class="cvSource === 'upload' ? 'border-brand-600 bg-brand-50' : 'border-gray-200'">
+            <input type="radio" value="upload" x-model="cvSource" class="h-4 w-4">
+            <span class="min-w-0 flex-1">
+              <span class="block font-semibold">Importer mon CV</span>
+              <span class="block truncate text-sm text-gray-500" x-text="file ? file.name : 'PDF ou Word, 5 Mo maximum'"></span>
+            </span>
+            <span class="btn-light !px-3 !py-1.5 text-sm" @click.prevent="cvSource = 'upload'; $refs.cv.click()">Choisir</span>
+            <input x-ref="cv" type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" class="sr-only" @change="pick($event)">
+          </label>
+          <div class="flex items-center gap-3 rounded-lg border-2 border-dashed border-gray-200 p-3 text-gray-400" title="Bientôt disponible">
+            <input type="radio" disabled class="h-4 w-4">
+            <span><span class="block font-semibold">Créer mon CV</span><span class="block text-sm">Créateur de CV gratuit — bientôt disponible</span></span>
+          </div>
+        </div>
+        <p class="field-error" x-show="errors.cv" x-text="errors.cv"></p>
+        <template x-if="loggedIn && profileCv && cvSource === 'upload'">
+          <label class="mt-2 flex items-center gap-2 text-sm text-gray-600"><input type="checkbox" x-model="saveToProfile" class="h-4 w-4"> Remplacer le CV de mon profil par ce fichier</label>
+        </template>
+      </fieldset>
+
+      <div><label class="label" for="ap-message">Message au recruteur (facultatif)</label>
+        <textarea id="ap-message" name="message" x-model="f.message" rows="4" maxlength="1000" class="input resize-none" placeholder="Présentez-vous en quelques lignes et dites pourquoi ce poste vous intéresse."></textarea>
+        <p class="mt-1 text-right text-xs text-gray-400"><span x-text="(f.message || '').length"></span>/1000</p></div>
+
+      <p x-show="error" x-text="error" class="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700" role="alert"></p>
+      <button type="submit" class="btn-primary w-full !py-3 text-base" :disabled="sending">
+        <span x-show="!sending">Envoyer ma candidature</span><span x-show="sending">Préparation…</span>
+      </button>
+      <p class="text-center text-xs text-gray-500">Votre messagerie va s'ouvrir avec l'email prêt à envoyer au recruteur.</p>
+    </form>
+
+    <%# Step 2: did you send it? %>
+    <div x-show="step === 'confirm'" class="px-4 py-6 text-center">
+      <span class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-brand-50 text-brand-600"><%- icon('send', 'w-7 h-7') %></span>
+      <h3 class="mt-3 text-lg font-semibold">Avez-vous bien envoyé l'email ?</h3>
+      <p class="mt-1 text-sm text-gray-600">Votre messagerie s'est ouverte avec votre candidature. Appuyez sur « Envoyer » dans l'email, puis revenez ici.</p>
+      <p x-show="error" x-text="error" class="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700" role="alert"></p>
+      <div class="mt-5 space-y-2">
+        <button type="button" class="btn-success w-full !py-3" :disabled="sending" @click="confirmSent()">Oui, c'est envoyé</button>
+        <button type="button" class="btn-light w-full" :disabled="sending" @click="reopen()">Non, réessayer</button>
+        <button type="button" class="btn-soft w-full" :disabled="sending" @click="sendViaServer()">
+          <span x-show="!sending">Envoyer via SenTravail</span><span x-show="sending">Envoi…</span>
+        </button>
+        <p class="text-xs text-gray-500">« Envoyer via SenTravail » : nous transmettons votre candidature au recruteur avec votre CV en pièce jointe.</p>
+      </div>
+    </div>
+
+    <%# Step 3: done %>
+    <div x-show="step === 'done'" class="px-4 py-8 text-center">
+      <span class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-green-100 text-green-700"><%- icon('check', 'w-8 h-8') %></span>
+      <h3 class="mt-3 text-lg font-semibold">Candidature envoyée !</h3>
+      <p class="mt-1 text-sm text-gray-600" x-text="doneMessage"></p>
+      <div class="mt-5 space-y-2">
+        <template x-if="loggedIn"><a href="/mes-candidatures" class="btn-primary w-full">Voir mes candidatures</a></template>
+        <template x-if="!loggedIn"><a href="/inscription" class="btn-primary w-full">Créer un compte pour suivre mes candidatures</a></template>
+        <button type="button" class="btn-light w-full" @click="close()">Fermer</button>
+      </div>
+    </div>
+  </div>
+</div>

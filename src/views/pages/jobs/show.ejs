@@ -1,5 +1,6 @@
-<% const left = daysLeft(job.deadline); %>
-<div class="space-y-2 pb-20 sm:space-y-4 lg:pb-0">
+<% const left = daysLeft(job.deadline);
+   const applyEvent = `$dispatch('open-apply', { slug: '${job.slug}', title: ${JSON.stringify(job.title)}, company: ${JSON.stringify(job.companyName)}${pendingApplicationId ? `, pendingId: ${pendingApplicationId}` : ''} })`; %>
+<div x-data class="space-y-2 pb-20 sm:space-y-4 lg:pb-0">
   <article class="card" aria-labelledby="job-title">
     <div class="px-4 pt-4 sm:px-6 sm:pt-6">
       <a href="/offres" class="mb-3 inline-flex items-center gap-1 text-sm font-medium text-gray-500 hover:underline"><%- icon('arrowLeft', 'w-4 h-4') %> Toutes les offres</a>
@@ -51,8 +52,12 @@
         <% if (job.isExpired) { %>
           <p class="mt-1 text-sm text-gray-600">Cette offre est clôturée depuis le <%= formatDate(job.deadline) %>.</p>
         <% } else { %>
-          <p class="mt-1 text-sm text-gray-600">Envoyez votre candidature (CV + message) au recruteur.</p>
-          <a href="mailto:<%= job.applyEmail %>?subject=<%= encodeURIComponent(`Candidature — ${job.title} — via SenTravail`) %>" class="btn-primary mt-3 hidden w-full lg:flex">Postuler par email</a>
+          <% if (canManage) { %>
+            <p class="mt-1 text-sm text-gray-600">Les candidatures arrivent à <strong><%= job.applyEmail %></strong> et dans <a href="/mes-offres/<%= job.slug %>/candidatures" class="font-semibold text-brand-600 hover:underline">la liste des candidatures</a>.</p>
+          <% } else { %>
+            <p class="mt-1 text-sm text-gray-600">Envoyez votre CV et un message au recruteur en moins d'une minute.</p>
+            <button type="button" class="btn-primary mt-3 hidden w-full lg:flex" @click="<%= applyEvent %>">Postuler</button>
+          <% } %>
         <% } %>
         <p class="mt-3 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">⚠️ Aucun recruteur ne doit vous demander d'argent pour un emploi. Signalez toute demande de paiement.</p>
       </section>
@@ -61,9 +66,9 @@
     <%- include('../../partials/postSocial', { post, oob: false }) %>
   </article>
 
-  <% if (!job.isExpired) { %>
-    <div class="fixed inset-x-0 bottom-0 z-30 border-t border-gray-200 bg-white px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] lg:hidden">
-      <a href="mailto:<%= job.applyEmail %>?subject=<%= encodeURIComponent(`Candidature — ${job.title} — via SenTravail`) %>" class="btn-primary w-full !py-3 text-base">Postuler</a>
+  <% if (!job.isExpired && !canManage) { %>
+    <div <%- pendingApplicationId ? `x-data x-init="$nextTick(() => ${escapeHtml(applyEvent)})"` : '' %> data-apply-bar class="fixed inset-x-0 bottom-0 z-30 border-t border-gray-200 bg-white px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] lg:hidden">
+      <button type="button" class="btn-primary w-full !py-3 text-base" @click="<%= applyEvent %>">Postuler</button>
     </div>
   <% } %>
 </div>

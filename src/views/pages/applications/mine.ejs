@@ -1,0 +1,33 @@
+<div class="space-y-2 sm:space-y-4">
+  <h1 class="px-3 text-2xl font-bold sm:px-0">Mes candidatures</h1>
+  <% if (!applications.length) { %>
+    <section class="card px-4 py-10 text-center">
+      <span class="mx-auto block w-fit text-brand-600"><%- icon('inbox', 'w-12 h-12') %></span>
+      <p class="mt-3 font-semibold">Vous n'avez pas encore postulé</p>
+      <p class="mt-1 text-sm text-gray-500">Trouvez une offre et appuyez sur « Postuler » : votre candidature sera suivie ici.</p>
+      <a href="/offres" class="btn-primary mt-4">Voir les offres</a>
+    </section>
+  <% } else { %>
+    <ul x-data class="card divide-y divide-gray-100">
+      <% applications.forEach(a => { %>
+        <li class="px-4 py-3">
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <% if (a.jobPostId && a.jobSlug) { %><a href="/offres/<%= a.jobSlug %>" class="font-semibold hover:underline"><%= a.jobTitle %></a>
+              <% } else { %><span class="font-semibold"><%= a.jobTitle %></span> <span class="text-xs text-gray-400">(offre retirée)</span><% } %>
+              <p class="text-sm text-gray-600"><%= a.companyName %></p>
+              <p class="text-xs text-gray-500">Le <%= formatDate(a.sentAt || a.createdAt) %><%= a.sentVia === 'server' ? ' · envoyée par SenTravail' : '' %></p>
+            </div>
+            <%- include('../../partials/applicationStatus', { app: a, audience: 'candidate' }) %>
+          </div>
+          <% if (a.status === 'opened_mail' && a.jobPostId) { %>
+            <div class="mt-2 rounded-md bg-amber-50 p-2 text-sm text-amber-800">
+              Avez-vous envoyé l'email au recruteur ?
+              <button type="button" class="ml-1 font-semibold underline" @click="$dispatch('open-apply', { slug: '<%= a.jobSlug %>', title: <%= JSON.stringify(a.jobTitle) %>, company: <%= JSON.stringify(a.companyName) %>, pendingId: <%= a.id %> })">Terminer ma candidature</button>
+            </div>
+          <% } %>
+        </li>
+      <% }) %>
+    </ul>
+  <% } %>
+</div>

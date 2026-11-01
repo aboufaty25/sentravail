@@ -1,4 +1,4 @@
-const { Post, Job, Save } = require('../models');
+const { Post, Job, Application } = require('../models');
 const env = require('../config/env');
 const { jobSchema, searchSchema } = require('../validators/job');
 const { fieldErrors } = require('../validators/auth');
@@ -113,7 +113,15 @@ async function show(req, res, next) {
   }
   await posts.hydrate([post], req.user);
   const j = post.job;
+  // Back from the mail app: reopen the "did you send it?" step for this offer.
+  let pendingApplicationId = null;
+  const mine = req.user ? { candidateId: req.user.id } : { id: req.session.applications || [] };
+  if (req.user || req.session.applications?.length) {
+    const pending = await Application.findOne({ where: { jobPostId: post.id, status: 'opened_mail', ...mine }, order: [['id', 'DESC']] });
+    if (pending) pendingApplicationId = pending.id;
+  }
   return res.render('pages/jobs/show', {
+    pendingApplicationId,
     title: `${j.title} — ${j.companyName} (${j.location})`,
     metaDescription: `${j.contractType} · ${j.location} · ${j.companyName}. ${j.description.replace(/\s+/g, ' ').slice(0, 120)}`,
     ogType: 'article',
@@ -219,7 +227,8 @@ async function mine(req, res) {
     order: [['createdAt', 'DESC']],
     limit: 100,
   });
-  res.render('pages/jobs/mine', { title: 'Mes offres', noAds: true, posts: list });
+  const counts = await require('./applicationController').countsByJob(list.map((p) => p.id));
+  res.render('pages/jobs/mine', { title: 'Mes offres', noAds: true, posts: list, counts });
 }
 
 async function byRecruiter(user, viewer) {

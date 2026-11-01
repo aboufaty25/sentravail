@@ -7,8 +7,9 @@ const { requireRole } = require('../middlewares/roles');
 const post = require('../controllers/postController');
 const comment = require('../controllers/commentController');
 const job = require('../controllers/jobController');
-const { authLimiter, postLimiter, commentLimiter, actionLimiter } = require('../middlewares/rateLimit');
-const { imageUpload, handleUploadErrors } = require('../middlewares/upload');
+const application = require('../controllers/applicationController');
+const { authLimiter, postLimiter, commentLimiter, actionLimiter, applyLimiter, serverMailLimiter } = require('../middlewares/rateLimit');
+const { imageUpload, cvUpload, handleUploadErrors } = require('../middlewares/upload');
 
 const recruiterOnly = [requireAuth, requireRole('recruiter', 'admin')];
 const logoUpload = handleUploadErrors(imageUpload.single('companyLogo'));
@@ -55,6 +56,23 @@ router.post('/offres/:slug/modifier', requireAuth, logoUpload, job.update);
 router.post('/offres/:slug/supprimer', requireAuth, job.destroy);
 router.get('/mes-offres', ...recruiterOnly, job.mine);
 
+// Applications
+const cvFile = handleUploadErrors(cvUpload.single('cv'));
+router.post('/offres/:slug/postuler', applyLimiter, cvFile, application.apply);
+router.post('/candidatures/:id/confirmer', application.confirm);
+router.post('/candidatures/:id/envoyer', serverMailLimiter, application.sendViaServer);
+router.post('/candidatures/:id/mailto', application.mailto);
+router.get('/mes-candidatures', requireAuth, application.mine);
+router.get('/mes-offres/:slug/candidatures', ...recruiterOnly, application.forJob);
+router.get('/candidatures/:id', ...recruiterOnly, application.show);
+router.post('/candidatures/:id/statut', ...recruiterOnly, application.setStatus);
+
+// CV
+router.get('/cv', requireAuth, application.myCv);
+router.post('/cv/importer', requireAuth, cvFile, application.uploadMyCv);
+router.post('/cv/retirer', requireAuth, application.removeMyCv);
+router.get('/cv/telecharger', application.downloadCv);
+
 // Comments
 router.get('/publications/:id/commentaires', comment.list);
 router.post('/publications/:id/commentaires', requireAuth, commentLimiter, comment.create);
@@ -68,8 +86,6 @@ router.get('/reseau', requireAuth, pages.upcoming('network'));
 router.get('/notifications', requireAuth, pages.upcoming('notifications'));
 // Global search (people & companies arrive in Phase 6): jobs for now.
 router.get('/recherche', (req, res) => res.redirect(`/offres${req.query.q ? `?q=${encodeURIComponent(String(req.query.q))}` : ''}`));
-router.get('/cv', requireAuth, pages.upcoming('cv'));
-router.get('/mes-candidatures', requireAuth, pages.upcoming('applications'));
 router.get('/admin', requireAuth, requireRole('admin'), pages.upcoming('admin'));
 
 // Legal & information pages (required by AdSense)

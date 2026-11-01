@@ -177,6 +177,109 @@
       },
     }));
 
+    // "Postuler": form -> opens the mail app (mailto:) -> "did you send it?" -> done.
+    Alpine.data('applyModal', (cfg) => ({
+      open: false,
+      step: 'form',
+      job: { slug: '', title: '', company: '' },
+      loggedIn: cfg.loggedIn,
+      profileCv: cfg.profileCv,
+      f: { firstName: '', lastName: '', email: '', phone: '', message: '' },
+      cvSource: cfg.profileCv ? 'profile' : 'upload',
+      saveToProfile: false,
+      file: null,
+      errors: {},
+      error: '',
+      sending: false,
+      appId: null,
+      mailto: '',
+      doneMessage: '',
+      show(d) {
+        this.job = { slug: d.slug, title: d.title, company: d.company };
+        this.errors = {};
+        this.error = '';
+        if (d.pendingId) {
+          this.appId = d.pendingId;
+          this.mailto = '';
+          this.step = 'confirm';
+        } else {
+          this.step = 'form';
+          this.f = { ...this.f, ...cfg.prefill, message: this.f.message };
+        }
+        this.open = true;
+        document.body.style.overflow = 'hidden';
+      },
+      close() {
+        this.open = false;
+        document.body.style.overflow = '';
+      },
+      pick(e) {
+        const file = e.target.files[0];
+        this.errors.cv = '';
+        if (!file) return;
+        if (!/\.(pdf|docx?)$/i.test(file.name)) { this.errors.cv = 'Le CV doit être un fichier PDF ou Word (.doc, .docx).'; return; }
+        if (file.size > 5 * 1024 * 1024) { this.errors.cv = 'Le CV doit faire moins de 5 Mo.'; return; }
+        this.file = file;
+        this.cvSource = 'upload';
+      },
+      async post(url, body) {
+        const res = await fetch(url, { method: 'POST', body, headers: { 'X-CSRF-Token': csrf(), Accept: 'application/json' } });
+        const json = await res.json().catch(() => ({}));
+        return { ok: res.ok, json };
+      },
+      async submit() {
+        this.errors = {};
+        this.error = '';
+        if (this.cvSource === 'upload' && !this.file) { this.errors.cv = 'Ajoutez votre CV (PDF ou Word, 5 Mo maximum).'; return; }
+        const data = new FormData();
+        Object.entries(this.f).forEach(([k, v]) => data.append(k, v || ''));
+        data.append('cvSource', this.cvSource);
+        if (this.saveToProfile) data.append('saveToProfile', 'on');
+        if (this.cvSource === 'upload') data.append('cv', this.file, this.file.name);
+        this.sending = true;
+        try {
+          const { ok, json } = await this.post(`/offres/${this.job.slug}/postuler`, data);
+          if (!ok) {
+            this.errors = json.errors || {};
+            this.error = json.error || (json.errors ? 'Corrigez les champs indiqués.' : 'Envoi impossible. Réessayez.');
+            return;
+          }
+          this.appId = json.id;
+          this.mailto = json.mailto;
+          this.step = 'confirm';
+          window.location.href = this.mailto; // opens the device's mail app
+        } catch (_) {
+          this.error = 'Pas de connexion internet. Réessayez.';
+        } finally {
+          this.sending = false;
+        }
+      },
+      async reopen() {
+        if (!this.mailto) {
+          const { ok, json } = await this.post(`/candidatures/${this.appId}/mailto`);
+          if (!ok) { this.error = json.error || 'Impossible de rouvrir la messagerie.'; return; }
+          this.mailto = json.mailto;
+        }
+        window.location.href = this.mailto;
+      },
+      async finish(url) {
+        this.error = '';
+        this.sending = true;
+        try {
+          const { ok, json } = await this.post(url);
+          if (!ok) { this.error = json.error || 'Une erreur est survenue. Réessayez.'; return; }
+          this.doneMessage = json.message;
+          this.step = 'done';
+        } catch (_) {
+          this.error = 'Pas de connexion internet. Réessayez.';
+        } finally {
+          this.sending = false;
+        }
+      },
+      confirmSent() { return this.finish(`/candidatures/${this.appId}/confirmer`); },
+      sendViaServer() { return this.finish(`/candidatures/${this.appId}/envoyer`); },
+    }));
+
     Alpine.data('toasts', () => ({
       items: [],
       push(d) {

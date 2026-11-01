@@ -10,16 +10,16 @@ async function home(req, res) {
   const [{ posts, hasMore }, featured] = await Promise.all([feedPage({ viewer: req.user, page: 1, since }), featuredJobs(req.user)]);
   // Just-published post: pin it on top for its author, once.
   const freshId = Number.parseInt(req.query.nouveau, 10);
+  let fresh = null;
   if (freshId) {
-    const fresh = await Post.findOne({ where: { id: freshId, authorId: req.user.id }, include: postInclude() });
-    if (fresh) {
-      await hydrate([fresh], req.user);
-      const rest = posts.filter((p) => p.id !== fresh.id);
-      posts.length = 0;
-      posts.push(fresh, ...rest);
-    }
+    fresh = await Post.findOne({ where: { id: freshId, authorId: req.user.id }, include: postInclude() });
+    if (fresh) await hydrate([fresh], req.user);
   }
-  return res.render('pages/home', { title: 'Accueil', activeTab: 'home', posts, featured, hasMore, page: 1, since: since.getTime() });
+  const feedPosts = fresh ? posts.filter((p) => p.id !== fresh.id) : posts;
+  const pinned = fresh ? featured.filter((p) => p.id !== fresh.id) : featured;
+  return res.render('pages/home', {
+    title: 'Accueil', activeTab: 'home', fresh, featured: pinned, posts: feedPosts, hasMore, page: 1, since: since.getTime(),
+  });
 }
 
 function menu(req, res) {
