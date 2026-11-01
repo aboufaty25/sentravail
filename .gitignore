@@ -1,0 +1,6 @@
+node_modules/
+.env
+public/css/app.css
+coverage/
+*.log
+.DS_Store

@@ -1,0 +1,55 @@
+{
+  "name": "sentravail",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SenTravail — le réseau social de l'emploi au Sénégal",
+  "main": "src/server.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "concurrently -k -n server,css -c blue,magenta \"nodemon --watch src --ext js,ejs,json src/server.js\" \"npm:watch:css\"",
+    "start": "node src/server.js",
+    "build": "npm run build:css",
+    "build:css": "tailwindcss -i ./src/styles/input.css -o ./public/css/app.css --minify",
+    "watch:css": "tailwindcss -i ./src/styles/input.css -o ./public/css/app.css --watch",
+    "db:sync": "node scripts/dbSync.js",
+    "seed": "node scripts/seed.js",
+    "test": "cross-env NODE_ENV=test jest --runInBand"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "setupFiles": [
+      "<rootDir>/tests/env.js"
+    ],
+    "testTimeout": 20000
+  },
+  "dependencies": {
+    "alpinejs": "^3.17.5",
+    "bcryptjs": "^3.0.3",
+    "compression": "^1.8.2",
+    "dotenv": "^18.0.9",
+    "ejs": "^7.0.2",
+    "express": "^5.3.0",
+    "express-ejs-layouts": "^2.5.1",
+    "express-mysql-session": "^3.0.3",
+    "express-rate-limit": "^8.7.2",
+    "express-session": "^1.19.0",
+    "helmet": "^8.3.0",
+    "htmx.org": "^2.0.11",
+    "morgan": "^1.12.1",
+    "mysql2": "^3.24.6",
+    "nodemailer": "^10.3.1",
+    "sanitize-html": "^2.18.1",
+    "sequelize": "^6.37.8",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.6",
+    "cross-env": "^10.1.0",
+    "jest": "^30.5.2",
+    "nodemon": "^3.1.14",
+    "supertest": "^7.3.1",
+    "tailwindcss": "^3.4.19"
+  }
+}

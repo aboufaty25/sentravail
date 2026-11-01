@@ -1,0 +1,47 @@
+<div class="card rounded-lg p-4 sm:p-6" x-data="{ role: '<%= values.role === 'recruiter' ? 'recruiter' : 'candidate' %>' }">
+  <h1 class="text-xl font-semibold">Créer un compte</h1>
+  <p class="mb-4 text-sm text-gray-500">C'est gratuit et rapide.</p>
+  <form method="post" action="/inscription" class="space-y-3" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+    <fieldset>
+      <legend class="label">Je suis</legend>
+      <div class="grid grid-cols-2 gap-2">
+        <label class="cursor-pointer rounded-lg border-2 p-3 text-center transition" :class="role === 'candidate' ? 'border-brand-600 bg-brand-50' : 'border-gray-200'">
+          <input type="radio" name="role" value="candidate" x-model="role" class="sr-only" <%= values.role !== 'recruiter' ? 'checked' : '' %>>
+          <span class="mx-auto mb-1 block w-fit text-brand-600"><%- icon('user', 'w-7 h-7') %></span>
+          <span class="block font-semibold">Candidat</span>
+          <span class="block text-xs text-gray-500">Je cherche un emploi</span>
+        </label>
+        <label class="cursor-pointer rounded-lg border-2 p-3 text-center transition" :class="role === 'recruiter' ? 'border-brand-600 bg-brand-50' : 'border-gray-200'">
+          <input type="radio" name="role" value="recruiter" x-model="role" class="sr-only" <%= values.role === 'recruiter' ? 'checked' : '' %>>
+          <span class="mx-auto mb-1 block w-fit text-brand-600"><%- icon('building', 'w-7 h-7') %></span>
+          <span class="block font-semibold">Recruteur</span>
+          <span class="block text-xs text-gray-500">Je publie des offres</span>
+        </label>
+      </div>
+      <% if (errors.role) { %><p class="field-error"><%= errors.role %></p><% } %>
+    </fieldset>
+
+    <div class="grid grid-cols-2 gap-2">
+      <%- include('../../partials/field', { name: 'firstName', label: 'Prénom', placeholder: 'Prénom', autocomplete: 'given-name', required: true }) %>
+      <%- include('../../partials/field', { name: 'lastName', label: 'Nom', placeholder: 'Nom', autocomplete: 'family-name', required: true }) %>
+    </div>
+    <div x-show="role === 'recruiter'" x-cloak>
+      <%- include('../../partials/field', { name: 'companyName', label: "Nom de l'entreprise", placeholder: 'Nom de votre entreprise', autocomplete: 'organization' }) %>
+    </div>
+    <%- include('../../partials/field', { name: 'email', type: 'email', label: 'Email', placeholder: 'vous@exemple.com', autocomplete: 'email', required: true, inputmode: 'email' }) %>
+    <%- include('../../partials/field', { name: 'phone', type: 'tel', label: 'Téléphone (facultatif)', placeholder: '77 123 45 67', autocomplete: 'tel', inputmode: 'tel' }) %>
+    <%- include('../../partials/field', { name: 'password', type: 'password', label: 'Mot de passe', placeholder: '8 caractères minimum', autocomplete: 'new-password', required: true }) %>
+    <%- include('../../partials/field', { name: 'passwordConfirm', type: 'password', label: 'Confirmer le mot de passe', autocomplete: 'new-password', required: true }) %>
+
+    <label class="flex items-start gap-2 text-sm text-gray-600">
+      <input type="checkbox" name="acceptTerms" class="mt-1 h-4 w-4 rounded border-gray-300" <%= values.acceptTerms ? 'checked' : '' %>>
+      <span>J'accepte les <a href="/conditions" class="text-brand-600 hover:underline" target="_blank">conditions d'utilisation</a> et la <a href="/confidentialite" class="text-brand-600 hover:underline" target="_blank">politique de confidentialité</a>.</span>
+    </label>
+    <% if (errors.acceptTerms) { %><p class="field-error"><%= errors.acceptTerms %></p><% } %>
+
+    <button type="submit" class="btn-success w-full !py-3 text-lg">S'inscrire</button>
+  </form>
+  <p class="mt-4 text-center text-sm">Vous avez déjà un compte ? <a href="/connexion" class="font-semibold text-brand-600 hover:underline">Se connecter</a></p>
+</div>

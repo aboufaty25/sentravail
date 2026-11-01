@@ -1,0 +1,63 @@
+<%
+  const tabs = [
+    { key: 'home', href: '/', icon: 'home', label: 'Accueil' },
+    { key: 'reels', href: '/reels', icon: 'play', label: 'Réels' },
+    { key: 'jobs', href: '/offres', icon: 'briefcase', label: 'Offres' },
+    { key: 'network', href: '/reseau', icon: 'users', label: 'Réseau' },
+    { key: 'notifications', href: '/notifications', icon: 'bell', label: 'Notifications' },
+    { key: 'menu', href: '/menu', icon: 'menu', label: 'Menu' },
+  ];
+%>
+<header id="app-header" class="app-header sticky top-0 z-40 bg-white shadow-sm">
+  <div class="mx-auto flex h-14 max-w-[1280px] items-center gap-2 px-3 lg:px-4">
+    <a href="/" class="flex items-center gap-2 shrink-0" aria-label="SenTravail — Accueil">
+      <img src="/icons/logo.svg" alt="" class="hidden lg:block w-10 h-10">
+      <span class="lg:hidden text-[26px] font-extrabold tracking-tight text-brand-600">sentravail</span>
+    </a>
+    <form action="/recherche" method="get" class="hidden lg:block w-60" role="search">
+      <label class="relative block">
+        <span class="sr-only">Rechercher sur SenTravail</span>
+        <span class="absolute inset-y-0 left-3 flex items-center text-gray-500"><%- icon('search', 'w-4 h-4') %></span>
+        <input name="q" type="search" placeholder="Rechercher sur SenTravail" class="w-full rounded-full bg-gray-100 py-2 pl-9 pr-3 text-[15px] focus:outline-none focus:ring-2 focus:ring-brand-200">
+      </label>
+    </form>
+
+    <nav class="hidden lg:flex flex-1 justify-center gap-1 px-6" aria-label="Navigation principale">
+      <% tabs.filter(t => t.key !== 'menu').forEach(t => { %>
+        <a href="<%= t.href %>" class="tab-link max-w-[110px] h-14 <%= activeTab === t.key ? 'is-active' : '' %>" title="<%= t.label %>" aria-label="<%= t.label %>" <%= activeTab === t.key ? 'aria-current=page' : '' %>>
+          <%- icon(t.icon, 'w-7 h-7') %>
+        </a>
+      <% }) %>
+    </nav>
+
+    <div class="ml-auto flex items-center gap-2">
+      <% if (currentUser) { %>
+        <a href="/publier" class="icon-btn" title="Publier" aria-label="Publier"><%- icon('plus', 'w-5 h-5') %></a>
+        <a href="/recherche" class="icon-btn lg:hidden" aria-label="Rechercher"><%- icon('search', 'w-5 h-5') %></a>
+        <a href="/notifications" class="icon-btn relative" aria-label="Notifications"><%- icon('bell', 'w-5 h-5') %></a>
+        <div class="relative hidden lg:block" x-data="{ open: false }" @keydown.escape="open = false">
+          <button type="button" @click="open = !open" class="block rounded-full" aria-label="Mon compte" :aria-expanded="open">
+            <%- avatar(currentUser, 'w-10 h-10') %>
+          </button>
+          <div x-cloak x-show="open" @click.outside="open = false" x-transition.origin.top.right class="absolute right-0 mt-2 w-80 rounded-lg bg-white p-2 shadow-xl ring-1 ring-black/5">
+            <%- include('menuList', { compact: true }) %>
+          </div>
+        </div>
+      <% } else { %>
+        <a href="/recherche" class="icon-btn lg:hidden" aria-label="Rechercher"><%- icon('search', 'w-5 h-5') %></a>
+        <a href="/connexion" class="btn-light !py-2 text-sm">Connexion</a>
+        <a href="/inscription" class="btn-primary !py-2 text-sm hidden sm:inline-flex">S'inscrire</a>
+      <% } %>
+    </div>
+  </div>
+
+  <% if (currentUser) { %>
+  <nav class="lg:hidden flex border-t border-gray-200 bg-white" aria-label="Onglets">
+    <% tabs.forEach(t => { %>
+      <a href="<%= t.href %>" class="tab-link <%= activeTab === t.key ? 'is-active' : '' %>" aria-label="<%= t.label %>" <%= activeTab === t.key ? 'aria-current=page' : '' %>>
+        <%- icon(t.icon, 'w-[26px] h-[26px]') %>
+      </a>
+    <% }) %>
+  </nav>
+  <% } %>
+</header>

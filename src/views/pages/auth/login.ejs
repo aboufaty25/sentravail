@@ -1,0 +1,13 @@
+<div class="card rounded-lg p-4 sm:p-6">
+  <h1 class="mb-4 text-center text-xl font-semibold">Connexion à SenTravail</h1>
+  <% if (errors._form) { %><div class="mb-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700" role="alert"><%= errors._form %></div><% } %>
+  <form method="post" action="/connexion" class="space-y-3" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <%- include('../../partials/field', { name: 'identifier', label: 'Email ou numéro de téléphone', placeholder: 'Email ou numéro de téléphone', srOnly: true, autocomplete: 'username', required: true }) %>
+    <%- include('../../partials/field', { name: 'password', type: 'password', label: 'Mot de passe', placeholder: 'Mot de passe', srOnly: true, autocomplete: 'current-password', required: true }) %>
+    <button type="submit" class="btn-primary w-full !py-3 text-lg">Se connecter</button>
+  </form>
+  <p class="mt-4 text-center"><a href="/mot-de-passe-oublie" class="text-sm text-brand-600 hover:underline">Mot de passe oublié ?</a></p>
+  <hr class="my-5 border-gray-200">
+  <div class="text-center"><a href="/inscription" class="btn-success !py-3 px-6">Créer un nouveau compte</a></div>
+</div>

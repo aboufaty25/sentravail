@@ -1,0 +1,22 @@
+<div class="card overflow-hidden">
+  <div class="h-16 bg-gradient-to-r from-brand-600 to-senegal-green"></div>
+  <div class="-mt-8 px-4 pb-4 text-center">
+    <a href="/profil/<%= currentUser.username %>" class="inline-block rounded-full ring-4 ring-white"><%- avatar(currentUser, 'w-16 h-16', 'text-xl') %></a>
+    <a href="/profil/<%= currentUser.username %>" class="mt-2 block font-semibold hover:underline"><%= currentUser.fullName %></a>
+    <p class="text-sm text-gray-500"><%= currentUser.headline || roleLabel(currentUser.role) %></p>
+  </div>
+  <div class="border-t border-gray-100 px-4 py-3 text-sm flex justify-between">
+    <span class="text-gray-500">Abonnés</span><span class="font-semibold text-brand-600"><%= formatCount(currentUser.followersCount) %></span>
+  </div>
+  <div class="border-t border-gray-100 px-4 py-3 text-sm flex justify-between">
+    <span class="text-gray-500">Abonnements</span><span class="font-semibold text-brand-600"><%= formatCount(currentUser.followingCount) %></span>
+  </div>
+</div>
+<nav class="card mt-3 p-2" aria-label="Raccourcis">
+  <a href="/cv" class="menu-item"><span class="text-brand-600"><%- icon('document') %></span> Mon CV</a>
+  <a href="/mes-candidatures" class="menu-item"><span class="text-brand-600"><%- icon('inbox') %></span> Mes candidatures</a>
+  <a href="/enregistrements" class="menu-item"><span class="text-brand-600"><%- icon('bookmark') %></span> Enregistrements</a>
+  <% if (currentUser.hasRole('recruiter', 'admin')) { %>
+    <a href="/mes-offres" class="menu-item"><span class="text-brand-600"><%- icon('briefcase') %></span> Mes offres</a>
+  <% } %>
+</nav>

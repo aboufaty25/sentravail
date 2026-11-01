@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <%- include('../partials/head') %>
+</head>
+<body class="min-h-screen" hx-headers='{"X-CSRF-Token": "<%= csrfToken %>"}'>
+  <main id="main" class="mx-auto w-full <%= wide ? 'max-w-5xl' : 'max-w-md' %> px-4 py-8 sm:py-12">
+    <% if (!wide) { %>
+      <a href="/" class="mb-6 block text-center text-[40px] font-extrabold tracking-tight text-brand-600" aria-label="SenTravail — Accueil">sentravail</a>
+    <% } %>
+    <%- include('../partials/flash') %>
+    <%- body %>
+  </main>
+  <footer class="pb-8 text-center text-xs text-gray-500 space-x-2">
+    <a href="/a-propos" class="hover:underline">À propos</a>
+    <a href="/contact" class="hover:underline">Contact</a>
+    <a href="/confidentialite" class="hover:underline">Confidentialité</a>
+    <a href="/conditions" class="hover:underline">Conditions</a>
+    <span>SenTravail © <%= new Date().getFullYear() %></span>
+  </footer>
+  <%- script %>
+</body>
+</html>

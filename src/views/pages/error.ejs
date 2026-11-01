@@ -1,0 +1,6 @@
+<div class="card rounded-lg p-6 text-center">
+  <p class="text-5xl font-extrabold text-brand-600"><%= status %></p>
+  <h1 class="mt-2 text-lg font-semibold"><%= status === 404 ? 'Page introuvable' : status === 403 ? 'Accès refusé' : 'Oups…' %></h1>
+  <p class="mt-2 text-gray-600"><%= message %></p>
+  <a href="/" class="btn-primary mt-5">Retour à l'accueil</a>
+</div>

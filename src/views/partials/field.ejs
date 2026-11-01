@@ -1,0 +1,14 @@
+<%
+  const fType = locals.type || 'text';
+  const fValue = (locals.values && values[name]) || '';
+  const fError = locals.errors && errors[name];
+%>
+<div>
+  <label for="f-<%= name %>" class="<%= locals.srOnly ? 'sr-only' : 'label' %>"><%= label %></label>
+  <input id="f-<%= name %>" name="<%= name %>" type="<%= fType %>" value="<%= fType === 'password' ? '' : fValue %>"
+    class="input <%= fError ? 'input-error' : '' %>" placeholder="<%= locals.placeholder || '' %>"
+    <%= locals.autocomplete ? `autocomplete=${autocomplete}` : '' %> <%= locals.required ? 'required' : '' %>
+    <%= locals.inputmode ? `inputmode=${inputmode}` : '' %> <%= fError ? 'aria-invalid=true' : '' %>
+    <%= fError ? `aria-describedby=e-${name}` : '' %>>
+  <% if (fError) { %><p id="e-<%= name %>" class="field-error"><%= fError %></p><% } %>
+</div>

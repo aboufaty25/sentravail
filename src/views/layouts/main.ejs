@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <%- include('../partials/head') %>
+</head>
+<body hx-headers='{"X-CSRF-Token": "<%= csrfToken %>"}'>
+  <a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:bg-white focus:p-2">Aller au contenu</a>
+  <%- include('../partials/navbar') %>
+
+  <div class="mx-auto max-w-[1280px] lg:grid lg:grid-cols-[280px_minmax(0,1fr)_320px] lg:gap-6 lg:px-4 pt-2 sm:pt-4 pb-16">
+    <aside class="hidden lg:block">
+      <div class="sticky top-[72px]">
+        <% if (currentUser) { %><%- include('../partials/leftSidebar') %><% } %>
+      </div>
+    </aside>
+
+    <main id="main" class="mx-auto w-full max-w-[640px] min-w-0">
+      <%- include('../partials/flash') %>
+      <%- body %>
+    </main>
+
+    <aside class="hidden lg:block">
+      <div class="sticky top-[72px]"><%- include('../partials/rightSidebar') %></div>
+    </aside>
+  </div>
+  <%- script %>
+</body>
+</html>
