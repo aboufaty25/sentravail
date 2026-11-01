@@ -3,6 +3,7 @@
 <div x-data="applyModal(<%= JSON.stringify({
     loggedIn: !!u,
     profileCv: u && u.cvUrl ? (u.cvName || 'CV') : null,
+    builtCv: !u && builtCvName ? builtCvName : null,
     prefill: u ? { firstName: u.firstName, lastName: u.lastName, email: u.email, phone: u.phone ? u.phone.replace('+221', '') : '' } : {},
   }).replace(/</g, '\\u003c') %>)" @open-apply.window="show($event.detail)" @keydown.escape.window="close()">
   <div x-cloak x-show="open" x-transition.opacity class="fixed inset-0 z-50 bg-black/50" @click="step === 'form' && close()"></div>
@@ -38,6 +39,12 @@
               <span class="min-w-0"><span class="block font-semibold">Utiliser mon CV</span><span class="block truncate text-sm text-gray-500" x-text="profileCv"></span></span>
             </label>
           </template>
+          <template x-if="builtCv">
+            <label class="flex cursor-pointer items-center gap-3 rounded-lg border-2 p-3" :class="cvSource === 'built' ? 'border-brand-600 bg-brand-50' : 'border-gray-200'">
+              <input type="radio" value="built" x-model="cvSource" class="h-4 w-4">
+              <span class="min-w-0"><span class="block font-semibold">Utiliser le CV que j'ai créé</span><span class="block truncate text-sm text-gray-500" x-text="builtCv"></span></span>
+            </label>
+          </template>
           <label class="flex cursor-pointer items-center gap-3 rounded-lg border-2 p-3" :class="cvSource === 'upload' ? 'border-brand-600 bg-brand-50' : 'border-gray-200'">
             <input type="radio" value="upload" x-model="cvSource" class="h-4 w-4">
             <span class="min-w-0 flex-1">
@@ -47,10 +54,11 @@
             <span class="btn-light !px-3 !py-1.5 text-sm" @click.prevent="cvSource = 'upload'; $refs.cv.click()">Choisir</span>
             <input x-ref="cv" type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" class="sr-only" @change="pick($event)">
           </label>
-          <div class="flex items-center gap-3 rounded-lg border-2 border-dashed border-gray-200 p-3 text-gray-400" title="Bientôt disponible">
-            <input type="radio" disabled class="h-4 w-4">
-            <span><span class="block font-semibold">Créer mon CV</span><span class="block text-sm">Créateur de CV gratuit — bientôt disponible</span></span>
-          </div>
+
+          <button type="button" @click="createCv()" class="flex w-full items-center gap-3 rounded-lg border-2 border-dashed border-gray-300 p-3 text-left hover:border-brand-500 hover:bg-brand-50">
+            <span class="text-brand-600"><%- icon('pencil', 'w-5 h-5') %></span>
+            <span><span class="block font-semibold">Créer mon CV</span><span class="block text-sm text-gray-500" x-text="profileCv || builtCv ? 'Modifier ou recréer mon CV gratuitement' : 'Gratuit, en quelques minutes, puis retour ici'"></span></span>
+          </button>
         </div>
         <p class="field-error" x-show="errors.cv" x-text="errors.cv"></p>
         <template x-if="loggedIn && profileCv && cvSource === 'upload'">

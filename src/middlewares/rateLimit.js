@@ -62,3 +62,12 @@ const serverMailLimiter = rateLimit({
 
 module.exports.applyLimiter = applyLimiter;
 module.exports.serverMailLimiter = serverMailLimiter;
+
+// CV builder is open to guests: limit PDF generation and photo uploads per IP.
+module.exports.cvBuildLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: env.isTest ? 10000 : 40,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { error: 'Trop de tentatives. Réessayez dans une heure.' },
+});

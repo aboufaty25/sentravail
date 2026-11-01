@@ -59,7 +59,7 @@ app.use('/vendor/alpine', express.static(path.join(root, 'node_modules/alpinejs/
 
 app.use(globalLimiter);
 app.use(express.urlencoded({ extended: false, limit: '100kb' }));
-app.use(express.json({ limit: '100kb' }));
+app.use(express.json({ limit: '200kb' }));
 app.use(sessionMiddleware());
 app.use(flash);
 app.use(csrfProtection);
@@ -73,6 +73,7 @@ app.use((req, res, next) => {
     activeTab: null,
     noAds: false,
     wide: false,
+    builtCvName: req.session.builtCv?.name || null, // guest CV made with the builder
   });
   next();
 });

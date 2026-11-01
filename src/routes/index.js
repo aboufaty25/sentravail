@@ -8,7 +8,8 @@ const post = require('../controllers/postController');
 const comment = require('../controllers/commentController');
 const job = require('../controllers/jobController');
 const application = require('../controllers/applicationController');
-const { authLimiter, postLimiter, commentLimiter, actionLimiter, applyLimiter, serverMailLimiter } = require('../middlewares/rateLimit');
+const cv = require('../controllers/cvController');
+const { authLimiter, postLimiter, commentLimiter, actionLimiter, applyLimiter, serverMailLimiter, cvBuildLimiter } = require('../middlewares/rateLimit');
 const { imageUpload, cvUpload, handleUploadErrors } = require('../middlewares/upload');
 
 const recruiterOnly = [requireAuth, requireRole('recruiter', 'admin')];
@@ -72,6 +73,10 @@ router.get('/cv', requireAuth, application.myCv);
 router.post('/cv/importer', requireAuth, cvFile, application.uploadMyCv);
 router.post('/cv/retirer', requireAuth, application.removeMyCv);
 router.get('/cv/telecharger', application.downloadCv);
+// CV builder: open to guests too (used from the apply modal)
+router.get('/cv/creer', cv.builder);
+router.post('/cv/creer', cvBuildLimiter, cv.save);
+router.post('/cv/photo', cvBuildLimiter, handleUploadErrors(imageUpload.single('photo')), cv.uploadPhoto);
 
 // Comments
 router.get('/publications/:id/commentaires', comment.list);

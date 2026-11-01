@@ -59,7 +59,7 @@ Comptes de démo (mot de passe : `SEED_PASSWORD`, par défaut `Sentravail2026!`)
 - [x] **Phase 2 — Fil** : publications texte/photo (redimensionnées dans le navigateur avant envoi), fil classé par score avec défilement infini, réactions (appui long), commentaires et réponses, j'aime sur commentaires, partages (fil, WhatsApp, Facebook, lien), enregistrements
 - [x] **Phase 3 — Offres** : publication d'offres (recruteurs/admin, logo), offres officielles et demandes de mise à la une, carte offre dans le fil, page `/offres/:slug` avec données structurées JobPosting, modification/suppression, recherche (mot-clé, ville, secteur, contrat), « Mes offres »
 - [x] **Phase 4 — Candidature** : modal « Postuler » (pré-rempli si connecté, invités acceptés), import de CV PDF/Word stocké en privé, email `mailto:` avec lien de CV signé 90 jours, écran « Avez-vous bien envoyé l'email ? », envoi de secours par SenTravail (CV en pièce jointe + accusé au candidat), « Mes candidatures », candidatures reçues et décisions côté recruteur, page « Mon CV »
-- [ ] Phase 5 — Créateur de CV
+- [x] **Phase 5 — Créateur de CV** : 7 étapes avec brouillon automatique, aperçu en direct, 2 modèles (Classique, Moderne), photo, export PDF (PDFKit), CV enregistré dans le profil et utilisé pour les candidatures, accessible aux invités depuis le modal « Postuler » avec retour automatique
 - [ ] Phase 6 — Réseau
 - [ ] Phase 7 — Réels
 - [ ] Phase 8 — Admin

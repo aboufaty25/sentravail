@@ -185,7 +185,8 @@
       loggedIn: cfg.loggedIn,
       profileCv: cfg.profileCv,
       f: { firstName: '', lastName: '', email: '', phone: '', message: '' },
-      cvSource: cfg.profileCv ? 'profile' : 'upload',
+      builtCv: cfg.builtCv,
+      cvSource: cfg.profileCv ? 'profile' : cfg.builtCv ? 'built' : 'upload',
       saveToProfile: false,
       file: null,
       errors: {},
@@ -205,6 +206,12 @@
         } else {
           this.step = 'form';
           this.f = { ...this.f, ...cfg.prefill, message: this.f.message };
+          // Coming back from the CV builder: restore what was typed.
+          try {
+            const saved = JSON.parse(sessionStorage.getItem('st-apply-form') || 'null');
+            if (saved && saved.slug === d.slug) this.f = { ...this.f, ...saved.f };
+            sessionStorage.removeItem('st-apply-form');
+          } catch (_) { /* storage unavailable */ }
         }
         this.open = true;
         document.body.style.overflow = 'hidden';
@@ -276,9 +283,118 @@
           this.sending = false;
         }
       },
+      createCv() {
+        try { sessionStorage.setItem('st-apply-form', JSON.stringify({ slug: this.job.slug, f: this.f })); } catch (_) { /* ignore */ }
+        const back = `/offres/${this.job.slug}?postuler=1`;
+        window.location.href = `/cv/creer?retour=${encodeURIComponent(back)}`;
+      },
       confirmSent() { return this.finish(`/candidatures/${this.appId}/confirmer`); },
       sendViaServer() { return this.finish(`/candidatures/${this.appId}/envoyer`); },
     }));
+
+    // CV builder: 7 steps, live preview, draft saved locally, PDF generated server-side.
+    Alpine.data('cvBuilder', (cfg) => {
+      const draftKey = `st-cv-draft-${cfg.userKey}`;
+      let uid = 0;
+      const withIds = (list) => (list || []).map((x) => ({ ...x, _id: ++uid }));
+      let start = cfg.initial;
+      try {
+        const draft = JSON.parse(localStorage.getItem(draftKey) || 'null');
+        if (draft && draft.personal) start = draft;
+      } catch (_) { /* storage unavailable */ }
+      const MONTHS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+      const STEP_OF = { personal: 0, title: 1, summary: 1, experiences: 2, educations: 3, skills: 4, languages: 5, template: 6 };
+      return {
+        step: 0,
+        tab: 'edit',
+        cv: {
+          template: start.template || 'classic',
+          personal: { firstName: '', lastName: '', email: '', phone: '', city: '', photoUrl: '', ...start.personal },
+          title: start.title || '',
+          summary: start.summary || '',
+          experiences: withIds(start.experiences),
+          educations: withIds(start.educations),
+          skills: [...(start.skills || [])],
+          languages: withIds(start.languages),
+        },
+        levels: cfg.levels,
+        newSkill: '',
+        uploading: false,
+        saving: false,
+        savedDraft: false,
+        error: '',
+        init() {
+          let t;
+          this.$watch('cv', () => {
+            clearTimeout(t);
+            t = setTimeout(() => {
+              try { localStorage.setItem(draftKey, JSON.stringify(this.cv)); this.savedDraft = true; setTimeout(() => { this.savedDraft = false; }, 1500); } catch (_) { /* ignore */ }
+            }, 600);
+          });
+        },
+        fullName() { return `${this.cv.personal.firstName} ${this.cv.personal.lastName}`.trim(); },
+        month(v) { if (!v) return ''; const [y, m] = v.split('-'); return `${MONTHS[Number(m) - 1]} ${y}`; },
+        period(e) {
+          const s = this.month(e.start);
+          const end = e.current ? "aujourd'hui" : this.month(e.end);
+          return s && end ? `${s} — ${end}` : s || end || '';
+        },
+        go(i) {
+          this.step = Math.max(0, Math.min(6, i));
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        },
+        move(list, i, delta) { const j = i + delta; if (j < 0 || j >= list.length) return; [list[i], list[j]] = [list[j], list[i]]; },
+        addExperience() { this.cv.experiences.push({ _id: ++uid, title: '', company: '', city: '', start: '', end: '', current: false, description: '' }); },
+        addEducation() { this.cv.educations.push({ _id: ++uid, degree: '', school: '', city: '', start: '', end: '' }); },
+        addSkill() {
+          const s = this.newSkill.trim();
+          if (s && !this.cv.skills.includes(s) && this.cv.skills.length < 30) this.cv.skills.push(s);
+          this.newSkill = '';
+        },
+        addLanguage(name) { if (this.cv.languages.length < 8) this.cv.languages.push({ _id: ++uid, name, level: name === 'Wolof' ? 'Langue maternelle' : 'Courant' }); },
+        async uploadPhoto(e) {
+          const file = e.target.files[0];
+          e.target.value = '';
+          if (!file) return;
+          this.uploading = true;
+          try {
+            const data = new FormData();
+            data.append('photo', await resizeImage(file, 600, 0.85), 'photo.jpg');
+            const res = await fetch('/cv/photo', { method: 'POST', body: data, headers: { 'X-CSRF-Token': csrf(), Accept: 'application/json' } });
+            const json = await res.json().catch(() => ({}));
+            if (res.ok) this.cv.personal.photoUrl = json.url; else toast(json.error || 'Envoi de la photo impossible.', 'error');
+          } catch (_) { toast('Pas de connexion internet.', 'error'); }
+          this.uploading = false;
+        },
+        async save() {
+          this.error = '';
+          this.saving = true;
+          try {
+            const res = await fetch('/cv/creer', {
+              method: 'POST',
+              headers: { 'X-CSRF-Token': csrf(), 'Content-Type': 'application/json', Accept: 'application/json' },
+              body: JSON.stringify({ ...this.cv, returnTo: cfg.returnTo }),
+            });
+            const json = await res.json().catch(() => ({}));
+            if (!res.ok) {
+              this.error = json.error || 'Enregistrement impossible. Vérifiez les informations.';
+              const first = (json.path || '').split('.')[0];
+              if (first in STEP_OF && STEP_OF[first] !== 6) { this.go(STEP_OF[first]); this.tab = 'edit'; toast(this.error, 'error'); }
+              return;
+            }
+            try { localStorage.removeItem(draftKey); } catch (_) { /* ignore */ }
+            if (json.returnTo) { window.location.href = json.returnTo; return; }
+            toast(json.message);
+            window.location.href = json.downloadPath; // downloads the PDF
+            setTimeout(() => { window.location.href = cfg.loggedIn ? '/cv' : '/'; }, 1500);
+          } catch (_) {
+            this.error = 'Pas de connexion internet. Réessayez.';
+          } finally {
+            this.saving = false;
+          }
+        },
+      };
+    });
 
     Alpine.data('toasts', () => ({
       items: [],

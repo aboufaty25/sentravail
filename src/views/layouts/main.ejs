@@ -7,6 +7,14 @@
   <a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:bg-white focus:p-2">Aller au contenu</a>
   <%- include('../partials/navbar') %>
 
+  <% if (wide) { %>
+  <div class="mx-auto max-w-[1100px] pt-2 sm:px-4 sm:pt-4 pb-16">
+    <main id="main" class="min-w-0">
+      <%- include('../partials/flash') %>
+      <%- body %>
+    </main>
+  </div>
+  <% } else { %>
   <div class="mx-auto max-w-[1280px] lg:grid lg:grid-cols-[280px_minmax(0,1fr)_320px] lg:gap-6 lg:px-4 pt-2 sm:pt-4 pb-16">
     <aside class="hidden lg:block">
       <div class="sticky top-[72px]">
@@ -23,6 +31,7 @@
       <div class="sticky top-[72px]"><%- include('../partials/rightSidebar') %></div>
     </aside>
   </div>
+  <% } %>
   <%- include('../partials/overlays') %>
   <%- script %>
 </body>

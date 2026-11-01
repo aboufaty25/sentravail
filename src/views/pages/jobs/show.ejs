@@ -1,6 +1,6 @@
 <% const left = daysLeft(job.deadline);
    const applyEvent = `$dispatch('open-apply', { slug: '${job.slug}', title: ${JSON.stringify(job.title)}, company: ${JSON.stringify(job.companyName)}${pendingApplicationId ? `, pendingId: ${pendingApplicationId}` : ''} })`; %>
-<div x-data class="space-y-2 pb-20 sm:space-y-4 lg:pb-0">
+<div x-data <%- autoApply && !job.isExpired && !canManage ? `x-init="$nextTick(() => ${escapeHtml(applyEvent)})"` : '' %> class="space-y-2 pb-20 sm:space-y-4 lg:pb-0">
   <article class="card" aria-labelledby="job-title">
     <div class="px-4 pt-4 sm:px-6 sm:pt-6">
       <a href="/offres" class="mb-3 inline-flex items-center gap-1 text-sm font-medium text-gray-500 hover:underline"><%- icon('arrowLeft', 'w-4 h-4') %> Toutes les offres</a>

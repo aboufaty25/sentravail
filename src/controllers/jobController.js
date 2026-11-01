@@ -122,6 +122,7 @@ async function show(req, res, next) {
   }
   return res.render('pages/jobs/show', {
     pendingApplicationId,
+    autoApply: req.query.postuler === '1' && !pendingApplicationId,
     title: `${j.title} — ${j.companyName} (${j.location})`,
     metaDescription: `${j.contractType} · ${j.location} · ${j.companyName}. ${j.description.replace(/\s+/g, ' ').slice(0, 120)}`,
     ogType: 'article',
