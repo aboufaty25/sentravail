@@ -8,6 +8,8 @@ const posts = require('../services/posts');
 const env = require('../config/env');
 const { isFollowing, followingAmong } = require('../services/follows');
 const { adjustCounter } = require('../utils/counters');
+const { toggleReaction } = require('../services/reactions');
+const { removeLocalMedia } = require('../services/video');
 
 function notFound() {
   const err = new Error("Cette publication n'existe pas ou n'est plus disponible.");
@@ -100,6 +102,8 @@ async function destroy(req, res, next) {
     await refreshScore(post.sharedPostId);
   }
   await post.destroy();
+  // Files stored on our disk (photos, reel video + thumbnail) are removed too.
+  await removeLocalMedia([...(post.mediaUrls || []), post.videoUrl, post.thumbnailUrl]);
   if (req.get('HX-Request')) {
     res.set('HX-Trigger', JSON.stringify({ toast: { message: 'Publication supprimée.' } }));
     if (req.get('HX-Current-URL')?.includes(`/publications/${post.id}`)) res.set('HX-Redirect', '/');
@@ -126,22 +130,7 @@ async function loadInteractable(req) {
 async function react(req, res) {
   const post = await loadInteractable(req);
   const type = Reaction.TYPES.includes(req.body?.type) ? req.body.type : 'like';
-  const existing = await Reaction.findOne({ where: { userId: req.user.id, postId: post.id } });
-
-  if (existing && existing.type === type) {
-    await existing.destroy();
-    await adjustCounter(Post, post.id, 'likesCount', -1);
-  } else if (existing) {
-    await existing.update({ type });
-  } else {
-    try {
-      await Reaction.create({ userId: req.user.id, postId: post.id, type });
-      await adjustCounter(Post, post.id, 'likesCount', 1);
-    } catch (err) {
-      if (!(err instanceof UniqueConstraintError)) throw err; // double tap: already counted
-    }
-  }
-  await refreshScore(post.id);
+  await toggleReaction(post, req.user, type);
   return renderSocial(req, res, post.id);
 }
 
@@ -211,10 +200,10 @@ async function savedList(req, res) {
   res.render('pages/posts/saved', { title: 'Enregistrements', posts: list });
 }
 
-async function byAuthor(user, viewer, limit = 20) {
+async function byAuthor(user, viewer, limit = 20, type = null) {
   const follows = await isFollowing(viewer?.id, user.id);
   const list = await Post.findAll({
-    where: posts.authorPostsWhere(user.id, viewer, follows),
+    where: { ...posts.authorPostsWhere(user.id, viewer, follows), ...(type ? { type } : {}) },
     include: posts.postInclude(),
     order: [['createdAt', 'DESC']],
     limit,
@@ -222,4 +211,4 @@ async function byAuthor(user, viewer, limit = 20) {
   return posts.hydrate(list, viewer);
 }
 
-module.exports = { feed, newForm, create, show, destroy, react, toggleSave, share, savedList, byAuthor, notFound };
+module.exports = { loadInteractable, feed, newForm, create, show, destroy, react, toggleSave, share, savedList, byAuthor, notFound };

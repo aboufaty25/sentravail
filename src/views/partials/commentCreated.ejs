@@ -4,4 +4,4 @@
 <% } else { %>
   <ul hx-swap-oob="beforeend:#comment-list-<%= post.id %>"><%- include('commentItem', { comment }) %></ul>
 <% } %>
-<%- include('postSocial', { post, oob: true }) %>
+<% if (locals.ctx === 'reel') { %><%- include('reelCommentCount', { post }) %><% } else { %><%- include('postSocial', { post, oob: true }) %><% } %>

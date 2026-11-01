@@ -13,7 +13,7 @@ beforeAll(async () => {
 afterAll(closeDb);
 
 describe('Route protection', () => {
-  test.each(['/menu', '/parametres/profil', '/reels', '/reseau', '/notifications', '/mes-offres', '/admin'])(
+  test.each(['/menu', '/parametres/profil', '/reels/nouveau', '/reseau', '/notifications', '/mes-offres', '/admin'])(
     'guest is redirected to login from %s',
     async (path) => {
       const res = await request(app).get(path);

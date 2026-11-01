@@ -5,7 +5,7 @@
   </div>
   <div class="mt-3 flex border-t border-gray-200 pt-2 text-sm font-semibold text-gray-600">
     <a href="/publier?type=photo" class="flex flex-1 items-center justify-center gap-2 rounded-md py-2 hover:bg-gray-100"><span class="text-green-600"><%- icon('photo') %></span> Photo</a>
-    <a href="/publier?type=reel" class="flex flex-1 items-center justify-center gap-2 rounded-md py-2 hover:bg-gray-100"><span class="text-rose-600"><%- icon('video') %></span> Réel</a>
+    <a href="/reels/nouveau" class="flex flex-1 items-center justify-center gap-2 rounded-md py-2 hover:bg-gray-100"><span class="text-rose-600"><%- icon('video') %></span> Réel</a>
     <% if (currentUser.hasRole('recruiter', 'admin')) { %>
       <a href="/publier?type=job" class="flex flex-1 items-center justify-center gap-2 rounded-md py-2 hover:bg-gray-100"><span class="text-brand-600"><%- icon('briefcase') %></span> Offre</a>
     <% } %>

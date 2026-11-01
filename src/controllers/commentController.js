@@ -37,7 +37,8 @@ async function list(req, res, next) {
   const post = await posts.findVisiblePost(req.params.id, req.user);
   if (!post) return next(notFound());
   const { comments, liked } = await loadThread(post.id, req.user);
-  return res.render('partials/commentList', { layout: false, post, comments, liked, canDeleteComment });
+  const ctx = req.query.ctx === 'reel' ? 'reel' : 'feed';
+  return res.render('partials/commentList', { layout: false, post, comments, liked, canDeleteComment, ctx });
 }
 
 async function socialOob(req, postId) {
@@ -76,6 +77,7 @@ async function create(req, res, next) {
     parentId,
     liked: new Set(),
     canDeleteComment,
+    ctx: req.body.ctx === 'reel' ? 'reel' : 'feed',
   });
 }
 
@@ -92,7 +94,9 @@ async function destroy(req, res, next) {
   await comment.destroy(); // replies cascade
   await adjustCounter(Post, post.id, 'commentsCount', -(1 + repliesCount));
   await refreshScore(post.id);
-  return res.render('partials/postSocial', { layout: false, post: await socialOob(req, post.id), oob: true });
+  const fresh = await socialOob(req, post.id);
+  if (req.body?.ctx === 'reel') return res.render('partials/reelCommentCount', { layout: false, post: fresh });
+  return res.render('partials/postSocial', { layout: false, post: fresh, oob: true });
 }
 
 async function toggleLike(req, res, next) {

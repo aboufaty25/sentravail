@@ -48,6 +48,12 @@ env.uploadDir =
   env.UPLOAD_DIR ||
   (env.isProd ? path.join(require('os').homedir(), 'sentravail-uploads') : path.join(__dirname, '../../public/uploads'));
 
+// Temp folder for large uploads (videos): next to uploads, never publicly served.
+const publicDir = path.join(__dirname, '../../public');
+env.uploadTmpDir = env.uploadDir.startsWith(publicDir)
+  ? path.join(__dirname, '../../storage/tmp')
+  : `${env.uploadDir.replace(/[\\/]+$/, '')}-tmp`;
+
 // CVs are private: never inside a publicly served folder. Downloaded via signed links only.
 env.cvDir =
   env.CV_DIR ||

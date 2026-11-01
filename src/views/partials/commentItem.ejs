@@ -14,6 +14,7 @@
       <% } %>
       <% if (canDeleteComment(comment, post, currentUser)) { %>
         <button type="button" class="font-semibold hover:underline" hx-post="/commentaires/<%= comment.id %>/supprimer" hx-target="#comment-<%= comment.id %>" hx-swap="delete"
+          <% if (locals.ctx === 'reel') { %>hx-vals='{"ctx":"reel"}'<% } %>
           hx-confirm="Supprimer ce commentaire ?">Supprimer</button>
       <% } %>
     </div>

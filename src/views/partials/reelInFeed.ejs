@@ -1,0 +1,8 @@
+<%# Reel inside a feed card: muted autoplay when visible (unless the connection is slow). %>
+<div class="relative mx-auto aspect-[9/16] max-h-[560px] w-full max-w-[315px] overflow-hidden bg-black sm:rounded-lg">
+  <video data-feed-video data-src="<%= p.videoUrl %>" <% if (p.thumbnailUrl) { %>poster="<%= imageUrl(p.thumbnailUrl, 480) %>"<% } %>
+    class="h-full w-full object-cover" playsinline muted loop preload="none"></video>
+  <a href="/reels?r=<%= p.id %>" class="absolute inset-0 flex items-end justify-between p-3 text-white" aria-label="Ouvrir dans Réels">
+    <span class="inline-flex items-center gap-1 rounded-full bg-black/50 px-2.5 py-1 text-xs font-semibold"><%- icon('play', 'w-3.5 h-3.5') %> Réel</span>
+  </a>
+</div>

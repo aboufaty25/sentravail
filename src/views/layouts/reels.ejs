@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="fr" class="bg-black">
+<head>
+  <%- include('../partials/head') %>
+</head>
+<body class="!bg-black text-white overscroll-none" hx-headers='{"X-CSRF-Token": "<%= csrfToken %>"}'>
+  <header class="pointer-events-none fixed inset-x-0 top-0 z-30 flex items-center gap-2 bg-gradient-to-b from-black/60 to-transparent px-3 pb-6 pt-[max(0.75rem,env(safe-area-inset-top))]">
+    <a href="/" class="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full hover:bg-white/10" aria-label="Retour à l'accueil"><%- icon('arrowLeft', 'w-6 h-6') %></a>
+    <h1 class="flex-1 text-xl font-bold">Réels</h1>
+    <% if (currentUser) { %><a href="/reels/nouveau" class="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full bg-white/15 hover:bg-white/25" aria-label="Publier un réel"><%- icon('plus', 'w-6 h-6') %></a><% } %>
+  </header>
+  <main id="main"><%- body %></main>
+  <%# Flash messages become toasts here so they never push the full-screen video down. %>
+  <% if (flash && flash.length) { %><div x-data x-init="setTimeout(() => <%= JSON.stringify(flash) %>.forEach((f) => $dispatch('toast', { message: f.message, type: f.type === 'error' ? 'error' : undefined })), 300)"></div><% } %>
+  <div class="text-gray-900"><%- include('../partials/overlays') %></div>
+  <%- script %>
+</body>
+</html>

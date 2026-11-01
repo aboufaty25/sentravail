@@ -1,0 +1,52 @@
+<% reels.forEach(reel => { const a = reel.author; %>
+  <section class="reel relative h-[100dvh] w-full snap-start snap-always overflow-hidden bg-black" data-reel="<%= reel.id %>">
+   <div class="relative mx-auto h-full w-full sm:max-w-[calc(100dvh*9/16+88px)] sm:pr-[88px]">
+    <video class="absolute inset-0 h-full w-full object-contain sm:right-[88px] sm:w-[calc(100%-88px)]" data-src="<%= reel.videoUrl %>" <% if (reel.thumbnailUrl) { %>poster="<%= imageUrl(reel.thumbnailUrl, 720) %>"<% } %>
+      playsinline loop muted preload="none" @click="togglePlay($event.target)"></video>
+    <div class="pointer-events-none absolute inset-0 hidden items-center justify-center [&:not(.hidden)]:flex" data-paused>
+      <span class="flex h-16 w-16 items-center justify-center rounded-full bg-black/40"><%- icon('play', 'w-9 h-9') %></span>
+    </div>
+    <div class="pointer-events-none absolute inset-x-0 bottom-0 h-56 bg-gradient-to-t from-black/70 to-transparent sm:right-[88px]"></div>
+
+    <div class="absolute bottom-0 left-0 right-20 px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:right-[100px]">
+      <div class="flex items-center gap-2">
+        <a href="/profil/<%= a.username %>"><%- avatar(a, 'w-10 h-10') %></a>
+        <a href="/profil/<%= a.username %>" class="font-semibold drop-shadow hover:underline"><%= a.firstName %> <%= a.lastName %></a>
+        <% if (reel.meta.canFollow) { %><span class="[&_button]:!text-white [&_span]:!text-white/80"><%- include('followButton', { targetId: a.id, following: false, variant: 'link' }) %></span><% } %>
+      </div>
+      <% if (reel.text) { %>
+        <p x-data="{ more: false }" @click="more = !more" class="mt-2 whitespace-pre-line text-[15px] drop-shadow" :class="more ? '' : 'line-clamp-2'"><%= reel.text %></p>
+      <% } %>
+    </div>
+
+    <div class="absolute bottom-0 right-2 flex flex-col items-center gap-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:right-4">
+      <%- include('reelLike', { reel }) %>
+      <button type="button" class="flex flex-col items-center gap-1" @click="openComments(<%= reel.id %>)" aria-label="Commentaires">
+        <span class="flex h-12 w-12 items-center justify-center rounded-full bg-white/15"><%- icon('chat', 'w-7 h-7') %></span>
+        <span class="text-xs font-semibold drop-shadow" id="reel-comments-<%= reel.id %>"><%= formatCount(reel.commentsCount) %></span>
+      </button>
+      <% if (reel.visibility !== 'network') { %>
+        <button type="button" class="flex flex-col items-center gap-1" aria-label="Partager"
+          @click="$dispatch('open-share', { id: <%= reel.id %>, url: '<%= appUrl %>/reels?r=<%= reel.id %>', loggedIn: <%= !!currentUser %> })">
+          <span class="flex h-12 w-12 items-center justify-center rounded-full bg-white/15"><%- icon('share', 'w-7 h-7') %></span>
+          <span class="text-xs font-semibold drop-shadow"><%= formatCount(reel.sharesCount) %></span>
+        </button>
+      <% } %>
+      <button type="button" class="flex h-12 w-12 items-center justify-center rounded-full bg-white/15" @click="toggleMute()" :aria-label="muted ? 'Activer le son' : 'Couper le son'">
+        <span x-show="muted" class="text-xl">🔇</span><span x-show="!muted" x-cloak class="text-xl">🔊</span>
+      </button>
+    </div>
+   </div>
+  </section>
+<% }) %>
+<% if (hasMore) { %>
+  <div hx-get="/reels/suite?page=<%= page + 1 %><%= firstId ? `&sauf=${firstId}` : '' %>" hx-trigger="revealed" hx-swap="outerHTML" class="flex h-40 items-center justify-center">
+    <span class="h-6 w-6 animate-spin rounded-full border-2 border-white/30 border-t-white"></span>
+  </div>
+<% } else { %>
+  <section class="flex h-[60dvh] snap-start flex-col items-center justify-center gap-3 px-6 text-center">
+    <p class="text-lg font-semibold">Vous avez tout vu 🎬</p>
+    <p class="text-sm text-white/70">Partagez votre métier, vos conseils ou vos réussites en 30 secondes.</p>
+    <% if (currentUser) { %><a href="/reels/nouveau" class="btn-primary">Publier un réel</a><% } else { %><a href="/inscription" class="btn-primary">Rejoindre SenTravail</a><% } %>
+  </section>
+<% } %>

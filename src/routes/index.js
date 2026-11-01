@@ -11,8 +11,9 @@ const application = require('../controllers/applicationController');
 const cv = require('../controllers/cvController');
 const network = require('../controllers/followController');
 const search = require('../controllers/searchController');
+const reel = require('../controllers/reelController');
 const { authLimiter, postLimiter, commentLimiter, actionLimiter, applyLimiter, serverMailLimiter, cvBuildLimiter } = require('../middlewares/rateLimit');
-const { imageUpload, cvUpload, handleUploadErrors } = require('../middlewares/upload');
+const { imageUpload, cvUpload, reelUpload, handleUploadErrors } = require('../middlewares/upload');
 
 const recruiterOnly = [requireAuth, requireRole('recruiter', 'admin')];
 const logoUpload = handleUploadErrors(imageUpload.single('companyLogo'));
@@ -39,7 +40,11 @@ router.post('/parametres/profil', requireAuth, profile.update);
 
 // Feed & posts
 router.get('/fil', post.feed);
-router.get('/publier', requireAuth, (req, res, next) => (req.query.type === 'job' ? res.redirect('/offres/nouvelle') : next()), post.newForm);
+router.get('/publier', requireAuth, (req, res, next) => {
+  if (req.query.type === 'job') return res.redirect('/offres/nouvelle');
+  if (req.query.type === 'reel') return res.redirect('/reels/nouveau');
+  return next();
+}, post.newForm);
 router.post('/publier', requireAuth, postLimiter, handleUploadErrors(imageUpload.array('photos', 4)), post.create);
 router.get('/publications/:id', post.show);
 router.post('/publications/:id/supprimer', requireAuth, post.destroy);
@@ -88,7 +93,12 @@ router.post('/commentaires/:commentId/jaime', requireAuth, actionLimiter, commen
 
 // App tabs
 router.get('/menu', requireAuth, pages.menu);
-router.get('/reels', requireAuth, pages.upcoming('reels'));
+router.get('/reels', reel.index);
+router.get('/reels/suite', reel.more);
+router.get('/reels/nouveau', requireAuth, reel.newForm);
+router.post('/reels', requireAuth, postLimiter, handleUploadErrors(reelUpload.fields([{ name: 'video', maxCount: 1 }, { name: 'thumbnail', maxCount: 1 }])), reel.create);
+router.post('/reels/:id/jaime', requireAuth, actionLimiter, reel.like);
+router.post('/reels/:id/vue', reel.view);
 router.get('/reseau', requireAuth, network.network);
 router.get('/reseau/suggestions', network.sidebarSuggestions);
 router.post('/abonnements/:id', requireAuth, actionLimiter, network.toggle);

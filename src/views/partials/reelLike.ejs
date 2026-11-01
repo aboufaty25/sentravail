@@ -1,0 +1,7 @@
+<% const liked = !!(reel.meta && reel.meta.myReaction); %>
+<button type="button" id="reel-like-<%= reel.id %>" class="flex flex-col items-center gap-1"
+  <% if (currentUser) { %>hx-post="/reels/<%= reel.id %>/jaime" hx-swap="outerHTML"<% } else { %>onclick="location.href='/connexion'"<% } %>
+  aria-pressed="<%= liked ? 'true' : 'false' %>" aria-label="J'aime">
+  <span class="flex h-12 w-12 items-center justify-center rounded-full bg-white/15 <%= liked ? 'text-brand-500' : 'text-white' %>"><%- icon('thumb', `w-7 h-7 ${liked ? 'fill-current' : ''}`) %></span>
+  <span class="text-xs font-semibold drop-shadow"><%= formatCount(reel.likesCount) %></span>
+</button>

@@ -71,6 +71,17 @@
         </ul>
       <% } %>
     </section>
+  <% } else if (tab === 'reels' && posts.length) { %>
+    <section class="card p-1">
+      <ul class="grid grid-cols-3 gap-1">
+        <% posts.forEach(r => { %>
+          <li><a href="/reels?r=<%= r.id %>" class="relative block aspect-[9/16] overflow-hidden bg-gray-900">
+            <% if (r.thumbnailUrl) { %><img src="<%= imageUrl(r.thumbnailUrl, 300) %>" alt="" loading="lazy" class="h-full w-full object-cover"><% } %>
+            <span class="absolute bottom-1 left-1 inline-flex items-center gap-0.5 text-xs font-semibold text-white drop-shadow"><%- icon('play', 'w-3.5 h-3.5') %> <%= formatCount(r.viewsCount) %></span>
+          </a></li>
+        <% }) %>
+      </ul>
+    </section>
   <% } else if ((tab === 'publications' || tab === 'offres') && posts.length) { %>
     <% posts.forEach(post => { %><%- include('../../partials/postCard', { post }) %><% }) %>
   <% } else { %>

@@ -33,7 +33,7 @@ app.use(
         scriptSrc: ["'self'", "'unsafe-eval'"],
         styleSrc: ["'self'", "'unsafe-inline'"],
         imgSrc: ["'self'", 'data:', 'blob:', 'https://res.cloudinary.com'],
-        mediaSrc: ["'self'", 'https://res.cloudinary.com'],
+        mediaSrc: ["'self'", 'blob:', 'https://res.cloudinary.com'],
         connectSrc: ["'self'"],
         formAction: ["'self'"],
         upgradeInsecureRequests: env.isProd ? [] : null,
