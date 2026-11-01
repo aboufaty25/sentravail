@@ -1,0 +1,12 @@
+<% posts.forEach((post, i) => { %>
+  <%- include('postCard', { post }) %>
+  <% if ((startIndex + i + 1) % 6 === 0) { %><%- include('adSlot', { slot: 'feed' }) %><% } %>
+<% }) %>
+<% if (hasMore) { %>
+  <div hx-get="/fil?page=<%= page + 1 %>&since=<%= since %>" hx-trigger="revealed" hx-swap="outerHTML" class="py-6 text-center text-sm text-gray-500">
+    <span class="inline-block h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-brand-600" aria-hidden="true"></span>
+    <span class="sr-only">Chargement…</span>
+  </div>
+<% } else if (page > 1 || posts.length) { %>
+  <p class="py-6 text-center text-sm text-gray-500">Vous êtes à jour 🎉</p>
+<% } %>

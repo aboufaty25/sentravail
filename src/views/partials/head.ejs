@@ -5,6 +5,8 @@
 <meta name="theme-color" content="#1668e3">
 <link rel="icon" href="/icons/logo.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/css/app.css">
+<meta name="csrf-token" content="<%= csrfToken %>">
 <script src="/vendor/htmx/htmx.min.js" defer></script>
-<script src="/vendor/alpine/cdn.min.js" defer></script>
+<%# app.js must run before Alpine so its components are registered on alpine:init %>
 <script src="/js/app.js" defer></script>
+<script src="/vendor/alpine/cdn.min.js" defer></script>

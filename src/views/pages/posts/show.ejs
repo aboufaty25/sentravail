@@ -1,0 +1,10 @@
+<div class="space-y-2 sm:space-y-4">
+  <%- include('../../partials/postCard', { post, openComments: true }) %>
+  <% if (!currentUser) { %>
+    <div class="card px-4 py-5 text-center">
+      <p class="font-semibold">Rejoignez SenTravail</p>
+      <p class="mt-1 text-sm text-gray-500">Le réseau social de l'emploi au Sénégal.</p>
+      <div class="mt-3 flex justify-center gap-2"><a href="/inscription" class="btn-success">Créer un compte</a><a href="/connexion" class="btn-light">Se connecter</a></div>
+    </div>
+  <% } %>
+</div>

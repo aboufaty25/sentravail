@@ -1,0 +1,27 @@
+<div class="px-3 sm:px-4 py-3" x-data="commentBox()">
+  <ul id="comment-list-<%= post.id %>" class="space-y-3">
+    <% comments.forEach(c => { %><%- include('commentItem', { comment: c }) %><% }) %>
+  </ul>
+  <% if (!comments.length) { %><p class="mb-2 text-sm text-gray-500" data-empty>Soyez le premier à commenter.</p><% } %>
+
+  <% if (currentUser) { %>
+    <form class="mt-3 flex items-end gap-2" hx-post="/publications/<%= post.id %>/commentaires" hx-swap="none"
+      hx-on::after-request="if (event.detail.successful) { this.reset(); this.dispatchEvent(new CustomEvent('comment-sent', { bubbles: true })); }"
+      @comment-sent="clear(); $el.closest('[x-data]').querySelector('[data-empty]')?.remove()">
+      <%- avatar(currentUser, 'w-8 h-8', 'text-xs') %>
+      <div class="flex-1">
+        <p x-cloak x-show="parentId" class="mb-1 text-xs text-gray-500">Réponse à <span class="font-semibold" x-text="replyTo"></span> · <button type="button" class="hover:underline" @click="clear()">Annuler</button></p>
+        <input type="hidden" name="parentCommentId" :value="parentId">
+        <div class="flex items-end rounded-2xl bg-gray-100 pr-1">
+          <textarea name="text" rows="1" maxlength="2000" required data-comment-input x-ref="input"
+            class="max-h-32 flex-1 resize-none bg-transparent px-3 py-2 text-[15px] focus:outline-none" placeholder="Écrire un commentaire…"
+            @input="$el.style.height = 'auto'; $el.style.height = $el.scrollHeight + 'px'"
+            @keydown.enter="if (!$event.shiftKey && window.matchMedia('(min-width: 1024px)').matches) { $event.preventDefault(); $el.form.requestSubmit(); }"></textarea>
+          <button type="submit" class="mb-1 flex h-8 w-8 items-center justify-center rounded-full text-brand-600 hover:bg-gray-200" aria-label="Envoyer"><%- icon('send', 'w-5 h-5') %></button>
+        </div>
+      </div>
+    </form>
+  <% } else { %>
+    <p class="mt-2 text-sm"><a href="/connexion" class="font-semibold text-brand-600 hover:underline">Connectez-vous</a> pour commenter.</p>
+  <% } %>
+</div>

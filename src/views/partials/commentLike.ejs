@@ -1,0 +1,3 @@
+<button type="button" class="font-semibold hover:underline <%= liked ? 'text-brand-600' : '' %>"
+  <% if (currentUser) { %>hx-post="/commentaires/<%= comment.id %>/jaime" hx-swap="outerHTML"<% } else { %>onclick="location.href='/connexion'"<% } %>
+  aria-pressed="<%= liked ? 'true' : 'false' %>">J'aime<% if (comment.likesCount) { %> · <%= comment.likesCount %><% } %></button>

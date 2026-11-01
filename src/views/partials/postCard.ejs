@@ -1,0 +1,55 @@
+<% const a = post.author; const m = post.meta || {}; %>
+<article id="post-<%= post.id %>" class="card overflow-visible" x-data="{ comments: <%= locals.openComments ? 'true' : 'false' %> }"
+  @open-comments-<%= post.id %>="comments = true; $nextTick(() => $el.querySelector('[data-comment-input]')?.focus())">
+  <header class="flex items-start gap-2 px-3 sm:px-4 pt-3 pb-2">
+    <a href="/profil/<%= a.username %>" class="shrink-0"><%- avatar(a, 'w-10 h-10') %></a>
+    <div class="min-w-0 flex-1 leading-tight">
+      <a href="/profil/<%= a.username %>" class="font-semibold hover:underline"><%= a.firstName %> <%= a.lastName %></a>
+      <% if (a.isVerified) { %><span class="inline-block align-[-2px] text-brand-600" title="Compte vérifié"><%- icon('check', 'w-4 h-4') %></span><% } %>
+      <% if (post.sharedPostId) { %><span class="text-gray-500"> a partagé une publication</span><% } %>
+      <% if (a.headline || a.companyName) { %><p class="truncate text-[13px] text-gray-500"><%= a.headline || a.companyName %></p><% } %>
+      <p class="flex items-center gap-1 text-[13px] text-gray-500">
+        <a href="/publications/<%= post.id %>" class="hover:underline"><time datetime="<%= new Date(post.createdAt).toISOString() %>"><%= timeAgo(post.createdAt) %></time></a> ·
+        <span title="<%= post.visibility === 'public' ? 'Public' : 'Mon réseau' %>"><%- icon(post.visibility === 'public' ? 'globe' : 'users', 'w-3.5 h-3.5') %></span>
+      </p>
+    </div>
+    <div class="relative" x-data="{ open: false }" @keydown.escape="open = false">
+      <button type="button" @click="open = !open" class="flex h-9 w-9 items-center justify-center rounded-full text-gray-500 hover:bg-gray-100" aria-label="Plus d'options" :aria-expanded="open"><%- icon('dots', 'w-6 h-6') %></button>
+      <div x-cloak x-show="open" @click.outside="open = false" x-transition.origin.top.right class="absolute right-0 z-30 mt-1 w-64 rounded-lg bg-white p-1.5 shadow-xl ring-1 ring-black/5">
+        <button type="button" class="menu-item w-full" @click="navigator.clipboard?.writeText('<%= appUrl %>/publications/<%= post.id %>'); open = false; $dispatch('toast', { message: 'Lien copié.' })"><%- icon('link', 'w-5 h-5') %> Copier le lien</button>
+        <% if (m.canDelete) { %>
+          <button type="button" class="menu-item w-full text-red-600" hx-post="/publications/<%= post.id %>/supprimer" hx-target="#post-<%= post.id %>" hx-swap="outerHTML"
+            hx-confirm="Supprimer cette publication ? Cette action est définitive."><%- icon('trash', 'w-5 h-5') %> Supprimer</button>
+        <% } %>
+      </div>
+    </div>
+  </header>
+
+  <%- include('postBody', { p: post }) %>
+
+  <% if (post.sharedPostId) { %>
+    <div class="mx-3 sm:mx-4 mb-2 overflow-hidden rounded-lg border border-gray-200">
+      <% if (post.sharedPost) { const o = post.sharedPost; %>
+        <div class="flex items-center gap-2 px-3 pt-3 pb-2">
+          <a href="/profil/<%= o.author.username %>"><%- avatar(o.author, 'w-8 h-8', 'text-xs') %></a>
+          <div class="min-w-0 leading-tight">
+            <a href="/profil/<%= o.author.username %>" class="text-sm font-semibold hover:underline"><%= o.author.firstName %> <%= o.author.lastName %></a>
+            <p class="text-xs text-gray-500"><a href="/publications/<%= o.id %>" class="hover:underline"><%= timeAgo(o.createdAt) %></a></p>
+          </div>
+        </div>
+        <%- include('postBody', { p: o }) %>
+      <% } else { %>
+        <p class="px-3 py-4 text-sm text-gray-500">Cette publication n'est plus disponible.</p>
+      <% } %>
+    </div>
+  <% } %>
+
+  <%- include('postSocial', { post, oob: false }) %>
+
+  <div x-show="comments" x-cloak>
+    <div id="comments-<%= post.id %>" class="border-t border-gray-100"
+      hx-get="/publications/<%= post.id %>/commentaires" hx-trigger="<%= locals.openComments ? 'load' : `open-comments-${post.id} from:closest article once` %>" hx-swap="innerHTML">
+      <p class="px-4 py-3 text-sm text-gray-500">Chargement des commentaires…</p>
+    </div>
+  </div>
+</article>

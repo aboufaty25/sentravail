@@ -1,9 +1,14 @@
 <div class="space-y-2 sm:space-y-4">
   <%- include('../partials/composer') %>
-  <section class="card px-4 py-10 text-center" aria-label="Fil d'actualité">
-    <span class="mx-auto block w-fit text-brand-600"><%- icon('users', 'w-12 h-12') %></span>
-    <h2 class="mt-3 text-lg font-semibold">Votre fil d'actualité arrive</h2>
-    <p class="mx-auto mt-1 max-w-sm text-gray-500">Bientôt, vous verrez ici les publications et les offres d'emploi des personnes et entreprises que vous suivez.</p>
-    <a href="/profil/<%= currentUser.username %>" class="btn-soft mt-4">Compléter mon profil</a>
-  </section>
+  <% if (!posts.length) { %>
+    <section class="card px-4 py-10 text-center" aria-label="Fil d'actualité">
+      <span class="mx-auto block w-fit text-brand-600"><%- icon('users', 'w-12 h-12') %></span>
+      <h2 class="mt-3 text-lg font-semibold">Votre fil est encore vide</h2>
+      <p class="mx-auto mt-1 max-w-sm text-gray-500">Publiez votre première actualité : présentez-vous, partagez un conseil ou une réussite.</p>
+      <a href="/publier" class="btn-primary mt-4">Créer une publication</a>
+    </section>
+  <% } %>
+  <div id="feed" class="space-y-2 sm:space-y-4">
+    <%- include('../partials/feedItems', { posts, hasMore, page, since, startIndex: 0 }) %>
+  </div>
 </div>

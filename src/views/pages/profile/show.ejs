@@ -67,6 +67,8 @@
         </ul>
       <% } %>
     </section>
+  <% } else if (tab === 'publications' && posts.length) { %>
+    <% posts.forEach(post => { %><%- include('../../partials/postCard', { post }) %><% }) %>
   <% } else { %>
     <section class="card px-4 py-10 text-center text-gray-500">
       <p><%= tab === 'reels' ? 'Aucun réel pour le moment.' : tab === 'offres' ? 'Aucune offre publiée pour le moment.' : 'Aucune publication pour le moment.' %></p>

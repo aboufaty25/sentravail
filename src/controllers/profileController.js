@@ -2,6 +2,7 @@ const { User } = require('../models');
 const { profileSchema } = require('../validators/profile');
 const { fieldErrors } = require('../validators/auth');
 const { CITIES, SECTORS } = require('../config/constants');
+const { byAuthor } = require('./postController');
 
 async function show(req, res, next) {
   const profileUser = await User.findOne({ where: { username: req.params.username } });
@@ -11,12 +12,15 @@ async function show(req, res, next) {
     return next(err);
   }
   const isOwner = !!req.user && req.user.id === profileUser.id;
+  const tab = req.query.onglet || 'publications';
+  const posts = tab === 'publications' ? await byAuthor(profileUser, req.user) : [];
   return res.render('pages/profile/show', {
     title: `${profileUser.displayName}${profileUser.headline ? ` — ${profileUser.headline}` : ''}`,
     metaDescription: profileUser.bio ? profileUser.bio.slice(0, 160) : `Profil de ${profileUser.displayName} sur SenTravail.`,
     profileUser,
     isOwner,
-    tab: req.query.onglet || 'publications',
+    tab,
+    posts,
   });
 }
 

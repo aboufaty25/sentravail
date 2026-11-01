@@ -15,7 +15,8 @@
     "watch:css": "tailwindcss -i ./src/styles/input.css -o ./public/css/app.css --watch",
     "db:sync": "node scripts/dbSync.js",
     "seed": "node scripts/seed.js",
-    "test": "cross-env NODE_ENV=test jest --runInBand"
+    "test": "cross-env NODE_ENV=test jest --runInBand",
+    "scores": "node scripts/refreshScores.js"
   },
   "jest": {
     "testEnvironment": "node",
@@ -27,6 +28,7 @@
   "dependencies": {
     "alpinejs": "^3.17.5",
     "bcryptjs": "^3.0.3",
+    "cloudinary": "^2.11.0",
     "compression": "^1.8.2",
     "dotenv": "^18.0.9",
     "ejs": "^7.0.2",
@@ -38,6 +40,7 @@
     "helmet": "^8.3.0",
     "htmx.org": "^2.0.11",
     "morgan": "^1.12.1",
+    "multer": "^2.5.0",
     "mysql2": "^3.24.6",
     "nodemailer": "^10.3.1",
     "sanitize-html": "^2.18.1",

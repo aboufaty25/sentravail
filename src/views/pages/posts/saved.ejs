@@ -1,0 +1,11 @@
+<div class="space-y-2 sm:space-y-4">
+  <h1 class="px-3 text-2xl font-bold sm:px-0">Enregistrements</h1>
+  <% if (!posts.length) { %>
+    <section class="card px-4 py-10 text-center">
+      <span class="mx-auto block w-fit text-brand-600"><%- icon('bookmark', 'w-12 h-12') %></span>
+      <p class="mt-3 font-semibold">Aucun élément enregistré</p>
+      <p class="mt-1 text-sm text-gray-500">Touchez « Enregistrer » sous une publication ou une offre pour la retrouver ici.</p>
+    </section>
+  <% } %>
+  <% posts.forEach(post => { %><%- include('../../partials/postCard', { post }) %><% }) %>
+</div>

@@ -1,0 +1,24 @@
+<% const ca = comment.author; const isReply = !!comment.parentCommentId; %>
+<li id="comment-<%= comment.id %>" class="flex gap-2">
+  <a href="/profil/<%= ca.username %>" class="shrink-0"><%- avatar(ca, isReply ? 'w-7 h-7' : 'w-8 h-8', 'text-xs') %></a>
+  <div class="min-w-0 flex-1">
+    <div class="inline-block max-w-full rounded-2xl bg-gray-100 px-3 py-2">
+      <a href="/profil/<%= ca.username %>" class="text-[13px] font-semibold hover:underline"><%= ca.firstName %> <%= ca.lastName %></a>
+      <p class="whitespace-pre-line break-words text-[15px] leading-snug"><%- richText(comment.text) %></p>
+    </div>
+    <div class="mt-0.5 flex items-center gap-3 px-2 text-xs text-gray-500">
+      <span><%= timeAgo(comment.createdAt) %></span>
+      <%- include('commentLike', { comment, liked: liked.has(comment.id) }) %>
+      <% if (currentUser) { %>
+        <button type="button" class="font-semibold hover:underline" @click="reply(<%= comment.parentCommentId || comment.id %>, '<%= ca.firstName.replace(/'/g, '') %>')">Répondre</button>
+      <% } %>
+      <% if (canDeleteComment(comment, post, currentUser)) { %>
+        <button type="button" class="font-semibold hover:underline" hx-post="/commentaires/<%= comment.id %>/supprimer" hx-target="#comment-<%= comment.id %>" hx-swap="delete"
+          hx-confirm="Supprimer ce commentaire ?">Supprimer</button>
+      <% } %>
+    </div>
+    <% if (!isReply) { %>
+      <ul id="replies-<%= comment.id %>" class="mt-2 space-y-2 empty:hidden"><% (comment.replies || []).forEach(r => { %><%- include('commentItem', { comment: r }) %><% }) %></ul>
+    <% } %>
+  </div>
+</li>

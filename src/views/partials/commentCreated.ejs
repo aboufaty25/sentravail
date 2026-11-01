@@ -1,0 +1,7 @@
+<%# htmx out-of-band response after posting a comment: append it + refresh counters. %>
+<% if (parentId) { %>
+  <ul hx-swap-oob="beforeend:#replies-<%= parentId %>"><%- include('commentItem', { comment }) %></ul>
+<% } else { %>
+  <ul hx-swap-oob="beforeend:#comment-list-<%= post.id %>"><%- include('commentItem', { comment }) %></ul>
+<% } %>
+<%- include('postSocial', { post, oob: true }) %>

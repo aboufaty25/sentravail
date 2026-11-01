@@ -4,3 +4,4 @@ public/css/app.css
 coverage/
 *.log
 .DS_Store
+public/uploads/

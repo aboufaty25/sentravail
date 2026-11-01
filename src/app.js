@@ -32,7 +32,7 @@ app.use(
         // Alpine.js (standard build) evaluates expressions with Function().
         scriptSrc: ["'self'", "'unsafe-eval'"],
         styleSrc: ["'self'", "'unsafe-inline'"],
-        imgSrc: ["'self'", 'data:', 'https://res.cloudinary.com'],
+        imgSrc: ["'self'", 'data:', 'blob:', 'https://res.cloudinary.com'],
         mediaSrc: ["'self'", 'https://res.cloudinary.com'],
         connectSrc: ["'self'"],
         formAction: ["'self'"],
@@ -47,6 +47,9 @@ if (!env.isTest) app.use(morgan(env.isProd ? 'combined' : 'dev'));
 
 const staticOpts = { maxAge: env.isProd ? '7d' : 0 };
 app.use(express.static(path.join(root, 'public'), staticOpts));
+if (!env.uploadDir.startsWith(path.join(root, 'public'))) {
+  app.use('/uploads', express.static(env.uploadDir, staticOpts));
+}
 app.use('/vendor/htmx', express.static(path.join(root, 'node_modules/htmx.org/dist'), staticOpts));
 app.use('/vendor/alpine', express.static(path.join(root, 'node_modules/alpinejs/dist'), staticOpts));
 

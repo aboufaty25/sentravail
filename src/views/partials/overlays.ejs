@@ -1,0 +1,43 @@
+<%# Global share sheet (bottom sheet on mobile, dialog on desktop) %>
+<div x-data="shareSheet()" @open-share.window="show($event.detail)" @keydown.escape.window="close()">
+  <div x-cloak x-show="open" x-transition.opacity class="fixed inset-0 z-50 bg-black/50" @click="close()"></div>
+  <div x-cloak x-show="open" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="translate-y-full sm:translate-y-4 sm:opacity-0" x-transition:enter-end="translate-y-0 sm:opacity-100"
+    class="fixed inset-x-0 bottom-0 z-50 rounded-t-2xl bg-white pb-[env(safe-area-inset-bottom)] shadow-2xl sm:inset-x-auto sm:left-1/2 sm:top-1/2 sm:bottom-auto sm:w-[500px] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-xl"
+    role="dialog" aria-modal="true" aria-labelledby="share-title">
+    <div class="mx-auto mt-2 h-1.5 w-10 rounded-full bg-gray-300 sm:hidden"></div>
+    <div class="flex items-center justify-between border-b border-gray-200 px-4 py-3">
+      <h2 id="share-title" class="text-lg font-semibold">Partager</h2>
+      <button type="button" @click="close()" class="icon-btn" aria-label="Fermer"><%- icon('x', 'w-5 h-5') %></button>
+    </div>
+    <div class="p-4">
+      <template x-if="loggedIn">
+        <div>
+          <textarea x-model="text" rows="3" maxlength="2000" class="input resize-none" placeholder="Dites quelque chose à ce sujet…"></textarea>
+          <button type="button" class="btn-primary mt-3 w-full" :disabled="sending" @click="shareNow()">
+            <span x-show="!sending">Partager maintenant</span><span x-show="sending">Partage…</span>
+          </button>
+        </div>
+      </template>
+      <div class="mt-4 grid grid-cols-3 gap-2 text-center text-xs font-medium text-gray-700">
+        <a :href="'https://wa.me/?text=' + encodeURIComponent(url)" target="_blank" rel="noopener" class="flex flex-col items-center gap-1 rounded-lg p-2 hover:bg-gray-100" @click="close()">
+          <span class="flex h-12 w-12 items-center justify-center rounded-full bg-[#25d366] text-white">
+            <svg viewBox="0 0 24 24" class="h-6 w-6" fill="currentColor" aria-hidden="true"><path d="M17.5 14.4c-.3-.1-1.7-.8-2-.9-.3-.1-.5-.1-.7.1-.2.3-.8.9-.9 1.1-.2.2-.3.2-.6.1-.3-.1-1.2-.5-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6l.4-.5c.2-.2.2-.3.3-.5.1-.2 0-.4 0-.5l-.9-2.2c-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.5s1.1 2.9 1.2 3.1c.1.2 2.1 3.2 5.1 4.5.7.3 1.3.5 1.7.6.7.2 1.4.2 1.9.1.6-.1 1.7-.7 2-1.4.2-.7.2-1.2.2-1.4-.1-.1-.3-.2-.6-.3zM12 2a10 10 0 00-8.6 15.1L2 22l5-1.3A10 10 0 1012 2z"/></svg>
+          </span>WhatsApp
+        </a>
+        <a :href="'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(url)" target="_blank" rel="noopener" class="flex flex-col items-center gap-1 rounded-lg p-2 hover:bg-gray-100" @click="close()">
+          <span class="flex h-12 w-12 items-center justify-center rounded-full bg-[#1877f2] text-xl font-bold text-white">f</span>Facebook
+        </a>
+        <button type="button" class="flex flex-col items-center gap-1 rounded-lg p-2 hover:bg-gray-100" @click="copy()">
+          <span class="flex h-12 w-12 items-center justify-center rounded-full bg-gray-200 text-gray-800"><%- icon('link', 'w-6 h-6') %></span>Copier le lien
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%# Toasts (triggered by `toast` events, e.g. from HX-Trigger headers) %>
+<div x-data="toasts()" @toast.window="push($event.detail)" class="pointer-events-none fixed inset-x-0 bottom-4 z-[60] flex flex-col items-center gap-2 px-4" aria-live="polite">
+  <template x-for="t in items" :key="t.id">
+    <div x-transition class="pointer-events-auto rounded-lg px-4 py-3 text-sm font-medium text-white shadow-lg" :class="t.type === 'error' ? 'bg-red-600' : 'bg-gray-900'" x-text="t.message"></div>
+  </template>
+</div>

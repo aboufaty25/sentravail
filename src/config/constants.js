@@ -14,4 +14,11 @@ const SECTORS = [
 
 const ROLE_LABELS = { candidate: 'Candidat', recruiter: 'Recruteur', admin: 'Administrateur' };
 
-module.exports = { CITIES, SECTORS, ROLE_LABELS };
+const REACTIONS = {
+  like: { emoji: '👍', label: "J'aime", color: 'text-brand-600' },
+  love: { emoji: '❤️', label: "J'adore", color: 'text-rose-600' },
+  bravo: { emoji: '👏', label: 'Bravo', color: 'text-amber-600' },
+  support: { emoji: '🤝', label: 'Soutien', color: 'text-senegal-green' },
+};
+
+module.exports = { CITIES, SECTORS, ROLE_LABELS, REACTIONS };
