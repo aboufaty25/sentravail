@@ -4,6 +4,7 @@ const { fieldErrors } = require('../validators/auth');
 const { CITIES, SECTORS } = require('../config/constants');
 const { byAuthor } = require('./postController');
 const { byRecruiter } = require('./jobController');
+const { isFollowing } = require('../services/follows');
 
 async function show(req, res, next) {
   const profileUser = await User.findOne({ where: { username: req.params.username } });
@@ -24,6 +25,7 @@ async function show(req, res, next) {
     isOwner,
     tab,
     posts,
+    followsProfile: await isFollowing(req.user?.id, profileUser.id),
   });
 }
 

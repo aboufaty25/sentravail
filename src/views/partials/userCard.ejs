@@ -1,0 +1,11 @@
+<% const u = person; %>
+<li class="flex flex-col items-center rounded-lg border border-gray-200 bg-white p-3 text-center">
+  <a href="/profil/<%= u.username %>" class="block"><%- avatar(u, 'w-16 h-16', 'text-lg') %></a>
+  <a href="/profil/<%= u.username %>" class="mt-2 line-clamp-1 font-semibold hover:underline"><%= u.firstName %> <%= u.lastName %>
+    <% if (u.isVerified) { %><span class="inline-block align-[-2px] text-brand-600"><%- icon('check', 'w-4 h-4') %></span><% } %></a>
+  <p class="line-clamp-2 min-h-[2.5em] text-xs text-gray-500"><%= u.headline || u.companyName || roleLabel(u.role) %></p>
+  <% if (u.reason) { %><p class="mt-1 line-clamp-1 text-[11px] text-gray-400"><%= u.reason %></p><% } %>
+  <div class="mt-2 w-full">
+    <% if (currentUser && currentUser.id !== u.id) { %><%- include('followButton', { targetId: u.id, following: !!u.followedByViewer, variant: 'card' }) %><% } %>
+  </div>
+</li>

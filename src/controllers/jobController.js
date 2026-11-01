@@ -233,8 +233,10 @@ async function mine(req, res) {
 }
 
 async function byRecruiter(user, viewer) {
+  // Job offers are public pages (SEO), so the profile lists all published ones.
+  const own = viewer && (viewer.id === user.id || viewer.role === 'admin');
   const list = await Post.findAll({
-    where: { authorId: user.id, type: 'job', ...posts.visibleWhere(viewer) },
+    where: { authorId: user.id, type: 'job', ...(own ? {} : { status: 'published' }) },
     include: posts.postInclude(),
     order: [['createdAt', 'DESC']],
     limit: 30,

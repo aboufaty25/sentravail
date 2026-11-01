@@ -7,6 +7,7 @@ const CommentLike = require('./CommentLike');
 const Save = require('./Save');
 const Job = require('./Job');
 const Application = require('./Application');
+const Follow = require('./Follow');
 
 const cascade = { onDelete: 'CASCADE', onUpdate: 'CASCADE' };
 
@@ -47,4 +48,9 @@ User.hasMany(Application, { foreignKey: 'candidateId', as: 'applications', onDel
 Application.belongsTo(User, { foreignKey: 'candidateId', as: 'candidate', onDelete: 'SET NULL', onUpdate: 'CASCADE' });
 Application.belongsTo(User, { foreignKey: 'recruiterId', as: 'recruiter', onDelete: 'SET NULL', onUpdate: 'CASCADE' });
 
-module.exports = { sequelize, User, Post, Reaction, Comment, CommentLike, Save, Job, Application };
+User.hasMany(Follow, { foreignKey: 'followerId', as: 'followingLinks', ...cascade });
+User.hasMany(Follow, { foreignKey: 'followingId', as: 'followerLinks', ...cascade });
+Follow.belongsTo(User, { foreignKey: 'followerId', as: 'follower', ...cascade });
+Follow.belongsTo(User, { foreignKey: 'followingId', as: 'following', ...cascade });
+
+module.exports = { sequelize, User, Post, Reaction, Comment, CommentLike, Save, Job, Application, Follow };

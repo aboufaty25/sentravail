@@ -1,0 +1,18 @@
+<%# Follow toggle. variant: button (profile), card (suggestion cards), link (post header).
+    The wrapper refreshes itself when the same account is (un)followed elsewhere on the page. %>
+<span class="<%= variant === 'card' ? 'block' : 'inline-flex' %>" data-follow="<%= targetId %>"
+  hx-get="/abonnements/<%= targetId %>/bouton?v=<%= variant %>" hx-trigger="follow-changed-<%= targetId %> from:body" hx-swap="outerHTML">
+  <% if (variant === 'link') { %>
+    <% if (following) { %>
+      <span class="text-[13px] font-semibold text-gray-500">· Abonné</span>
+    <% } else { %>
+      <button type="button" class="text-[13px] font-semibold text-brand-600 hover:underline" hx-post="/abonnements/<%= targetId %>" hx-vals='{"v":"link"}'
+        hx-target="closest [data-follow]" hx-swap="outerHTML">· S'abonner</button>
+    <% } %>
+  <% } else { %>
+    <button type="button" hx-post="/abonnements/<%= targetId %>" hx-vals='{"v":"<%= variant %>"}' hx-target="closest [data-follow]" hx-swap="outerHTML"
+      class="<%= following ? 'btn-light' : 'btn-primary' %> <%= variant === 'card' ? 'w-full !py-1.5 text-sm' : '' %>" aria-pressed="<%= following ? 'true' : 'false' %>">
+      <%- icon(following ? 'check' : 'plus', 'w-4 h-4') %> <%= following ? 'Abonné' : "S'abonner" %>
+    </button>
+  <% } %>
+</span>

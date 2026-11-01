@@ -1,0 +1,21 @@
+<div class="space-y-2 sm:space-y-4">
+  <section class="card px-4 py-4">
+    <h1 class="text-2xl font-bold">Réseau</h1>
+    <div class="mt-3 grid grid-cols-2 gap-2 text-center">
+      <a href="/profil/<%= currentUser.username %>/abonnes" class="rounded-lg bg-gray-50 p-3 hover:bg-gray-100"><span class="block text-xl font-bold text-brand-600"><%= formatCount(currentUser.followersCount) %></span><span class="text-sm text-gray-600">Abonnés</span></a>
+      <a href="/profil/<%= currentUser.username %>/abonnements" class="rounded-lg bg-gray-50 p-3 hover:bg-gray-100"><span class="block text-xl font-bold text-brand-600"><%= formatCount(currentUser.followingCount) %></span><span class="text-sm text-gray-600">Abonnements</span></a>
+    </div>
+    <% if (!currentUser.city || !currentUser.sector) { %>
+      <p class="mt-3 rounded-md bg-brand-50 px-3 py-2 text-sm text-brand-800">Indiquez votre ville et votre secteur dans <a href="/parametres/profil" class="font-semibold underline">votre profil</a> pour de meilleures suggestions.</p>
+    <% } %>
+  </section>
+  <section class="card px-3 py-4 sm:px-4" aria-labelledby="sugg-title">
+    <h2 id="sugg-title" class="mb-3 px-1 text-lg font-semibold">Personnes et entreprises à suivre</h2>
+    <% if (!suggestions.length) { %>
+      <p class="px-1 text-sm text-gray-500">Vous suivez déjà tout le monde ! Revenez plus tard pour de nouvelles suggestions.</p>
+    <% } %>
+    <ul class="grid grid-cols-2 gap-2 sm:grid-cols-3">
+      <% suggestions.forEach(person => { %><%- include('../../partials/userCard', { person }) %><% }) %>
+    </ul>
+  </section>
+</div>

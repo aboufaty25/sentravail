@@ -9,6 +9,8 @@ const comment = require('../controllers/commentController');
 const job = require('../controllers/jobController');
 const application = require('../controllers/applicationController');
 const cv = require('../controllers/cvController');
+const network = require('../controllers/followController');
+const search = require('../controllers/searchController');
 const { authLimiter, postLimiter, commentLimiter, actionLimiter, applyLimiter, serverMailLimiter, cvBuildLimiter } = require('../middlewares/rateLimit');
 const { imageUpload, cvUpload, handleUploadErrors } = require('../middlewares/upload');
 
@@ -87,10 +89,14 @@ router.post('/commentaires/:commentId/jaime', requireAuth, actionLimiter, commen
 // App tabs
 router.get('/menu', requireAuth, pages.menu);
 router.get('/reels', requireAuth, pages.upcoming('reels'));
-router.get('/reseau', requireAuth, pages.upcoming('network'));
+router.get('/reseau', requireAuth, network.network);
+router.get('/reseau/suggestions', network.sidebarSuggestions);
+router.post('/abonnements/:id', requireAuth, actionLimiter, network.toggle);
+router.get('/abonnements/:id/bouton', requireAuth, network.button);
+router.get('/profil/:username/abonnes', (req, res, next) => network.lists(Object.assign(req, { params: { ...req.params, list: 'abonnes' } }), res, next));
+router.get('/profil/:username/abonnements', (req, res, next) => network.lists(Object.assign(req, { params: { ...req.params, list: 'abonnements' } }), res, next));
 router.get('/notifications', requireAuth, pages.upcoming('notifications'));
-// Global search (people & companies arrive in Phase 6): jobs for now.
-router.get('/recherche', (req, res) => res.redirect(`/offres${req.query.q ? `?q=${encodeURIComponent(String(req.query.q))}` : ''}`));
+router.get('/recherche', search.index);
 router.get('/admin', requireAuth, requireRole('admin'), pages.upcoming('admin'));
 
 // Legal & information pages (required by AdSense)

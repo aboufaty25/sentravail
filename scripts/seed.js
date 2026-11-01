@@ -1,7 +1,7 @@
 // Demo data. WARNING: drops and recreates all tables.
 const bcrypt = require('bcryptjs');
 const env = require('../src/config/env');
-const { sequelize, User, Post, Reaction, Comment, Job } = require('../src/models');
+const { sequelize, User, Post, Reaction, Comment, Job, Follow } = require('../src/models');
 const { buildSlug, featuredUntilDate } = require('../src/services/jobs');
 const { refreshRecentScores } = require('../src/services/feedRanking');
 
@@ -147,6 +147,25 @@ const people = [
       }, { silent: true });
       await Job.create({ ...d.job, postId: post.id, slug: buildSlug(d.job.title, d.job.location), isOfficial: !!d.official });
     }
+
+    // Network: who follows whom
+    const followPlan = [
+      ['aissatou-fall', ['teranga-digital', 'cabinet-ndiaye', 'admin']],
+      ['moussa-sarr', ['teranga-digital', 'aissatou-fall', 'admin']],
+      ['fatou-sow', ['admin', 'aissatou-fall']],
+      ['cabinet-ndiaye', ['aissatou-fall']],
+      ['teranga-digital', ['admin']],
+    ];
+    for (const [who, targets] of followPlan) {
+      for (const t of targets) await Follow.create({ followerId: users[who].id, followingId: users[t].id });
+    }
+    for (const u of Object.values(users)) {
+      await u.update({
+        followersCount: await Follow.count({ where: { followingId: u.id } }),
+        followingCount: await Follow.count({ where: { followerId: u.id } }),
+      });
+    }
+    await Post.create({ authorId: users['aissatou-fall'].id, type: 'text', visibility: 'network', text: 'Petit message pour mon réseau : je cherche un poste de comptable à Dakar à partir de janvier. Merci de partager si vous entendez parler d\'une opportunité 🙏', createdAt: hoursAgo(6), updatedAt: hoursAgo(6) }, { silent: true });
 
     await refreshRecentScores(365);
     console.log(`Seeded ${people.length} users, ${postsData.length + 1} posts, ${jobsData.length} jobs. Password for all accounts: ${env.SEED_PASSWORD}`);

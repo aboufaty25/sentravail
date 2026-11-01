@@ -1,0 +1,25 @@
+<div class="space-y-2 sm:space-y-4">
+  <section class="card px-4 py-4">
+    <a href="/profil/<%= profileUser.username %>" class="mb-2 inline-flex items-center gap-1 text-sm font-medium text-gray-500 hover:underline"><%- icon('arrowLeft', 'w-4 h-4') %> <%= profileUser.firstName %> <%= profileUser.lastName %></a>
+    <nav class="flex gap-2 text-sm font-semibold">
+      <a href="/profil/<%= profileUser.username %>/abonnes" class="rounded-full px-3 py-1.5 <%= which === 'followers' ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-700' %>">Abonnés · <%= formatCount(profileUser.followersCount) %></a>
+      <a href="/profil/<%= profileUser.username %>/abonnements" class="rounded-full px-3 py-1.5 <%= which === 'following' ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-700' %>">Abonnements · <%= formatCount(profileUser.followingCount) %></a>
+    </nav>
+  </section>
+  <% if (!people.length) { %>
+    <section class="card px-4 py-10 text-center text-gray-500"><%= which === 'followers' ? 'Aucun abonné pour le moment.' : 'Aucun abonnement pour le moment.' %></section>
+  <% } else { %>
+    <ul class="card divide-y divide-gray-100">
+      <% people.forEach(u => { %>
+        <li class="flex items-center gap-3 px-4 py-3">
+          <a href="/profil/<%= u.username %>"><%- avatar(u, 'w-11 h-11') %></a>
+          <div class="min-w-0 flex-1">
+            <a href="/profil/<%= u.username %>" class="font-semibold hover:underline"><%= u.firstName %> <%= u.lastName %></a>
+            <p class="truncate text-sm text-gray-500"><%= u.headline || u.companyName || roleLabel(u.role) %></p>
+          </div>
+          <% if (currentUser && currentUser.id !== u.id) { %><%- include('../../partials/followButton', { targetId: u.id, following: u.followedByViewer, variant: 'button' }) %><% } %>
+        </li>
+      <% }) %>
+    </ul>
+  <% } %>
+</div>

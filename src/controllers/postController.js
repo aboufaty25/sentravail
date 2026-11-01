@@ -6,6 +6,7 @@ const { saveImage } = require('../services/storage');
 const { refreshScore, baseScore } = require('../services/feedRanking');
 const posts = require('../services/posts');
 const env = require('../config/env');
+const { isFollowing, followingAmong } = require('../services/follows');
 const { adjustCounter } = require('../utils/counters');
 
 function notFound() {
@@ -173,6 +174,12 @@ async function share(req, res) {
     original = await posts.findVisiblePost(original.sharedPostId, req.user);
     if (!original) throw notFound();
   }
+  // "Mon réseau" posts stay within the author's network.
+  if (original.visibility === 'network') {
+    const err = new Error("Cette publication est réservée au réseau de son auteur et ne peut pas être partagée.");
+    err.status = 403;
+    throw err;
+  }
   const parsed = shareSchema.safeParse(req.body || {});
   if (!parsed.success) return res.status(422).json({ errors: fieldErrors(parsed.error) });
 
@@ -198,13 +205,16 @@ async function savedList(req, res) {
     order: [['createdAt', 'DESC']],
     limit: 50,
   });
-  const list = await posts.hydrate(saves.map((s) => s.post).filter((p) => posts.canView(p, req.user)), req.user);
+  const saved = saves.map((s) => s.post).filter(Boolean);
+  const follows = await followingAmong(req.user.id, saved.map((p) => p.authorId));
+  const list = await posts.hydrate(saved.filter((p) => posts.canView(p, req.user, { follows: follows.has(p.authorId) })), req.user);
   res.render('pages/posts/saved', { title: 'Enregistrements', posts: list });
 }
 
 async function byAuthor(user, viewer, limit = 20) {
+  const follows = await isFollowing(viewer?.id, user.id);
   const list = await Post.findAll({
-    where: { authorId: user.id, ...posts.visibleWhere(viewer) },
+    where: posts.authorPostsWhere(user.id, viewer, follows),
     include: posts.postInclude(),
     order: [['createdAt', 'DESC']],
     limit,

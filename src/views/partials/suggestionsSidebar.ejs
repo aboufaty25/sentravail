@@ -1,0 +1,13 @@
+<% if (!suggestions.length) { %><p class="text-sm text-gray-500">Aucune suggestion pour le moment.</p><% } %>
+<ul class="space-y-3">
+  <% suggestions.forEach(u => { %>
+    <li class="flex items-center gap-2.5">
+      <a href="/profil/<%= u.username %>"><%- avatar(u, 'w-10 h-10') %></a>
+      <div class="min-w-0 flex-1">
+        <a href="/profil/<%= u.username %>" class="block truncate text-sm font-semibold hover:underline"><%= u.firstName %> <%= u.lastName %></a>
+        <p class="truncate text-xs text-gray-500"><%= u.reason %></p>
+      </div>
+      <%- include('followButton', { targetId: u.id, following: false, variant: 'link' }) %>
+    </li>
+  <% }) %>
+</ul>

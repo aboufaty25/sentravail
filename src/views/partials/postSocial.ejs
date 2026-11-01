@@ -36,10 +36,14 @@
     <button type="button" class="flex flex-1 items-center justify-center gap-1.5 rounded-md py-2 hover:bg-gray-100" @click="$dispatch('open-comments-<%= post.id %>')">
       <%- icon('chat', 'w-5 h-5') %> <span class="hidden min-[360px]:inline">Commenter</span>
     </button>
+    <% if (post.visibility === 'network' && !post.sharedPostId) { %>
+    <span class="flex flex-1 items-center justify-center gap-1.5 py-2 text-gray-300" title="Réservée au réseau de l'auteur"><%- icon('share', 'w-5 h-5') %> <span class="hidden min-[360px]:inline">Partager</span></span>
+    <% } else { %>
     <button type="button" class="flex flex-1 items-center justify-center gap-1.5 rounded-md py-2 hover:bg-gray-100"
       @click="$dispatch('open-share', { id: <%= post.sharedPost ? post.sharedPost.id : post.id %>, url: '<%= appUrl %>/publications/<%= post.sharedPost ? post.sharedPost.id : post.id %>', loggedIn: <%= !!currentUser %> })">
       <%- icon('share', 'w-5 h-5') %> <span class="hidden min-[360px]:inline">Partager</span>
     </button>
+    <% } %>
     <% if (currentUser) { %>
       <button type="button" class="flex flex-1 items-center justify-center gap-1.5 rounded-md py-2 hover:bg-gray-100 <%= m.saved ? 'text-brand-600' : '' %>"
         hx-post="/publications/<%= post.id %>/enregistrer" hx-target="#social-<%= post.id %>" hx-swap="outerHTML" aria-pressed="<%= m.saved ? 'true' : 'false' %>" title="<%= m.saved ? 'Retirer des enregistrements' : 'Enregistrer' %>">

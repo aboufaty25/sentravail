@@ -1,0 +1,48 @@
+<% const tabs = [['tout', 'Tout'], ['personnes', 'Personnes'], ['entreprises', 'Entreprises'], ['offres', 'Offres']]; %>
+<div class="space-y-2 sm:space-y-4">
+  <section class="card px-3 py-3 sm:px-4">
+    <form method="get" action="/recherche" role="search" class="space-y-3">
+      <input type="hidden" name="type" value="<%= f.type %>">
+      <label class="relative block">
+        <span class="sr-only">Rechercher</span>
+        <span class="absolute inset-y-0 left-3 flex items-center text-gray-500"><%- icon('search', 'w-5 h-5') %></span>
+        <input name="q" type="search" value="<%= f.q %>" autofocus placeholder="Personnes, entreprises, offres…" class="input !rounded-full !bg-gray-100 !py-2.5 pl-10 border-transparent">
+      </label>
+      <nav class="-mx-1 flex gap-2 overflow-x-auto px-1 text-sm font-semibold [scrollbar-width:none]">
+        <% tabs.forEach(([key, label]) => { %>
+          <a href="/recherche<%= queryString({ q: f.q, type: key, ville: f.ville, secteur: f.secteur }) %>" class="shrink-0 rounded-full px-3 py-1.5 <%= f.type === key ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' %>"><%= label %></a>
+        <% }) %>
+      </nav>
+      <div class="grid grid-cols-2 gap-2">
+        <select name="ville" class="input !py-2" onchange="this.form.requestSubmit()" aria-label="Ville">
+          <option value="">Ville : toutes</option><% CITIES.forEach(c => { %><option <%= f.ville === c ? 'selected' : '' %>><%= c %></option><% }) %>
+        </select>
+        <select name="secteur" class="input !py-2" onchange="this.form.requestSubmit()" aria-label="Secteur">
+          <option value="">Secteur : tous</option><% SECTORS.forEach(s => { %><option <%= f.secteur === s ? 'selected' : '' %>><%= s %></option><% }) %>
+        </select>
+      </div>
+    </form>
+  </section>
+
+  <% [['Personnes', people, 'personnes'], ['Entreprises', companies, 'entreprises']].forEach(([title, list, type]) => { if (f.type !== 'tout' && f.type !== type) return; %>
+    <section class="card px-3 py-4 sm:px-4">
+      <div class="mb-3 flex items-center justify-between px-1">
+        <h2 class="text-lg font-semibold"><%= title %></h2>
+        <% if (f.type === 'tout' && list.length) { %><a href="/recherche<%= queryString({ q: f.q, type, ville: f.ville, secteur: f.secteur }) %>" class="text-sm font-medium text-brand-600 hover:underline">Tout voir</a><% } %>
+      </div>
+      <% if (!list.length) { %><p class="px-1 text-sm text-gray-500">Aucun résultat.</p><% } %>
+      <ul class="grid grid-cols-2 gap-2 sm:grid-cols-4"><% list.forEach(person => { %><%- include('../partials/userCard', { person }) %><% }) %></ul>
+    </section>
+  <% }) %>
+
+  <% if (f.type === 'tout' && f.q) { %>
+    <section class="space-y-2 sm:space-y-4">
+      <div class="flex items-center justify-between px-3 sm:px-1">
+        <h2 class="text-lg font-semibold">Offres (<%= jobsTotal %>)</h2>
+        <% if (jobsTotal) { %><a href="/offres<%= queryString({ q: f.q, ville: f.ville, secteur: f.secteur }) %>" class="text-sm font-medium text-brand-600 hover:underline">Tout voir</a><% } %>
+      </div>
+      <% if (!jobs.length) { %><p class="card px-4 py-4 text-sm text-gray-500">Aucune offre ne correspond.</p><% } %>
+      <% jobs.forEach(post => { %><%- include('../partials/postCard', { post }) %><% }) %>
+    </section>
+  <% } %>
+</div>

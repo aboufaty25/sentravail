@@ -7,10 +7,15 @@
     <p class="text-sm text-gray-400">Chargement…</p>
   </div>
 </section>
+<% if (currentUser) { %>
 <section class="card mt-3 p-4" aria-labelledby="suggest-title">
-  <h2 id="suggest-title" class="font-semibold text-gray-700">Suggestions d'abonnements</h2>
-  <p class="mt-2 text-sm text-gray-500">Bientôt : des personnes et entreprises de votre ville et de votre secteur.</p>
+  <div class="flex items-center justify-between">
+    <h2 id="suggest-title" class="font-semibold text-gray-700">Suggestions d'abonnements</h2>
+    <a href="/reseau" class="text-sm font-medium text-brand-600 hover:underline">Voir plus</a>
+  </div>
+  <div hx-get="/reseau/suggestions" hx-trigger="intersect once" hx-swap="innerHTML" class="mt-3"><p class="text-sm text-gray-400">Chargement…</p></div>
 </section>
+<% } %>
 <% if (!noAds) { %><div class="mt-3"><%- include('adSlot', { slot: 'sidebar' }) %></div><% } %>
 <footer class="mt-4 px-2 text-xs leading-6 text-gray-500">
   <a href="/a-propos" class="hover:underline">À propos</a> ·

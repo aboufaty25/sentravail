@@ -240,9 +240,9 @@ describe('Search', () => {
     expect((await request(app).get('/offres?q=%25')).text).toContain('Aucune offre');
   });
 
-  test('/recherche forwards the query to job search', async () => {
-    const res = await request(app).get('/recherche?q=stage');
-    expect(res.headers.location).toBe('/offres?q=stage');
+  test('global search "Offres" tab forwards to job search with filters', async () => {
+    const res = await request(app).get('/recherche?type=offres&q=stage&ville=Thi%C3%A8s');
+    expect(res.headers.location).toBe('/offres?q=stage&ville=Thi%C3%A8s');
   });
 });
 
