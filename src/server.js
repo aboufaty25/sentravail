@@ -8,6 +8,7 @@ const { initSocket, closeSocket } = require('./config/socket');
 const { refreshRecentScores } = require('./services/feedRanking');
 const { runMigrations } = require('./config/migrate');
 const { promoteConfiguredAdmins } = require('./services/admins');
+const branding = require('./services/branding');
 const refs = require('./services/refs');
 
 const SCORE_REFRESH_MS = 15 * 60 * 1000;
@@ -30,6 +31,7 @@ async function start() {
   await runMigrations();
   await promoteConfiguredAdmins();
   await refs.load();
+  await branding.load();
   setInterval(() => refs.load().catch(() => {}), 5 * 60 * 1000).unref();
   const server = http.createServer(app);
   initSocket(server, sessionMiddleware());

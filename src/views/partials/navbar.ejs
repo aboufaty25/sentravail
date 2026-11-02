@@ -14,8 +14,12 @@
 <header id="app-header" class="app-header sticky top-0 z-40 bg-white shadow-sm">
   <div class="mx-auto flex h-14 max-w-[1280px] items-center gap-2 px-3 lg:px-4">
     <a href="/" class="flex items-center gap-2 shrink-0" aria-label="SenTravail — Accueil">
-      <img src="/icons/logo.svg" alt="" class="hidden lg:block w-10 h-10">
-      <span class="lg:hidden text-[26px] font-extrabold tracking-tight text-brand-600">sentravail</span>
+      <% if (brand.customLogo) { %>
+        <img src="<%= brand.logo %>" alt="SenTravail" class="h-9 w-auto max-w-[180px] object-contain lg:h-10">
+      <% } else { %>
+        <img src="/icons/logo.svg" alt="" class="hidden lg:block w-10 h-10">
+        <span class="lg:hidden text-[26px] font-extrabold tracking-tight text-brand-600">sentravail</span>
+      <% } %>
     </a>
     <form action="/recherche" method="get" class="hidden lg:block w-60" role="search">
       <label class="relative block">

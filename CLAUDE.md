@@ -28,11 +28,11 @@ src/
   app.js, server.js
   config/        env (zod), db, session, mailer, socket, migrate, constants, postTypes
   models/        User, Post, Job, Application, Reaction, Comment, CommentLike, Save, Follow,
-                 Notification, Report, RefItem, BannedTerm
+                 Notification, Report, RefItem, BannedTerm, SiteSetting
   controllers/   publish, post, job, event, application, cv, comment, follow, search,
                  notification, report, verification, admin, seo, page, auth, profile
   services/      feedRanking, posts, jobs, follows, notifications, moderation, moderationActions,
-                 verification, reactions, cvPdf, cvStorage, storage, mail, refs
+                 verification, reactions, cvPdf, cvStorage, storage, mail, refs, branding
   middlewares/   auth, roles, csrf, upload, rateLimit, errors, flash
   migrations/    001… (idempotentes)
   views/         layouts, partials (postCard, postContent, cards/*, jobCard, applyModal,
@@ -76,6 +76,11 @@ docs/DEPLOIEMENT.md
 - **Limites** : 1 « Je cherche un emploi » par jour et par utilisateur ; liens externes interdits aux comptes non vérifiés (les adresses email restent autorisées) ; longueur maximale par type.
 - **Signalements** : à partir de **3** (`REPORT_AUTOHIDE`), la publication ou le commentaire est masqué en attendant la décision de l'admin.
 - **Administration** : file de modération `/admin/moderation` avec 2 onglets — Bloqués par le filtre, Signalés — plus `/admin/verifications` et `/admin/filtre`.
+
+## Apparence (`/admin/apparence`, `src/services/branding.js`)
+
+- L'admin change le **logo** (en-tête, connexion/inscription ; PNG conservé pour la transparence), l'**icône de l'application** (favicon + écran d'accueil ; recadrée au carré en PNG 512 et 192 px dans le navigateur) et l'**image de partage par défaut** (`og:image`). « Rétablir l'original » revient aux fichiers de `public/icons/`.
+- Valeurs dans la table `site_settings`, gardées en mémoire et exposées aux vues dans `brand` ; le manifeste PWA est généré par la route `/manifest.webmanifest`. Ne pas coder en dur `/icons/logo.svg` ou `/icons/icon-192.png` dans les vues : utiliser `brand.*`.
 
 ## Pas de vidéo
 

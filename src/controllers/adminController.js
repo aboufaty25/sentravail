@@ -478,3 +478,54 @@ async function filterUpdate(req, res) {
 }
 
 Object.assign(module.exports, { adminCounts, moderationQueue, moderatePost, moderateComment, verificationsIndex, verificationDecision, filterIndex, filterUpdate });
+
+// ======================= Branding (logo, app icon, share image) =======================
+const branding = require('../services/branding');
+const { saveImage, detectImageType } = require('../services/storage');
+
+const BRAND_ASSETS = {
+  logo: { label: 'Logo', done: 'Logo mis à jour.' },
+  icon: { label: "Icône de l'application", done: "Icône de l'application mise à jour." },
+  share: { label: 'Image de partage', done: 'Image de partage mise à jour.' },
+};
+
+function brandingIndex(req, res) {
+  view(res, 'branding', { title: 'Apparence', section: 'branding', brand: branding.current(), errors: {} });
+}
+
+async function brandingUpdate(req, res) {
+  const asset = req.params.asset;
+  if (!BRAND_ASSETS[asset]) {
+    const err = new Error('Élément inconnu.');
+    err.status = 404;
+    throw err;
+  }
+  const label = BRAND_ASSETS[asset].label;
+  // Back to the original SenTravail artwork.
+  if (req.body?.action === 'reset') {
+    const keys = { logo: ['logo'], icon: ['icon192', 'icon512'], share: ['shareImage'] }[asset];
+    await branding.set(Object.fromEntries(keys.map((k) => [k, null])));
+    req.flash('success', `${label} : l'original est rétabli.`);
+    return res.redirect('/admin/apparence');
+  }
+  const file = req.files?.image?.[0];
+  const fail = (message) => {
+    res.status(422);
+    return view(res, 'branding', { title: 'Apparence', section: 'branding', brand: branding.current(), errors: { [asset]: message } });
+  };
+  if (!file) return fail('Choisissez une image.');
+  if (asset === 'icon') {
+    // App icons must be PNG (home screen, favicon); the browser sends a 512 px and a 192 px version.
+    const small = req.files?.icon192?.[0] || file;
+    if (detectImageType(file.buffer) !== 'png' || detectImageType(small.buffer) !== 'png') return fail("L'icône doit être une image PNG carrée.");
+    const [icon512, icon192] = await Promise.all([saveImage(file.buffer, 'branding'), small === file ? null : saveImage(small.buffer, 'branding')]);
+    await branding.set({ icon512, icon192: icon192 || icon512 });
+  } else {
+    const url = await saveImage(file.buffer, 'branding');
+    await branding.set(asset === 'logo' ? { logo: url } : { shareImage: url });
+  }
+  req.flash('success', BRAND_ASSETS[asset].done);
+  return res.redirect('/admin/apparence');
+}
+
+Object.assign(module.exports, { brandingIndex, brandingUpdate });

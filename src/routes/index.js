@@ -19,10 +19,12 @@ const seo = require('../controllers/seoController');
 const publish = require('../controllers/publishController');
 const events = require('../controllers/eventController');
 const { authLimiter, postLimiter, commentLimiter, actionLimiter, applyLimiter, serverMailLimiter, cvBuildLimiter } = require('../middlewares/rateLimit');
-const { imageUpload, cvUpload, handleUploadErrors } = require('../middlewares/upload');
+const { imageUpload, brandingImageUpload, cvUpload, handleUploadErrors } = require('../middlewares/upload');
 
 const recruiterOnly = [requireAuth, requireRole('recruiter', 'admin')];
 const logoUpload = handleUploadErrors(imageUpload.single('image'));
+// Branding: one image, plus the 192 px icon generated in the browser for the app icon.
+const brandingUpload = handleUploadErrors(brandingImageUpload.fields([{ name: 'image', maxCount: 1 }, { name: 'icon192', maxCount: 1 }]));
 
 const router = express.Router();
 
@@ -150,6 +152,8 @@ router.post('/admin/verifications/:id', ...adminOnly, admin.verificationDecision
 router.get('/admin/filtre', ...adminOnly, admin.filterIndex);
 router.post('/admin/filtre', ...adminOnly, admin.filterUpdate);
 router.get('/admin/referentiels', ...adminOnly, admin.refsIndex);
+router.get('/admin/apparence', ...adminOnly, admin.brandingIndex);
+router.post('/admin/apparence/:asset', ...adminOnly, brandingUpload, admin.brandingUpdate);
 router.post('/admin/referentiels', ...adminOnly, admin.refsAdd);
 router.post('/admin/referentiels/:id', ...adminOnly, admin.refsUpdate);
 

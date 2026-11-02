@@ -4,15 +4,23 @@ const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
 // One image per request (logo, poster, CV photo), 2 MB max — the browser compresses before upload.
 const IMAGE_MAX_BYTES = 2 * 1024 * 1024;
+function imageFileFilter(req, file, cb) {
+  if (IMAGE_TYPES.has(file.mimetype)) return cb(null, true);
+  const err = new Error('Format d’image non pris en charge (JPEG, PNG ou WebP uniquement).');
+  err.status = 422;
+  return cb(err);
+}
 const imageUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: IMAGE_MAX_BYTES, files: 1, fields: 30 },
-  fileFilter: (req, file, cb) => {
-    if (IMAGE_TYPES.has(file.mimetype)) return cb(null, true);
-    const err = new Error('Format d’image non pris en charge (JPEG, PNG ou WebP uniquement).');
-    err.status = 422;
-    return cb(err);
-  },
+  fileFilter: imageFileFilter,
+});
+
+// Admin branding: the image plus a browser-generated 192 px icon.
+const brandingImageUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: IMAGE_MAX_BYTES, files: 2, fields: 10 },
+  fileFilter: imageFileFilter,
 });
 
 // Turns multer errors into user-facing 4xx errors.
@@ -35,7 +43,7 @@ function handleUploadErrors(mw) {
     });
 }
 
-module.exports = { imageUpload, handleUploadErrors };
+module.exports = { imageUpload, brandingImageUpload, handleUploadErrors };
 
 const CV_TYPES = new Set([
   'application/pdf',

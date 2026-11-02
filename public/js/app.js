@@ -54,6 +54,49 @@
     }
   }
 
+  // Admin branding images (input[data-brand]): processed in the browser before upload.
+  //  - logo: max 800 px, PNG kept (transparency); - photo: max 1600 px JPEG;
+  //  - icon: centre-cropped square PNG 512 px, plus a 192 px copy in the sibling input[name=icon192].
+  async function drawSquare(bitmap, size) {
+    const side = Math.min(bitmap.width, bitmap.height);
+    const canvas = document.createElement('canvas');
+    canvas.width = size; canvas.height = size;
+    canvas.getContext('2d').drawImage(bitmap, (bitmap.width - side) / 2, (bitmap.height - side) / 2, side, side, 0, 0, size, size);
+    return new Promise((r) => canvas.toBlob(r, 'image/png'));
+  }
+  async function scalePng(bitmap, max) {
+    const ratio = Math.min(1, max / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(bitmap.width * ratio); canvas.height = Math.round(bitmap.height * ratio);
+    canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    return new Promise((r) => canvas.toBlob(r, 'image/png'));
+  }
+  document.addEventListener('change', async (e) => {
+    const input = e.target;
+    if (!input.matches || !input.matches('input[type=file][data-brand]') || !input.files[0] || !window.DataTransfer) return;
+    const kind = input.dataset.brand;
+    const original = input.files[0];
+    let file = original;
+    try {
+      if (kind === 'photo') file = await resizeImage(original, 1600, 0.85);
+      else {
+        const bitmap = await createImageBitmap(original, { imageOrientation: 'from-image' });
+        const base = original.name.replace(/\.\w+$/, '');
+        if (kind === 'icon') {
+          if (bitmap.width < 192 || bitmap.height < 192) toast("Image trop petite : 512 × 512 px minimum conseillé.", 'error');
+          file = new File([await drawSquare(bitmap, 512)], `${base}-512.png`, { type: 'image/png' });
+          const small = input.form && input.form.querySelector('input[name=icon192]');
+          if (small) { const dt2 = new DataTransfer(); dt2.items.add(new File([await drawSquare(bitmap, 192)], `${base}-192.png`, { type: 'image/png' })); small.files = dt2.files; }
+        } else {
+          file = new File([await scalePng(bitmap, 800)], `${base}.png`, { type: 'image/png' });
+        }
+      }
+    } catch (_) { file = original; }
+    if (file.size > 2 * 1024 * 1024) { toast("L'image doit faire moins de 2 Mo.", 'error'); input.value = ''; return; }
+    const dt = new DataTransfer(); dt.items.add(file); input.files = dt.files;
+    input.dispatchEvent(new CustomEvent('brand-ready', { detail: { url: URL.createObjectURL(file) } }));
+  });
+
   // ---------- PWA ----------
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));

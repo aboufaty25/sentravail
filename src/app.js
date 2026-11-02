@@ -12,6 +12,7 @@ const { csrfProtection } = require('./middlewares/csrf');
 const { globalLimiter } = require('./middlewares/rateLimit');
 const { notFound, errorHandler } = require('./middlewares/errors');
 const viewHelpers = require('./utils/viewHelpers');
+const branding = require('./services/branding');
 const routes = require('./routes');
 const { unseenCount } = require('./services/notifications');
 
@@ -75,6 +76,10 @@ app.get('/sw.js', (req, res) => {
   res.set({ 'Cache-Control': 'no-cache', 'Service-Worker-Allowed': '/' });
   res.sendFile(path.join(root, 'public/sw.js'));
 });
+// Web app manifest: icons come from the admin branding settings.
+app.get('/manifest.webmanifest', (req, res) => {
+  res.type('application/manifest+json').set('Cache-Control', 'no-cache').send(JSON.stringify(branding.manifest()));
+});
 app.use(express.static(path.join(root, 'public'), staticOpts));
 // Uploaded files have random, never-reused names: cache them for a long time.
 const uploadOpts = { maxAge: env.isProd ? '30d' : 0, immutable: env.isProd };
@@ -109,7 +114,8 @@ app.use((req, res, next) => {
     adsClient: env.ADSENSE_CLIENT_ID,
     adSlots: { feed: env.ADSENSE_SLOT_FEED, sidebar: env.ADSENSE_SLOT_SIDEBAR, job: env.ADSENSE_SLOT_JOB },
     consent: req.cookies?.st_consent || (req.get('cookie') || '').match(/(?:^|;\s*)st_consent=(granted|denied)/)?.[1] || null,
-    ogImage: `${env.APP_URL}/icons/og-default.jpg`,
+    brand: branding.current(),
+    ogImage: branding.current().shareImage,
     // Private or personal pages are never indexed.
     noindex: /^\/(admin|parametres|mes-|cv|candidatures|notifications|enregistrements|publier|menu|reinitialiser|mot-de-passe-oublie|offres\/nouvelle|offres\/[^/]+\/modifier)/.test(req.path),
   });

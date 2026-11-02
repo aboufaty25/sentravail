@@ -12,6 +12,7 @@ const Report = require('./Report');
 const RefItem = require('./RefItem');
 const Notification = require('./Notification');
 const BannedTerm = require('./BannedTerm');
+const SiteSetting = require('./SiteSetting');
 
 const cascade = { onDelete: 'CASCADE', onUpdate: 'CASCADE' };
 
@@ -66,4 +67,4 @@ Notification.belongsTo(User, { foreignKey: 'actorId', as: 'actor', ...cascade })
 Notification.belongsTo(Post, { foreignKey: 'postId', as: 'post', ...cascade });
 Notification.belongsTo(Application, { foreignKey: 'applicationId', as: 'application', ...cascade });
 
-module.exports = { sequelize, User, Post, Reaction, Comment, CommentLike, Save, Job, Application, Follow, Report, RefItem, Notification, BannedTerm };
+module.exports = { sequelize, User, Post, Reaction, Comment, CommentLike, Save, Job, Application, Follow, Report, RefItem, Notification, BannedTerm, SiteSetting };

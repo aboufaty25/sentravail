@@ -1,0 +1,41 @@
+<%- include('../../partials/adminNav') %>
+<%
+  const assets = [
+    { key: 'logo', title: 'Logo du site', help: "Affiché dans l'en-tête (mobile et ordinateur), sur les pages de connexion et d'inscription. PNG transparent conseillé, format horizontal ou carré.", current: brand.logo, custom: brand.customLogo, previewClass: 'h-16 w-auto max-w-full object-contain', kind: 'logo' },
+    { key: 'icon', title: "Icône de l'application", help: "Icône de l'onglet du navigateur et de l'application installée sur l'écran d'accueil du téléphone. Image carrée d'au moins 512 × 512 px ; elle est recadrée au carré automatiquement.", current: brand.icon512, custom: brand.customIcon, previewClass: 'h-20 w-20 rounded-2xl object-cover shadow', kind: 'icon' },
+    { key: 'share', title: 'Image de partage par défaut', help: "Aperçu affiché quand on partage une page du site sur Facebook ou WhatsApp (les offres avec image utilisent leur propre image). Format 1200 × 630 px conseillé.", current: brand.shareImage, custom: brand.customShareImage, previewClass: 'aspect-[1200/630] w-full max-w-md rounded-lg object-cover', kind: 'photo' },
+  ];
+%>
+<div class="space-y-3">
+  <% assets.forEach(a => { %>
+    <section class="card rounded-lg p-4" aria-labelledby="brand-<%= a.key %>" x-data="{ preview: null }">
+      <div class="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <h2 id="brand-<%= a.key %>" class="text-lg font-semibold"><%= a.title %></h2>
+          <p class="mt-0.5 max-w-xl text-sm text-gray-500"><%= a.help %></p>
+        </div>
+        <span class="rounded-full px-2.5 py-1 text-xs font-semibold <%= a.custom ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-600' %>"><%= a.custom ? 'Personnalisé' : "Original SenTravail" %></span>
+      </div>
+      <div class="mt-3 flex min-h-[5rem] items-center justify-center rounded-lg bg-gray-50 p-3">
+        <img :src="preview || '<%= a.current %>'" alt="<%= a.title %> actuel" class="<%= a.previewClass %>">
+      </div>
+      <form method="post" action="/admin/apparence/<%= a.key %>?_csrf=<%= csrfToken %>" enctype="multipart/form-data" class="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+        <input name="image" type="file" accept="image/png<%= a.kind === 'icon' ? '' : ',image/jpeg,image/webp' %>" required data-brand="<%= a.kind %>"
+          @brand-ready="preview = $event.detail.url"
+          aria-label="Nouvelle image : <%= a.title %>"
+          class="block w-full flex-1 text-sm text-gray-600 file:mr-3 file:rounded-md file:border-0 file:bg-gray-200 file:px-3 file:py-2.5 file:font-semibold">
+        <% if (a.kind === 'icon') { %><input name="icon192" type="file" class="hidden" tabindex="-1" aria-hidden="true"><% } %>
+        <button type="submit" class="btn-primary !py-2">Enregistrer</button>
+      </form>
+      <% if (errors[a.key]) { %><p class="field-error mt-1"><%= errors[a.key] %></p><% } %>
+      <% if (a.custom) { %>
+        <form method="post" action="/admin/apparence/<%= a.key %>?_csrf=<%= csrfToken %>" enctype="multipart/form-data" class="mt-2"
+          x-data @submit="confirm('Rétablir l\'original SenTravail ?') || $event.preventDefault()">
+          <input type="hidden" name="action" value="reset">
+          <button class="text-sm font-semibold text-red-600 hover:underline">Rétablir l'original</button>
+        </form>
+      <% } %>
+    </section>
+  <% }) %>
+  <p class="px-1 text-xs text-gray-500">Les changements sont visibles immédiatement. Sur un téléphone où l'application est déjà installée, la nouvelle icône peut mettre quelques jours à apparaître (ou après réinstallation). Facebook garde les anciens aperçus en mémoire : utilisez son outil de débogage de partage pour les rafraîchir.</p>
+</div>

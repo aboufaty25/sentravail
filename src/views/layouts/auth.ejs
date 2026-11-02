@@ -6,7 +6,11 @@
 <body class="min-h-screen" hx-headers='{"X-CSRF-Token": "<%= csrfToken %>"}'>
   <main id="main" class="mx-auto w-full <%= wide ? 'max-w-5xl' : 'max-w-md' %> px-4 py-8 sm:py-12">
     <% if (!wide) { %>
-      <a href="/" class="mb-6 block text-center text-[40px] font-extrabold tracking-tight text-brand-600" aria-label="SenTravail — Accueil">sentravail</a>
+      <% if (brand.customLogo) { %>
+        <a href="/" class="mb-6 block" aria-label="SenTravail — Accueil"><img src="<%= brand.logo %>" alt="SenTravail" class="mx-auto h-14 w-auto max-w-[260px] object-contain"></a>
+      <% } else { %>
+        <a href="/" class="mb-6 block text-center text-[40px] font-extrabold tracking-tight text-brand-600" aria-label="SenTravail — Accueil">sentravail</a>
+      <% } %>
     <% } %>
     <%- include('../partials/flash') %>
     <%- body %>

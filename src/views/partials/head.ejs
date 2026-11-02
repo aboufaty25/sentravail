@@ -14,13 +14,13 @@
 <meta property="og:image" content="<%= ogImage %>">
 <% if (ogImage.startsWith('https://')) { %><meta property="og:image:secure_url" content="<%= ogImage %>"><% } %>
 <meta property="og:image:alt" content="<%= locals.ogImageAlt || title %>">
-<meta name="twitter:card" content="<%= ogImage.endsWith('og-default.jpg') || locals.ogLargeImage ? 'summary_large_image' : 'summary' %>">
+<meta name="twitter:card" content="<%= ogImage === brand.shareImage || locals.ogLargeImage ? 'summary_large_image' : 'summary' %>">
 <meta name="twitter:title" content="<%= title %>">
 <meta name="twitter:description" content="<%= metaDescription %>">
 <meta name="twitter:image" content="<%= ogImage %>">
 <% if (locals.jsonLd) { %><script type="application/ld+json"><%- jsonLd %></script><% } %>
-<link rel="icon" href="/icons/logo.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="icon" href="<%= brand.favicon %>" type="<%= brand.faviconType %>">
+<link rel="apple-touch-icon" href="<%= brand.appleIcon %>">
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">

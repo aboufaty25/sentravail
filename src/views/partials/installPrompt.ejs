@@ -1,6 +1,6 @@
 <div x-data="installPrompt()" x-cloak x-show="show" x-transition
   class="fixed inset-x-3 bottom-3 z-[54] flex items-center gap-3 rounded-xl bg-white p-3 shadow-2xl ring-1 ring-black/5 sm:left-auto sm:right-4 sm:w-[380px]" role="dialog" aria-label="Installer l'application">
-  <img src="/icons/icon-192.png" alt="" class="h-11 w-11 shrink-0 rounded-xl" width="44" height="44">
+  <img src="<%= brand.icon192 %>" alt="" class="h-11 w-11 shrink-0 rounded-xl" width="44" height="44">
   <div class="min-w-0 flex-1 text-sm">
     <p class="font-semibold">Installer SenTravail</p>
     <p x-show="!ios" class="text-gray-500">Accès rapide depuis l'écran d'accueil, même en 3G.</p>
