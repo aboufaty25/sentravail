@@ -1,0 +1,19 @@
+<%# "Connectez-vous pour continuer": opened by any [data-login] element or a 401 from an htmx action. %>
+<% if (!currentUser) { %>
+<div x-data="loginPrompt()" @require-login.window="show($event.detail)" @keydown.escape.window="open = false">
+  <div x-cloak x-show="open" x-transition.opacity class="fixed inset-0 z-[56] bg-black/50" @click="open = false"></div>
+  <div x-cloak x-show="open" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="translate-y-full sm:translate-y-4 sm:opacity-0" x-transition:enter-end="translate-y-0 sm:opacity-100"
+    class="fixed inset-x-0 bottom-0 z-[57] rounded-t-2xl bg-white p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] text-center shadow-2xl sm:inset-x-auto sm:left-1/2 sm:top-1/2 sm:bottom-auto sm:w-[420px] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-xl"
+    role="dialog" aria-modal="true" aria-labelledby="login-prompt-title">
+    <button type="button" class="icon-btn absolute right-3 top-3" @click="open = false" aria-label="Fermer"><%- icon('x', 'w-5 h-5') %></button>
+    <img src="/icons/logo.svg" alt="" class="mx-auto h-12 w-12">
+    <h2 id="login-prompt-title" class="mt-3 text-lg font-semibold">Connectez-vous pour continuer</h2>
+    <p class="mt-1 text-sm text-gray-600" x-text="message"></p>
+    <div class="mt-5 space-y-2">
+      <a :href="'/connexion?retour=' + encodeURIComponent(retour)" class="btn-primary w-full !py-3">Se connecter</a>
+      <a :href="'/inscription?retour=' + encodeURIComponent(retour)" class="btn-success w-full !py-3">Créer un compte</a>
+    </div>
+    <p class="mt-3 text-xs text-gray-500">C'est gratuit. Vous reviendrez ici juste après.</p>
+  </div>
+</div>
+<% } %>

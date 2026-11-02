@@ -3,22 +3,23 @@ const { feedPage, hydrate, postInclude } = require('../services/posts');
 const { featuredJobs } = require('../services/jobs');
 
 async function home(req, res) {
-  if (!req.user) {
-    return res.render('pages/landing', { title: "SenTravail — Le réseau social de l'emploi au Sénégal", layout: 'layouts/auth', noAds: true, wide: true });
-  }
+  // Open to everyone (indexable): guests see the public feed.
   const since = new Date();
   const [{ posts, hasMore }, featured] = await Promise.all([feedPage({ viewer: req.user, page: 1, since }), featuredJobs(req.user)]);
   // Just-published post: pin it on top for its author, once.
   const freshId = Number.parseInt(req.query.nouveau, 10);
   let fresh = null;
-  if (freshId) {
+  if (freshId && req.user) {
     fresh = await Post.findOne({ where: { id: freshId, authorId: req.user.id }, include: postInclude() });
     if (fresh) await hydrate([fresh], req.user);
   }
   const feedPosts = fresh ? posts.filter((p) => p.id !== fresh.id) : posts;
   const pinned = fresh ? featured.filter((p) => p.id !== fresh.id) : featured;
   return res.render('pages/home', {
-    title: 'Accueil', activeTab: 'home', fresh, featured: pinned, posts: feedPosts, hasMore, page: 1, since: since.getTime(),
+    title: req.user ? 'Accueil' : "SenTravail — Le réseau social de l'emploi au Sénégal",
+    metaDescription: "Offres d'emploi, candidats disponibles, salons de recrutement et conseils carrière au Sénégal. Postulez gratuitement, même sans compte.",
+    canonical: `${require('../config/env').APP_URL}/`,
+    activeTab: 'home', fresh, featured: pinned, posts: feedPosts, hasMore, page: 1, since: since.getTime(),
   });
 }
 

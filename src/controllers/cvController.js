@@ -4,10 +4,7 @@ const { buildCvPdf, period } = require('../services/cvPdf');
 const cvStorage = require('../services/cvStorage');
 const { saveImage } = require('../services/storage');
 
-// Only relative, same-site return paths (no open redirect).
-function safeReturn(value) {
-  return typeof value === 'string' && /^\/(?!\/)[\w\-/?=&%.]*$/.test(value) ? value : null;
-}
+const { safeReturn } = require('../utils/returnTo');
 
 // Initial builder data: saved CV, else what we know from the profile.
 function initialData(user) {
@@ -47,7 +44,7 @@ async function save(req, res) {
   const fileName = `CV ${cv.personal.firstName} ${cv.personal.lastName}.pdf`;
   const stored = await cvStorage.saveCv(pdf, fileName);
 
-  if (req.user) {
+  {
     const u = req.user;
     await u.update({
       cvBuilt: cv,
@@ -62,16 +59,13 @@ async function save(req, res) {
       educations: cv.educations.map((e) => ({ degree: e.degree, school: e.school, period: period(e) })),
       languages: cv.languages.map((l) => `${l.name} (${l.level.toLowerCase()})`),
     });
-  } else {
-    // Guests: the generated CV is attached to their browser session for the apply modal.
-    req.session.builtCv = { key: stored.key, name: stored.name };
   }
 
   return res.json({
     ok: true,
     downloadPath: cvStorage.signedPath(stored.key, stored.name, 1),
     returnTo: safeReturn(req.body.returnTo),
-    message: req.user ? 'CV enregistré. Il sera utilisé pour vos prochaines candidatures.' : 'CV créé. Vous pouvez maintenant postuler.',
+    message: 'CV enregistré. Il sera utilisé pour vos prochaines candidatures.',
   });
 }
 

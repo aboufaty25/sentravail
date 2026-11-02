@@ -55,9 +55,12 @@ describe('Open Graph and indexing', () => {
     const offres = await request(app).get('/offres');
     expect(offres.text).toContain('og-default.jpg');
     expect(offres.text).toContain('summary_large_image');
-    for (const url of ['/mot-de-passe-oublie', '/recherche']) {
-      expect((await request(app).get(url)).text).toContain('<meta name="robots" content="noindex, nofollow">');
+    expect((await request(app).get('/mot-de-passe-oublie')).text).toContain('<meta name="robots" content="noindex, nofollow">');
+    // open pages are indexable
+    for (const url of ['/', '/offres', '/evenements', '/recherche?q=comptable', '/profil/rama-ndiaye']) {
+      expect((await request(app).get(url)).text).not.toContain('noindex');
     }
+    expect((await request(app).get('/robots.txt')).text).not.toContain('Disallow: /recherche');
   });
 
   test('profile pages are canonical profiles', async () => {

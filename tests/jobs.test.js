@@ -49,7 +49,7 @@ describe('Publishing jobs', () => {
   test('guests are redirected to login', async () => {
     const res = await request(app).get('/offres/nouvelle');
     expect(res.status).toBe(302);
-    expect(res.headers.location).toBe('/connexion');
+    expect(res.headers.location).toBe('/connexion?retour=%2Foffres%2Fnouvelle');
   });
 
   test('multipart form requires the CSRF token', async () => {

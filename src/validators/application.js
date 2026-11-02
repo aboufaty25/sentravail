@@ -18,7 +18,8 @@ const applicationSchema = z.object({
     }),
   // Kept short: the whole email must fit in a mailto: link (~2000 characters).
   message: z.string().trim().max(1000, 'Message trop long (1000 caractères maximum).').optional().default(''),
-  cvSource: z.enum(['upload', 'profile', 'built']).optional().default('upload'),
+  cvSource: z.enum(['upload', 'profile']).optional().default('upload'),
+  website: z.string().optional().default(''), // honeypot: must stay empty
   saveToProfile: z.string().optional(),
 });
 

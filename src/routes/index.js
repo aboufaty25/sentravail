@@ -85,7 +85,7 @@ router.get('/mes-offres', ...recruiterOnly, job.mine);
 
 // Applications
 const cvFile = handleUploadErrors(cvUpload.single('cv'));
-router.post('/offres/:slug/postuler', applyLimiter, cvFile, application.apply);
+router.post('/offres/:slug/postuler', ...applyLimiter, cvFile, application.apply);
 router.post('/candidatures/:id/confirmer', application.confirm);
 router.post('/candidatures/:id/envoyer', serverMailLimiter, application.sendViaServer);
 router.post('/candidatures/:id/mailto', application.mailto);
@@ -99,10 +99,10 @@ router.get('/cv', requireAuth, application.myCv);
 router.post('/cv/importer', requireAuth, cvFile, application.uploadMyCv);
 router.post('/cv/retirer', requireAuth, application.removeMyCv);
 router.get('/cv/telecharger', application.downloadCv);
-// CV builder: open to guests too (used from the apply modal)
-router.get('/cv/creer', cv.builder);
-router.post('/cv/creer', cvBuildLimiter, cv.save);
-router.post('/cv/photo', cvBuildLimiter, handleUploadErrors(imageUpload.single('photo')), cv.uploadPhoto);
+// CV builder: members only (the apply modal asks guests to log in)
+router.get('/cv/creer', requireAuth, cv.builder);
+router.post('/cv/creer', requireAuth, cvBuildLimiter, cv.save);
+router.post('/cv/photo', requireAuth, cvBuildLimiter, handleUploadErrors(imageUpload.single('photo')), cv.uploadPhoto);
 
 // Comments
 router.get('/publications/:id/commentaires', comment.list);
@@ -111,7 +111,7 @@ router.post('/commentaires/:commentId/supprimer', requireAuth, comment.destroy);
 router.post('/commentaires/:commentId/jaime', requireAuth, actionLimiter, comment.toggleLike);
 
 // App tabs
-router.get('/menu', requireAuth, pages.menu);
+router.get('/menu', pages.menu);
 router.get('/reseau', requireAuth, network.network);
 router.get('/reseau/suggestions', network.sidebarSuggestions);
 router.post('/abonnements/:id', requireAuth, actionLimiter, network.toggle);

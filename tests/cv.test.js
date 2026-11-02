@@ -2,7 +2,7 @@ const { app, request, resetDb, closeDb, createUser, loginAs } = require('./helpe
 const { Post, Job, Application } = require('../src/models');
 const { buildSlug } = require('../src/services/jobs');
 const { buildCvPdf, period } = require('../src/services/cvPdf');
-const { safeReturn } = require('../src/controllers/cvController');
+const { safeReturn } = require('../src/utils/returnTo');
 
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
 
@@ -130,37 +130,15 @@ describe('Validation', () => {
   });
 });
 
-describe('Guests: create a CV from the apply modal', () => {
-  test('the CV built in the session can be used to apply, not by another visitor', async () => {
-    const recruiter = await createUser({ email: 'rh2@ex.com', role: 'recruiter' });
-    const post = await Post.create({ type: 'advice', title: 'Conseil', authorId: recruiter.id, type: 'job' });
-    const job = await Job.create({ postId: post.id, slug: buildSlug('Dev', 'Dakar'), title: 'Dev', companyName: 'Y', location: 'Dakar', contractType: 'CDI', sector: 'Informatique & Télécoms', description: 'x'.repeat(40), applyEmail: 'rh2@ex.com' });
-
+describe('Guests and the CV builder', () => {
+  test('creating a CV requires an account (page, save and photo)', async () => {
     const g = await guest();
-    const back = `/offres/${job.slug}?postuler=1`;
-    const page = await g.agent.get(`/cv/creer?retour=${encodeURIComponent(back)}`);
-    expect(page.status).toBe(200);
-    const saved = await saveCv(g, { ...baseCv(), personal: { ...baseCv().personal, email: 'guest@example.com' }, returnTo: back });
-    expect(saved.status).toBe(200);
-    expect(saved.body.returnTo).toBe(back);
-
-    const jobPage = await g.agent.get(back);
-    expect(jobPage.text).toContain('CV Aissatou Fall.pdf'); // offered in the modal
-    expect(jobPage.text).toContain(`$dispatch(&#39;open-apply&#39;, { slug: &#39;${job.slug}&#39;`);
-
-    const fields = { firstName: 'Awa', lastName: 'Ba', email: 'guest@example.com', phone: '770001122', cvSource: 'built' };
-    let req = g.agent.post(`/offres/${job.slug}/postuler`).set('X-CSRF-Token', g.csrf).set('Accept', 'application/json');
-    for (const [k, v] of Object.entries(fields)) req = req.field(k, v);
-    const res = await req;
-    expect(res.status).toBe(201);
-    expect((await Application.findByPk(res.body.id)).cvName).toBe('CV Aissatou Fall.pdf');
-
-    const stranger = await guest();
-    let req2 = stranger.agent.post(`/offres/${job.slug}/postuler`).set('X-CSRF-Token', stranger.csrf).set('Accept', 'application/json');
-    for (const [k, v] of Object.entries({ ...fields, email: 'other@example.com' })) req2 = req2.field(k, v);
-    const denied = await req2;
-    expect(denied.status).toBe(422);
-    expect(denied.body.errors.cv).toBeTruthy();
+    const page = await g.agent.get('/cv/creer?retour=%2Foffres%2Fabc%3Fpostuler%3D1');
+    expect(page.status).toBe(302);
+    expect(page.headers.location).toMatch(/^\/connexion\?retour=/);
+    expect((await saveCv(g, baseCv())).status).toBe(401);
+    const photo = await g.agent.post('/cv/photo').set('X-CSRF-Token', g.csrf).set('Accept', 'application/json').attach('photo', PNG, { filename: 'p.png', contentType: 'image/png' });
+    expect(photo.status).toBe(401);
   });
 
   test('return path is restricted to this site (no open redirect)', () => {
@@ -171,11 +149,10 @@ describe('Guests: create a CV from the apply modal', () => {
   });
 
   test('photo upload accepts images only', async () => {
-    const g = await guest();
-    const ok = await g.agent.post('/cv/photo').set('X-CSRF-Token', g.csrf).set('Accept', 'application/json').attach('photo', PNG, { filename: 'p.png', contentType: 'image/png' });
+    const ok = await session.agent.post('/cv/photo').set('X-CSRF-Token', session.csrf).set('Accept', 'application/json').attach('photo', PNG, { filename: 'p.png', contentType: 'image/png' });
     expect(ok.status).toBe(200);
     expect(ok.body.url).toMatch(/^\/uploads\/cv-photos\//);
-    const bad = await g.agent.post('/cv/photo').set('X-CSRF-Token', g.csrf).set('Accept', 'application/json').attach('photo', Buffer.from('%PDF-1.4 nope'), { filename: 'p.png', contentType: 'image/png' });
+    const bad = await session.agent.post('/cv/photo').set('X-CSRF-Token', session.csrf).set('Accept', 'application/json').attach('photo', Buffer.from('%PDF-1.4 nope'), { filename: 'p.png', contentType: 'image/png' });
     expect(bad.status).toBe(422);
   });
 });

@@ -45,14 +45,27 @@ module.exports.postLimiter = postLimiter;
 module.exports.commentLimiter = commentLimiter;
 module.exports.actionLimiter = actionLimiter;
 
-// Applications are open to guests: limit per IP, and stricter for server-sent emails.
-const applyLimiter = rateLimit({
+// Applications are open to guests: per IP for visitors (stricter), per account for members.
+const { ipKeyGenerator } = rateLimit;
+const applyKey = (req) => (req.user ? `u${req.user.id}` : `ip${ipKeyGenerator(req.ip)}`);
+const applyMessage = { error: 'Trop de candidatures envoyées depuis cette connexion. Réessayez plus tard.' };
+const applyHourly = rateLimit({
   windowMs: 60 * 60 * 1000,
-  limit: env.isTest ? 10000 : 15,
+  limit: (req) => (env.isTest ? 10000 : req.user ? 15 : 6),
+  keyGenerator: applyKey,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
-  message: { error: 'Trop de candidatures envoyées. Réessayez dans une heure.' },
+  message: applyMessage,
 });
+const applyDaily = rateLimit({
+  windowMs: 24 * 60 * 60 * 1000,
+  limit: (req) => (env.isTest ? 10000 : req.user ? 60 : 20),
+  keyGenerator: applyKey,
+  standardHeaders: false,
+  legacyHeaders: false,
+  message: applyMessage,
+});
+const applyLimiter = [applyHourly, applyDaily];
 const serverMailLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   limit: env.isTest ? 10000 : 5,

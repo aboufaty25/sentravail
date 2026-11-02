@@ -8,7 +8,8 @@
       <% if (a.isVerified) { %><span class="inline-block align-[-2px] text-brand-600" title="Compte vérifié"><%- icon('check', 'w-4 h-4') %></span><% } %>
       <% if (post.type === 'share') { %><span class="text-gray-500"> a partagé <%= post.sharedPost && post.sharedPost.type === 'job' ? 'une offre' : 'une publication' %></span>
       <% } else if (POST_TYPES[post.type]) { %><span class="text-gray-500"> <%= POST_TYPES[post.type].verb %></span><% } %>
-      <% if (m.canFollow) { %><%- include('followButton', { targetId: a.id, following: false, variant: 'link' }) %><% } %>
+      <% if (m.canFollow) { %><%- include('followButton', { targetId: a.id, following: false, variant: 'link' }) %>
+      <% } else if (!currentUser) { %><button type="button" class="text-[13px] font-semibold text-brand-600 hover:underline" data-login="Connectez-vous pour vous abonner et suivre ses publications.">· S'abonner</button><% } %>
       <% if (a.headline || a.companyName) { %><p class="truncate text-[13px] text-gray-500"><%= a.headline || a.companyName %></p><% } %>
       <p class="flex items-center gap-1 text-[13px] text-gray-500">
         <a href="/publications/<%= post.id %>" class="hover:underline"><time datetime="<%= new Date(post.createdAt).toISOString() %>"><%= timeAgo(post.createdAt) %></time></a> ·
@@ -21,6 +22,8 @@
         <button type="button" class="menu-item w-full" @click="navigator.clipboard?.writeText('<%= appUrl %>/publications/<%= post.id %>'); open = false; $dispatch('toast', { message: 'Lien copié.' })"><%- icon('link', 'w-5 h-5') %> Copier le lien</button>
         <% if (currentUser && currentUser.id !== post.authorId) { %>
           <button type="button" class="menu-item w-full" @click="open = false; $dispatch('open-report', { type: 'post', id: <%= post.id %> })"><%- icon('shield', 'w-5 h-5') %> Signaler</button>
+        <% } else if (!currentUser) { %>
+          <button type="button" class="menu-item w-full" data-login="Connectez-vous pour signaler cette publication." @click="open = false"><%- icon('shield', 'w-5 h-5') %> Signaler</button>
         <% } %>
         <% if (m.canDelete) { %>
           <button type="button" class="menu-item w-full text-red-600" hx-post="/publications/<%= post.id %>/supprimer" hx-target="#post-<%= post.id %>" hx-swap="outerHTML"

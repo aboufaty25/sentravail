@@ -170,6 +170,20 @@ describe('Fallback: send via SenTravail', () => {
   });
 });
 
+describe('Anti-spam for anonymous applications', () => {
+  test('the invisible honeypot field rejects bots without storing anything', async () => {
+    const before = await Application.count();
+    const res = await apply(await guest(), job.slug, { ...form, email: 'bot@example.com', website: 'http://spam.example' });
+    expect(res.status).toBe(400);
+    expect(await Application.count()).toBe(before);
+  });
+
+  test('the modal carries the honeypot, hidden from people', async () => {
+    const page = await request(app).get(`/offres/${job.slug}`);
+    expect(page.text).toMatch(/aria-hidden="true">\s*<label for="ap-website">/);
+  });
+});
+
 describe('Validation and rules', () => {
   test.each([
     [{ ...form, email: 'nope' }, 'email'],

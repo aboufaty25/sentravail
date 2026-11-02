@@ -94,6 +94,15 @@
     input.files = dt.files;
   });
 
+  // Actions reserved to members: any [data-login] element opens "Connectez-vous pour continuer".
+  document.addEventListener('click', (e) => {
+    const el = e.target.closest && e.target.closest('[data-login]');
+    if (!el) return;
+    e.preventDefault();
+    e.stopPropagation();
+    window.dispatchEvent(new CustomEvent('require-login', { detail: { message: el.dataset.login, retour: el.dataset.loginRetour } }));
+  }, true);
+
   document.addEventListener('alpine:init', () => {
     const Alpine = window.Alpine;
 
@@ -180,9 +189,8 @@
       job: { slug: '', title: '', company: '' },
       loggedIn: cfg.loggedIn,
       profileCv: cfg.profileCv,
-      f: { firstName: '', lastName: '', email: '', phone: '', message: '' },
-      builtCv: cfg.builtCv,
-      cvSource: cfg.profileCv ? 'profile' : cfg.builtCv ? 'built' : 'upload',
+      f: { firstName: '', lastName: '', email: '', phone: '', message: '', website: '' },
+      cvSource: cfg.profileCv ? 'profile' : 'upload',
       saveToProfile: false,
       file: null,
       errors: {},
@@ -282,6 +290,12 @@
       createCv() {
         try { sessionStorage.setItem('st-apply-form', JSON.stringify({ slug: this.job.slug, f: this.f })); } catch (_) { /* ignore */ }
         const back = `/offres/${this.job.slug}?postuler=1`;
+        if (!this.loggedIn) {
+          // The CV builder needs an account: log in, then come back to this application.
+          this.close();
+          window.dispatchEvent(new CustomEvent('require-login', { detail: { message: 'Créez un compte gratuit pour fabriquer votre CV. Vous pouvez aussi postuler tout de suite en important un CV existant.', retour: back } }));
+          return;
+        }
         window.location.href = `/cv/creer?retour=${encodeURIComponent(back)}`;
       },
       confirmSent() { return this.finish(`/candidatures/${this.appId}/confirmer`); },
@@ -445,6 +459,17 @@
       dismiss() {
         this.show = false;
         try { localStorage.setItem('st-install-dismissed', String(Date.now())); } catch (_) { /* ignore */ }
+      },
+    }));
+
+    Alpine.data('loginPrompt', () => ({
+      open: false,
+      message: '',
+      retour: '/',
+      show(d = {}) {
+        this.message = d.message || 'Créez un compte gratuit ou connectez-vous pour utiliser cette fonctionnalité.';
+        this.retour = d.retour || location.pathname + location.search + location.hash;
+        this.open = true;
       },
     }));
 

@@ -19,7 +19,6 @@ function robots(req, res) {
     'Disallow: /enregistrements',
     'Disallow: /publier',
     'Disallow: /reinitialiser',
-    'Disallow: /recherche',
     'Disallow: /*?*postuler=',
     '',
     `Sitemap: ${env.APP_URL}/sitemap.xml`,

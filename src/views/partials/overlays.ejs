@@ -10,6 +10,9 @@
       <button type="button" @click="close()" class="icon-btn" aria-label="Fermer"><%- icon('x', 'w-5 h-5') %></button>
     </div>
     <div class="p-4">
+      <template x-if="!loggedIn">
+        <button type="button" class="btn-primary w-full" data-login="Connectez-vous pour partager cette publication dans votre fil." @click="close()">Partager dans mon fil</button>
+      </template>
       <template x-if="loggedIn">
         <div>
           <textarea x-model="text" rows="3" maxlength="2000" class="input resize-none" placeholder="Dites quelque chose à ce sujet…"></textarea>
@@ -37,6 +40,7 @@
 
 <%- include('applyModal') %>
 <%- include('reportSheet') %>
+<%- include('loginPrompt') %>
 
 <%# Toasts (triggered by `toast` events, e.g. from HX-Trigger headers) %>
 <div x-data="toasts()" @toast.window="push($event.detail)" class="pointer-events-none fixed inset-x-0 bottom-4 z-[60] flex flex-col items-center gap-2 px-4" aria-live="polite">

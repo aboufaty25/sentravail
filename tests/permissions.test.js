@@ -13,19 +13,38 @@ beforeAll(async () => {
 afterAll(closeDb);
 
 describe('Route protection', () => {
-  test.each(['/menu', '/parametres/profil', '/reseau', '/notifications', '/mes-offres', '/admin'])(
-    'guest is redirected to login from %s',
+  test.each(['/parametres/profil', '/reseau', '/notifications', '/mes-offres', '/admin', '/publier', '/cv/creer', '/enregistrements'])(
+    'guest is redirected to login from %s, with a way back',
     async (path) => {
       const res = await request(app).get(path);
       expect(res.status).toBe(302);
-      expect(res.headers.location).toBe('/connexion');
+      expect(res.headers.location).toBe(`/connexion?retour=${encodeURIComponent(path)}`);
     }
   );
 
-  test('htmx requests get HX-Redirect instead of a 302', async () => {
-    const res = await request(app).get('/menu').set('HX-Request', 'true');
+  test.each(['/', '/offres', '/evenements', '/recherche', '/menu', '/profil/cand'])('%s is open to guests', async (path) => {
+    expect((await request(app).get(path)).status).toBe(200);
+  });
+
+  test('htmx actions by guests open the login window (401 + require-login)', async () => {
+    const agent = request.agent(app);
+    const page = await agent.get('/connexion');
+    const csrf = page.text.match(/name="_csrf" value="([a-f0-9]+)"/)[1];
+    const res = await agent.post('/publications/1/reaction').set('X-CSRF-Token', csrf).set('HX-Request', 'true');
     expect(res.status).toBe(401);
-    expect(res.headers['hx-redirect']).toBe('/connexion');
+    expect(res.headers['hx-trigger']).toContain('require-login');
+  });
+
+  test('guest pages show the actions behind a login prompt', async () => {
+    const { Post } = require('../src/models');
+    await Post.create({ type: 'advice', title: 'Conseil public', text: 'Un conseil visible par tous.', authorId: candidate.id });
+    const home = await request(app).get('/');
+    expect(home.text).toContain('Conseil public');
+    expect(home.text).toContain('data-login="Connectez-vous pour aimer cette publication."');
+    expect(home.text).toContain('data-login="Connectez-vous pour enregistrer');
+    expect(home.text).toContain('data-login="Connectez-vous pour vous abonner');
+    expect(home.text).toContain('Connectez-vous pour continuer');
+    expect(home.text).not.toContain('Quoi de neuf');
   });
 
   test('logged-in user cannot see login/register pages', async () => {
@@ -62,9 +81,9 @@ describe('Roles', () => {
   test('a banned user loses access on the next request', async () => {
     const victim = await createUser({ email: 'soon-banned@ex.com' });
     const { agent } = await loginAs(victim);
-    expect((await agent.get('/menu')).status).toBe(200);
+    expect((await agent.get('/parametres/profil')).status).toBe(200);
     await victim.update({ isBanned: true });
-    expect((await agent.get('/menu')).status).toBe(302);
+    expect((await agent.get('/parametres/profil')).status).toBe(302);
   });
 });
 

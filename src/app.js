@@ -104,7 +104,6 @@ app.use((req, res, next) => {
     activeTab: null,
     noAds: false,
     wide: false,
-    builtCvName: req.session.builtCv?.name || null, // guest CV made with the builder
     assetVersion,
     adsEnabled: env.adsEnabled,
     adsClient: env.ADSENSE_CLIENT_ID,
@@ -112,7 +111,7 @@ app.use((req, res, next) => {
     consent: req.cookies?.st_consent || (req.get('cookie') || '').match(/(?:^|;\s*)st_consent=(granted|denied)/)?.[1] || null,
     ogImage: `${env.APP_URL}/icons/og-default.jpg`,
     // Private or personal pages are never indexed.
-    noindex: /^\/(admin|parametres|mes-|cv|candidatures|notifications|enregistrements|publier|menu|recherche|reinitialiser|mot-de-passe-oublie|offres\/nouvelle|offres\/[^/]+\/modifier)/.test(req.path),
+    noindex: /^\/(admin|parametres|mes-|cv|candidatures|notifications|enregistrements|publier|menu|reinitialiser|mot-de-passe-oublie|offres\/nouvelle|offres\/[^/]+\/modifier)/.test(req.path),
   });
   next();
 });

@@ -7,6 +7,7 @@ const { registerSchema, loginSchema, forgotSchema, resetSchema, fieldErrors } = 
 const { generateUsername } = require('../services/username');
 const { sendPasswordReset } = require('../services/mail');
 const { isEmailLike, normalizePhone } = require('../utils/text');
+const { safeReturn } = require('../utils/returnTo');
 
 const BCRYPT_ROUNDS = env.isTest ? 4 : 12;
 const RESET_TTL_MS = 60 * 60 * 1000;
@@ -15,13 +16,14 @@ const hashToken = (token) => crypto.createHash('sha256').update(token).digest('h
 const DUMMY_HASH = bcrypt.hashSync('timing-equalizer', BCRYPT_ROUNDS);
 
 // Prevents session fixation: new session id on every login.
+// Where to go after login/registration: the validated ?retour= target, else home.
 function startSession(req, user) {
-  const returnTo = req.session.returnTo;
+  const target = safeReturn(req.body?.retour) || safeReturn(req.session.returnTo) || '/';
   return new Promise((resolve, reject) => {
     req.session.regenerate((err) => {
       if (err) return reject(err);
       req.session.userId = user.id;
-      return resolve(returnTo && returnTo.startsWith('/') && !returnTo.startsWith('//') ? returnTo : '/');
+      return resolve(target);
     });
   });
 }
@@ -29,7 +31,10 @@ function startSession(req, user) {
 const view = { layout: 'layouts/auth', noAds: true };
 
 function showRegister(req, res) {
-  res.render('pages/auth/register', { ...view, title: 'Créer un compte', values: { role: req.query.role || 'candidate' }, errors: {} });
+  res.render('pages/auth/register', {
+    ...view, title: 'Créer un compte', errors: {},
+    values: { role: req.query.role || 'candidate', email: typeof req.query.email === 'string' ? req.query.email.slice(0, 190) : '', retour: safeReturn(req.query.retour) || '' },
+  });
 }
 
 async function register(req, res) {
@@ -68,17 +73,17 @@ async function register(req, res) {
     lastLoginAt: new Date(),
   });
 
-  await startSession(req, user);
+  const target = await startSession(req, user);
   req.flash('success', `Bienvenue sur SenTravail, ${user.firstName} !`);
-  return res.redirect('/');
+  return res.redirect(target);
 }
 
 function showLogin(req, res) {
-  res.render('pages/auth/login', { ...view, title: 'Connexion', values: {}, errors: {} });
+  res.render('pages/auth/login', { ...view, title: 'Connexion', values: { retour: safeReturn(req.query.retour) || '' }, errors: {} });
 }
 
 async function login(req, res) {
-  const values = { identifier: req.body.identifier || '' };
+  const values = { identifier: req.body.identifier || '', retour: safeReturn(req.body.retour) || '' };
   const parsed = loginSchema.safeParse(req.body);
   const render = (status, errors) => res.status(status).render('pages/auth/login', { ...view, title: 'Connexion', values, errors });
   if (!parsed.success) return render(422, fieldErrors(parsed.error));

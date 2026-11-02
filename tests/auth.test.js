@@ -131,15 +131,37 @@ describe('Login / logout', () => {
     expect(res.headers['set-cookie'][0]).not.toEqual(before && before[0]);
   });
 
-  test('redirects back to the requested page after login', async () => {
+  test('redirects back to the requested page after login (?retour=)', async () => {
     const agent = request.agent(app);
     const r1 = await agent.get('/parametres/profil');
     expect(r1.status).toBe(302);
-    expect(r1.headers.location).toBe('/connexion');
-    const page = await agent.get('/connexion');
+    expect(r1.headers.location).toBe('/connexion?retour=%2Fparametres%2Fprofil');
+    const page = await agent.get(r1.headers.location);
     const csrf = page.text.match(/name="_csrf" value="([a-f0-9]+)"/)[1];
-    const res = await agent.post('/connexion').type('form').send({ _csrf: csrf, identifier: 'login@ex.com', password: 'secret-pass' });
+    const retour = page.text.match(/name="retour" value="([^"]+)"/)[1];
+    expect(retour).toBe('/parametres/profil');
+    const res = await agent.post('/connexion').type('form').send({ _csrf: csrf, retour, identifier: 'login@ex.com', password: 'secret-pass' });
     expect(res.headers.location).toBe('/parametres/profil');
+  });
+
+  test('the return target is restricted to this site', async () => {
+    const agent = request.agent(app);
+    const page = await agent.get('/connexion?retour=%2F%2Fevil.com');
+    expect(page.text).not.toContain('name="retour"');
+    const csrf = page.text.match(/name="_csrf" value="([a-f0-9]+)"/)[1];
+    const res = await agent.post('/connexion').type('form').send({ _csrf: csrf, retour: 'https://evil.com', identifier: 'login@ex.com', password: 'secret-pass' });
+    expect(res.headers.location).toBe('/');
+  });
+
+  test('registration also brings the visitor back', async () => {
+    const agent = request.agent(app);
+    const page = await agent.get('/inscription?retour=%2Foffres%2Fabc%3Fpostuler%3D1&email=new%40ex.com');
+    expect(page.text).toContain('value="new@ex.com"');
+    const csrf = page.text.match(/name="_csrf" value="([a-f0-9]+)"/)[1];
+    const res = await agent.post('/inscription').type('form').send({
+      _csrf: csrf, retour: '/offres/abc?postuler=1', firstName: 'Back', lastName: 'Again', email: 'back@ex.com', password: 'motdepasse1', passwordConfirm: 'motdepasse1', role: 'candidate', acceptTerms: 'on',
+    });
+    expect(res.headers.location).toBe('/offres/abc?postuler=1');
   });
 
   test('logout destroys the session', async () => {
@@ -148,7 +170,7 @@ describe('Login / logout', () => {
     const menu = await agent.get('/menu');
     const token = menu.text.match(/name="_csrf" value="([a-f0-9]+)"/)[1];
     await agent.post('/deconnexion').type('form').send({ _csrf: token });
-    expect((await agent.get('/menu')).status).toBe(302);
+    expect((await agent.get('/parametres/profil')).status).toBe(302);
   });
 });
 

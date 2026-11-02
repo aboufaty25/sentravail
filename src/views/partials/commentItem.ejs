@@ -10,7 +10,9 @@
     <div class="mt-0.5 flex items-center gap-3 px-2 text-xs text-gray-500">
       <span><%= timeAgo(comment.createdAt) %></span>
       <%- include('commentLike', { comment, liked: liked.has(comment.id) }) %>
-      <% if (currentUser) { %>
+      <% if (!currentUser) { %>
+        <button type="button" class="font-semibold hover:underline" data-login="Connectez-vous pour répondre à ce commentaire.">Répondre</button>
+      <% } else { %>
         <button type="button" class="font-semibold hover:underline" @click="reply(<%= comment.parentCommentId || comment.id %>, '<%= ca.firstName.replace(/'/g, '') %>')">Répondre</button>
       <% } %>
       <% if (currentUser && currentUser.id !== comment.authorId) { %>

@@ -1,5 +1,5 @@
 <div class="space-y-2 sm:space-y-4">
-  <%- include('../partials/composer') %>
+  <% if (currentUser) { %><%- include('../partials/composer') %><% } else { %><%- include('../partials/guestWelcome') %><% } %>
   <% if (locals.fresh) { %><%- include('../partials/postCard', { post: fresh }) %><% } %>
   <% featured.forEach(post => { %><%- include('../partials/postCard', { post }) %><% }) %>
   <% if (!posts.length && !featured.length && !locals.fresh) { %>

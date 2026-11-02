@@ -7,6 +7,9 @@
     { key: 'notifications', href: '/notifications', icon: 'bell', label: 'Notifications' },
     { key: 'menu', href: '/menu', icon: 'menu', label: 'Menu' },
   ];
+  // Guests: public sections only (network and notifications need an account).
+  const guestTabs = [tabs[0], tabs[1], tabs[2], { key: 'search', href: '/recherche', icon: 'search', label: 'Recherche' }, tabs[5]];
+  const shownTabs = currentUser ? tabs : guestTabs;
 %>
 <header id="app-header" class="app-header sticky top-0 z-40 bg-white shadow-sm">
   <div class="mx-auto flex h-14 max-w-[1280px] items-center gap-2 px-3 lg:px-4">
@@ -23,7 +26,7 @@
     </form>
 
     <nav class="hidden lg:flex flex-1 justify-center gap-1 px-6" aria-label="Navigation principale">
-      <% tabs.filter(t => t.key !== 'menu').forEach(t => { %>
+      <% shownTabs.filter(t => t.key !== 'menu').forEach(t => { %>
         <a href="<%= t.href %>" class="tab-link max-w-[110px] h-14 <%= activeTab === t.key ? 'is-active' : '' %>" title="<%= t.label %>" aria-label="<%= t.label %>" <%= activeTab === t.key ? 'aria-current=page' : '' %>>
           <span class="relative"><%- icon(t.icon, 'w-7 h-7') %><% if (t.key === 'notifications') { %><span data-notif-badge class="absolute -right-1 -top-1 min-w-[20px] rounded-full bg-red-600 px-1.5 text-center text-[11px] font-bold leading-5 text-white <%= unseenNotifications ? '' : 'hidden' %>"><%= unseenNotifications > 99 ? '99+' : unseenNotifications %></span><% } %></span>
         </a>
@@ -44,20 +47,18 @@
           </div>
         </div>
       <% } else { %>
-        <a href="/recherche" class="icon-btn lg:hidden" aria-label="Rechercher"><%- icon('search', 'w-5 h-5') %></a>
-        <a href="/connexion" class="btn-light !py-2 text-sm">Connexion</a>
+        <button type="button" class="icon-btn" title="Publier" aria-label="Publier" data-login="Connectez-vous pour publier une offre, une recherche d'emploi ou un événement."><%- icon('plus', 'w-5 h-5') %></button>
+        <a href="/connexion<%= currentPath !== '/' ? queryString({ retour: currentPath }) : '' %>" class="btn-light !py-2 text-sm">Connexion</a>
         <a href="/inscription" class="btn-primary !py-2 text-sm hidden sm:inline-flex">S'inscrire</a>
       <% } %>
     </div>
   </div>
 
-  <% if (currentUser) { %>
   <nav class="lg:hidden flex border-t border-gray-200 bg-white" aria-label="Onglets">
-    <% tabs.forEach(t => { %>
+    <% shownTabs.forEach(t => { %>
       <a href="<%= t.href %>" class="tab-link <%= activeTab === t.key ? 'is-active' : '' %>" aria-label="<%= t.label %>" <%= activeTab === t.key ? 'aria-current=page' : '' %>>
         <span class="relative"><%- icon(t.icon, 'w-[26px] h-[26px]') %><% if (t.key === 'notifications') { %><span data-notif-badge class="absolute -right-1 -top-1 min-w-[20px] rounded-full bg-red-600 px-1.5 text-center text-[11px] font-bold leading-5 text-white <%= unseenNotifications ? '' : 'hidden' %>"><%= unseenNotifications > 99 ? '99+' : unseenNotifications %></span><% } %></span>
       </a>
     <% }) %>
   </nav>
-  <% } %>
 </header>

@@ -32,7 +32,8 @@
           <%- include('../../partials/followButton', { targetId: p.id, following: followsProfile, variant: 'button' }) %>
           <button type="button" x-data class="btn-light" @click="$dispatch('open-report', { type: 'user', id: <%= p.id %> })" aria-label="Signaler ce profil" title="Signaler ce profil"><%- icon('shield', 'w-4 h-4') %></button>
         <% } else { %>
-          <a href="/connexion" class="btn-primary flex-1 sm:flex-none"><%- icon('plus', 'w-4 h-4') %> S'abonner</a>
+          <button type="button" data-login="Connectez-vous pour vous abonner et suivre ses publications." class="btn-primary flex-1 sm:flex-none"><%- icon('plus', 'w-4 h-4') %> S'abonner</button>
+          <button type="button" data-login="Connectez-vous pour signaler ce profil." class="btn-light" aria-label="Signaler ce profil" title="Signaler ce profil"><%- icon('shield', 'w-4 h-4') %></button>
         <% } %>
       </div>
     </div>

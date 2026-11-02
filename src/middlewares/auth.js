@@ -16,15 +16,17 @@ async function loadUser(req, res, next) {
   return next();
 }
 
+// Guests: htmx/fetch actions open the "Connectez-vous pour continuer" window; pages redirect
+// to the login form, which brings the visitor back afterwards (?retour=…).
 function requireAuth(req, res, next) {
   if (req.user) return next();
   if (req.get('HX-Request')) {
-    res.set('HX-Redirect', '/connexion');
+    res.set('HX-Trigger', JSON.stringify({ 'require-login': {} }));
     return res.status(401).end();
   }
-  if (req.method === 'GET') req.session.returnTo = req.originalUrl;
-  req.flash('info', 'Connectez-vous pour continuer.');
-  return res.redirect('/connexion');
+  if (req.accepts(['html', 'json']) === 'json') return res.status(401).json({ error: 'Connectez-vous pour continuer.', requireLogin: true });
+  const back = req.method === 'GET' ? req.originalUrl : (req.get('Referer') || '').replace(/^https?:\/\/[^/]+/, '');
+  return res.redirect(`/connexion?retour=${encodeURIComponent(back || '/')}`);
 }
 
 function requireGuest(req, res, next) {

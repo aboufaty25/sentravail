@@ -3,6 +3,7 @@
   <p class="mb-4 text-sm text-gray-500">C'est gratuit et rapide.</p>
   <form method="post" action="/inscription" class="space-y-3" novalidate>
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <% if (values.retour) { %><input type="hidden" name="retour" value="<%= values.retour %>"><% } %>
 
     <fieldset>
       <legend class="label">Je suis</legend>
@@ -43,5 +44,5 @@
 
     <button type="submit" class="btn-success w-full !py-3 text-lg">S'inscrire</button>
   </form>
-  <p class="mt-4 text-center text-sm">Vous avez déjà un compte ? <a href="/connexion" class="font-semibold text-brand-600 hover:underline">Se connecter</a></p>
+  <p class="mt-4 text-center text-sm">Vous avez déjà un compte ? <a href="/connexion<%= values.retour ? queryString({ retour: values.retour }) : '' %>" class="font-semibold text-brand-600 hover:underline">Se connecter</a></p>
 </div>

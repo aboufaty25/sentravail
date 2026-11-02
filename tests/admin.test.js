@@ -159,7 +159,7 @@ describe('Users management', () => {
     await form(adminS, `/admin/utilisateurs/${u.id}`, { action: 'ban' });
     await u.reload();
     expect(u.isBanned).toBe(true);
-    expect((await s.agent.get('/menu')).status).toBe(302); // session no longer valid
+    expect((await s.agent.get('/parametres/profil')).status).toBe(302); // session no longer valid
 
     await form(adminS, `/admin/utilisateurs/${u.id}`, { action: 'unban' });
     await form(adminS, `/admin/utilisateurs/${u.id}`, { action: 'verify' });
