@@ -2,7 +2,9 @@
 
 Le réseau social de l'emploi au Sénégal — https://sentravail.com
 
-Fil d'actualité, offres d'emploi, candidatures en un clic, créateur de CV, abonnements, notifications en temps réel — une application web mobile d'abord, installable (PWA), légère en 3G et financée par AdSense.
+Plateforme 100 % emploi : offres, recherches d'emploi, événements (salons, concours, formations), annonces de recrutement et conseils carrière, candidatures en un clic (même sans compte), créateur de CV, abonnements, notifications en temps réel. Consultable sans compte, installable (PWA), légère en 3G, financée par AdSense.
+
+Les règles du projet (types de publication, garde-fous, accès ouvert, conventions) sont dans **[CLAUDE.md](CLAUDE.md)**.
 
 **Stack** : Node.js 20+ · Express 5 · EJS + htmx + Alpine.js · Tailwind CSS · MySQL/MariaDB (Sequelize) · Socket.io · PDFKit · Nodemailer
 
@@ -43,12 +45,15 @@ Comptes de démo (mot de passe `Sentravail2026!`) :
 | Domaine | Contenu |
 |---|---|
 | Comptes | inscription candidat/recruteur, connexion email ou téléphone, mot de passe oublié, profils publics, paramètres |
-| Fil | publications texte/photo, classement par score (`services/feedRanking.js`), défilement infini, réactions (appui long), commentaires et réponses, partages, enregistrements |
+| Publications | 5 types structurés (offre, je cherche un emploi, événement, j'ai été recruté, conseil carrière), une carte par type, une image de 2 Mo max |
+| Fil | public, classement par score (`services/feedRanking.js`), défilement infini, réactions (appui long), commentaires (500 car.), partages, enregistrements |
+| Garde-fous | niveaux de confiance, badge vérifié recruteur (NINEA/RCCM/email pro), filtre anti-arnaque modifiable, limites, masquage à 3 signalements |
+| Accès ouvert | tout est consultable sans compte ; fenêtre « Connectez-vous pour continuer » sur les actions réservées, retour à la page d'origine |
 | Offres | publication (recruteurs/admin), pages `/offres/:slug` avec données `JobPosting`, recherche par mot-clé/ville/secteur/contrat, mise à la une |
 | Candidatures | modal pré-rempli, invités acceptés, CV importé ou créé, `mailto:` avec lien de CV signé, confirmation, envoi de secours par le serveur, suivi des deux côtés |
 | CV | créateur en 7 étapes, aperçu en direct, 2 modèles, export PDF |
 | Réseau | abonnements, suggestions, visibilité « Mon réseau », viralité, fil personnalisé, recherche de personnes et entreprises |
-| Administration | tableau de bord, approbation des mises à la une, signalements et modération, utilisateurs, villes et secteurs |
+| Administration | tableau de bord, file de modération (en attente, signalés, bloqués par le filtre), vérifications, filtre, mises à la une, utilisateurs, villes et secteurs |
 | Notifications | temps réel (Socket.io, repli HTTP), regroupement, page dédiée, emails importants désactivables |
 | PWA / SEO / AdSense | installable, hors-ligne, sitemap/robots/Open Graph, publicités après consentement uniquement, `ads.txt` généré |
 
