@@ -12,7 +12,9 @@
 <meta property="og:description" content="<%= metaDescription %>">
 <meta property="og:url" content="<%= locals.canonical || `${appUrl}${currentPath}` %>">
 <meta property="og:image" content="<%= ogImage %>">
-<meta name="twitter:card" content="<%= ogImage.endsWith('og-default.jpg') ? 'summary_large_image' : 'summary' %>">
+<% if (ogImage.startsWith('https://')) { %><meta property="og:image:secure_url" content="<%= ogImage %>"><% } %>
+<meta property="og:image:alt" content="<%= locals.ogImageAlt || title %>">
+<meta name="twitter:card" content="<%= ogImage.endsWith('og-default.jpg') || locals.ogLargeImage ? 'summary_large_image' : 'summary' %>">
 <meta name="twitter:title" content="<%= title %>">
 <meta name="twitter:description" content="<%= metaDescription %>">
 <meta name="twitter:image" content="<%= ogImage %>">

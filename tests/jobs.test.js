@@ -33,7 +33,7 @@ afterAll(closeDb);
 const createJob = (s, data = validJob, file) => {
   let req = s.agent.post(`/offres/nouvelle?_csrf=${s.csrf}`);
   for (const [k, v] of Object.entries(data)) req = req.field(k, v);
-  if (file) req = req.attach('companyLogo', file, { filename: 'logo.png', contentType: 'image/png' });
+  if (file) req = req.attach('image', file, { filename: 'affiche.png', contentType: 'image/png' });
   return req;
 };
 const lastJob = () => Job.findOne({ order: [['id', 'DESC']], include: [{ model: Post, as: 'post' }] });
@@ -57,7 +57,7 @@ describe('Publishing jobs', () => {
     expect(res.status).toBe(403);
   });
 
-  test('recruiter publishes a job with logo; readable slug; visible immediately', async () => {
+  test('recruiter publishes a job with an image; readable slug; visible immediately', async () => {
     const res = await createJob(rec, { ...validJob, requestFeatured: 'on', text: 'Nous recrutons !' }, PNG);
     expect(res.status).toBe(302);
     const job = await lastJob();
@@ -69,9 +69,18 @@ describe('Publishing jobs', () => {
     expect(job.post.featureStatus).toBe('pending');
     expect(job.post.isFeatured).toBe(false);
     expect(job.isOfficial).toBe(false);
-    expect(job.companyLogo).toMatch(/^\/uploads\/logos\//);
+    expect(job.image).toMatch(/^\/uploads\/jobs\//);
     await recruiter.reload();
-    expect(recruiter.companyLogo).toBe(job.companyLogo); // first logo saved on the company profile
+    expect(recruiter.companyLogo).toBeFalsy(); // the offer image is not the company logo
+
+    // Feed: large image, title below; offer page: link preview with the image and the offer URL.
+    const home = await rec.agent.get('/');
+    expect(home.text).toContain(`<img src="${job.image}" alt="Comptable confirmé`);
+    const page = await request(app).get(`/offres/${job.slug}`);
+    expect(page.text).toContain(`<meta property="og:image" content="http://localhost:3000${job.image}">`);
+    expect(page.text).toContain(`<meta property="og:url" content="http://localhost:3000/offres/${job.slug}">`);
+    expect(page.text).toContain('<meta name="twitter:card" content="summary_large_image">');
+    expect(page.text).toContain(`url: 'http://localhost:3000/offres/${job.slug}'`);
   });
 
   test('recruiter cannot make an official offer', async () => {

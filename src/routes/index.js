@@ -22,7 +22,7 @@ const { authLimiter, postLimiter, commentLimiter, actionLimiter, applyLimiter, s
 const { imageUpload, cvUpload, handleUploadErrors } = require('../middlewares/upload');
 
 const recruiterOnly = [requireAuth, requireRole('recruiter', 'admin')];
-const logoUpload = handleUploadErrors(imageUpload.single('companyLogo'));
+const logoUpload = handleUploadErrors(imageUpload.single('image'));
 
 const router = express.Router();
 

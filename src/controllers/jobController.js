@@ -73,11 +73,9 @@ async function create(req, res) {
   }
   const decision = await moderation.decidePublication(req.user, texts);
 
-  let companyLogo = req.user.companyLogo || null;
-  if (req.file) {
-    companyLogo = await saveImage(req.file.buffer, 'logos');
-    if (req.user.role === 'recruiter' && !req.user.companyLogo) await req.user.update({ companyLogo });
-  }
+  // Logo = the recruiter's company logo; the uploaded file is the offer's own image.
+  const companyLogo = req.user.companyLogo || (req.user.role === 'recruiter' ? req.user.avatarUrl : null) || null;
+  const image = req.file ? await saveImage(req.file.buffer, 'jobs') : null;
 
   // Admin offers are official and featured by default; recruiters may request featuring.
   const official = isAdmin && d.isOfficial === 'on';
@@ -98,6 +96,7 @@ async function create(req, res) {
     postId: post.id,
     slug: jobs.buildSlug(d.title, d.location),
     companyLogo,
+    image,
     isOfficial: official,
   });
 
@@ -144,8 +143,15 @@ async function show(req, res, next) {
     job: j,
     canManage: jobs.canManage(post, req.user),
     jsonLd: jobPostingJsonLd(post),
-    ...(j.companyLogo ? { ogImage: absoluteUrl(imageUrl(j.companyLogo, 600)) } : {}),
+    ...jobOgImage(j),
   });
+}
+
+// Link preview image (Facebook, WhatsApp…): the offer image, else the company logo.
+function jobOgImage(j) {
+  if (j.image) return { ogImage: absoluteUrl(imageUrl(j.image, 1200)), ogImageAlt: j.title, ogLargeImage: true };
+  if (j.companyLogo) return { ogImage: absoluteUrl(imageUrl(j.companyLogo, 600)), ogImageAlt: `Logo ${j.companyName}` };
+  return {};
 }
 
 function jobPostingJsonLd(post) {
@@ -210,7 +216,8 @@ async function update(req, res) {
   const found = req.user.role === 'admin' ? [] : await moderation.findBannedTerms(texts);
   if (found.length) await post.update({ status: 'pending_approval', moderationReason: 'filter', moderationNote: `Termes détectés : ${found.join(', ')}`.slice(0, 300) });
   const changes = jobFields(d);
-  if (req.file) changes.companyLogo = await saveImage(req.file.buffer, 'logos');
+  if (req.file) changes.image = await saveImage(req.file.buffer, 'jobs');
+  else if (body.removeImage === 'on') changes.image = null;
   await post.job.update(changes); // slug is kept so shared links keep working
   await post.update({ text: d.text || null });
   req.flash('success', 'Offre mise à jour.');

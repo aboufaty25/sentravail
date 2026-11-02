@@ -1,5 +1,16 @@
 <%# Job offer block inside a post card. `compact` = embedded in a share. %>
 <% const job = p.job; const left = daysLeft(job.deadline); %>
+<% if (job.image) { %>
+<%# Offer with an image: full-width picture like a Facebook post, then title and short description. %>
+<div class="pb-3">
+  <a href="<%= job.url %>" class="block bg-gray-100" aria-label="<%= job.title %>">
+    <img src="<%= imageUrl(job.image, 900) %>" alt="<%= job.title %> — <%= job.companyName %>" loading="lazy" decoding="async" class="block max-h-[560px] w-full object-cover">
+  </a>
+  <div class="<%= locals.compact ? 'px-3' : 'px-3 sm:px-4' %> pt-3">
+    <div class="flex flex-wrap items-center gap-1.5"><%- include('jobBadges', { post: p, job }) %></div>
+    <a href="<%= job.url %>" class="mt-1 block text-[18px] font-bold leading-snug text-gray-900 hover:underline"><%= job.title %></a>
+    <p class="flex items-center gap-1.5 text-[14px] font-medium text-gray-700"><%- include('companyLogo', { job, size: 'w-5 h-5 !p-0 !text-[11px] !rounded' }) %> <%= job.companyName %></p>
+<% } else { %>
 <div class="px-3 sm:px-4 pb-3">
   <div class="rounded-lg border border-gray-200 p-3">
     <div class="flex gap-3">
@@ -10,6 +21,7 @@
         <p class="text-[14px] font-medium text-gray-700"><%= job.companyName %></p>
       </div>
     </div>
+<% } %>
     <ul class="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[13px] text-gray-600">
       <li class="inline-flex items-center gap-1"><%- icon('pin', 'w-4 h-4') %> <%= job.location %></li>
       <li class="inline-flex items-center gap-1"><%- icon('briefcase', 'w-4 h-4') %> <%= job.contractType %></li>

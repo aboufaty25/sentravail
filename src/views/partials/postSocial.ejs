@@ -1,6 +1,9 @@
 <%
   const m = post.meta || {};
   const mine = m.myReaction ? REACTIONS[m.myReaction] : null;
+  // External shares point to the offer page for job offers (rich preview with title and image).
+  const target = post.sharedPost || post;
+  const shareUrl = target.job ? `${appUrl}${target.job.url}` : `${appUrl}/publications/${target.id}`;
 %>
 <div id="social-<%= post.id %>" <%= locals.oob ? 'hx-swap-oob=true' : '' %>>
   <% if (post.likesCount || post.commentsCount || post.sharesCount) { %>
@@ -40,7 +43,7 @@
     <span class="flex flex-1 items-center justify-center gap-1.5 py-2 text-gray-300" title="Réservée au réseau de l'auteur"><%- icon('share', 'w-5 h-5') %> <span class="hidden min-[360px]:inline">Partager</span></span>
     <% } else { %>
     <button type="button" class="flex flex-1 items-center justify-center gap-1.5 rounded-md py-2 hover:bg-gray-100"
-      @click="$dispatch('open-share', { id: <%= post.sharedPost ? post.sharedPost.id : post.id %>, url: '<%= appUrl %>/publications/<%= post.sharedPost ? post.sharedPost.id : post.id %>', loggedIn: <%= !!currentUser %> })">
+      @click="$dispatch('open-share', { id: <%= post.sharedPost ? post.sharedPost.id : post.id %>, url: '<%= shareUrl %>', loggedIn: <%= !!currentUser %> })">
       <%- icon('share', 'w-5 h-5') %> <span class="hidden min-[360px]:inline">Partager</span>
     </button>
     <% } %>

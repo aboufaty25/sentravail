@@ -63,6 +63,7 @@ docs/DEPLOIEMENT.md
 
 - Commentaires libres, **500 caractères max**, soumis au filtre de contenu.
 - **Au maximum une image** par publication (logo ou affiche), compressée dans le navigateur, **2 Mo max**.
+- **Image d'une offre** (`jobs.image`, distincte du logo `companyLogo`) : affichée en grand dans le fil comme une photo Facebook, avec le titre et un court extrait en dessous ; en haut de la page de l'offre ; et comme aperçu de partage (`og:image`, `summary_large_image`). Le partage externe d'une offre pointe toujours vers `/offres/:slug`.
 - Les anciennes publications libres (`text`/`photo`) restent en base mais sont masquées.
 
 ## Garde-fous (`src/services/moderation.js`)

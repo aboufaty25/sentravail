@@ -22,6 +22,8 @@ Job.init(
     title: { type: DataTypes.STRING(120), allowNull: false },
     companyName: { type: DataTypes.STRING(120), allowNull: false },
     companyLogo: { type: DataTypes.STRING(500) },
+    // Offer image (poster/visual) chosen at publication: shown large in the feed and in link previews.
+    image: { type: DataTypes.STRING(500) },
     location: { type: DataTypes.STRING(80), allowNull: false },
     contractType: { type: DataTypes.ENUM(...CONTRACT_TYPES), allowNull: false },
     sector: { type: DataTypes.STRING(80), allowNull: false },
