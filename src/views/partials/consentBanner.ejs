@@ -1,0 +1,11 @@
+<%# Cookie consent, shown by ads.js when no choice has been made. Only rendered when ads can load. %>
+<% if (adsEnabled && !noAds) { %>
+<div id="consent-banner" class="hidden fixed inset-x-0 bottom-0 z-[55] border-t border-gray-200 bg-white px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] text-gray-800 shadow-2xl sm:bottom-4 sm:left-4 sm:right-auto sm:max-w-md sm:rounded-xl sm:border" role="dialog" aria-live="polite" aria-label="Cookies">
+  <p class="text-sm leading-snug">SenTravail est gratuit grâce à la publicité. Avec votre accord, Google utilise des cookies pour afficher des annonces.
+    <a href="/confidentialite#cookies" class="font-semibold text-brand-600 hover:underline">En savoir plus</a></p>
+  <div class="mt-3 flex gap-2">
+    <button type="button" data-consent="denied" class="btn-light flex-1 !py-2 text-sm">Refuser</button>
+    <button type="button" data-consent="granted" class="btn-primary flex-1 !py-2 text-sm">Accepter</button>
+  </div>
+</div>
+<% } %>

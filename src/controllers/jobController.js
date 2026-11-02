@@ -6,6 +6,7 @@ const jobs = require('../services/jobs');
 const posts = require('../services/posts');
 const { saveImage } = require('../services/storage');
 const notifications = require('../services/notifications');
+const { absoluteUrl, imageUrl } = require('../utils/viewHelpers');
 const { baseScore, refreshScore } = require('../services/feedRanking');
 const { adjustCounter } = require('../utils/counters');
 const { CITIES, SECTORS, CONTRACT_TYPES } = require('../config/constants');
@@ -133,6 +134,7 @@ async function show(req, res, next) {
     job: j,
     canManage: jobs.canManage(post, req.user),
     jsonLd: jobPostingJsonLd(post),
+    ...(j.companyLogo ? { ogImage: absoluteUrl(imageUrl(j.companyLogo, 600)) } : {}),
   });
 }
 

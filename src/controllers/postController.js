@@ -10,6 +10,7 @@ const { isFollowing, followingAmong } = require('../services/follows');
 const { adjustCounter } = require('../utils/counters');
 const { toggleReaction } = require('../services/reactions');
 const { notify } = require('../services/notifications');
+const { absoluteUrl, imageUrl } = require('../utils/viewHelpers');
 const { removeLocalMedia } = require('../services/video');
 
 function notFound() {
@@ -86,6 +87,12 @@ async function show(req, res, next) {
     title: `${post.author.firstName} ${post.author.lastName}${excerpt ? ` : « ${excerpt.slice(0, 60)}… »` : ''}`,
     metaDescription: excerpt || `Publication de ${post.author.firstName} ${post.author.lastName} sur SenTravail.`,
     post,
+    ogType: 'article',
+    canonical: `${env.APP_URL}/publications/${post.id}`,
+    ...(() => {
+      const img = post.mediaUrls?.[0] || post.thumbnailUrl || post.sharedPost?.mediaUrls?.[0];
+      return img ? { ogImage: absoluteUrl(imageUrl(img, 1200)) } : {};
+    })(),
   });
 }
 

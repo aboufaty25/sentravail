@@ -126,4 +126,10 @@ function queryString(params) {
 
 const REPORT_REASONS = require('../models/Report').REASONS;
 
-module.exports = { REPORT_REASONS, queryString, formatDate, daysLeft, icon, avatar, roleLabel, timeAgo, formatCount, escapeHtml, richText, imageUrl, reactionSummary, REACTIONS };
+// Absolute URL for Open Graph images (Cloudinary URLs are already absolute).
+function absoluteUrl(url) {
+  if (!url) return null;
+  return /^https?:\/\//.test(url) ? url : `${require('../config/env').APP_URL}${url}`;
+}
+
+module.exports = { absoluteUrl, REPORT_REASONS, queryString, formatDate, daysLeft, icon, avatar, roleLabel, timeAgo, formatCount, escapeHtml, richText, imageUrl, reactionSummary, REACTIONS };

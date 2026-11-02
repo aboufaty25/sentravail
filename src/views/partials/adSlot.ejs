@@ -1,2 +1,10 @@
-<%# AdSense placeholder — real ad code (after cookie consent) is wired in Phase 10. %>
-<div class="ad-slot" data-slot="<%= locals.slot || 'feed' %>" hidden></div>
+<%# AdSense unit. Rendered only when ads are configured, the page allows ads and a slot id exists.
+    Hidden until the visitor has accepted cookies (public/js/ads.js). %>
+<% const slotId = adSlots[locals.slot || 'feed']; %>
+<% if (adsEnabled && !noAds && slotId) { %>
+  <div data-ad-slot-wrapper class="card hidden overflow-hidden px-3 py-2 sm:rounded-lg" aria-label="Publicité">
+    <p class="mb-1 text-[11px] uppercase tracking-wide text-gray-400">Publicité</p>
+    <ins class="adsbygoogle" style="display:block" data-ad-client="<%= adsClient %>" data-ad-slot="<%= slotId %>"
+      data-ad-format="<%= locals.slot === 'sidebar' ? 'rectangle' : 'auto' %>" data-full-width-responsive="true"></ins>
+  </div>
+<% } %>

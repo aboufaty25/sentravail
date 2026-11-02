@@ -15,8 +15,26 @@ const viewHelpers = require('./utils/viewHelpers');
 const routes = require('./routes');
 const { unseenCount } = require('./services/notifications');
 
-const app = express();
 const root = path.join(__dirname, '..');
+const app = express();
+
+// Google AdSense domains, allowed only when ADSENSE_CLIENT_ID is set.
+const GOOGLE_ADS = ['https://pagead2.googlesyndication.com', 'https://*.googlesyndication.com', 'https://*.doubleclick.net', 'https://*.google.com', 'https://*.googleadservices.com', 'https://*.googletagservices.com', 'https://*.adtrafficquality.google', 'https://*.gstatic.com'];
+const ADS = env.adsEnabled
+  ? { script: GOOGLE_ADS, connect: GOOGLE_ADS, frame: GOOGLE_ADS, img: ['https:'] }
+  : { script: [], connect: [], frame: [], img: [] };
+
+// Short hash of the built assets, appended as ?v= so browsers and the service worker
+// pick up new CSS/JS right after a deploy.
+const assetVersion = (() => {
+  const fs = require('fs');
+  const crypto = require('crypto');
+  const hash = crypto.createHash('sha1');
+  for (const f of ['public/css/app.css', 'public/js/app.js', 'public/js/ads.js']) {
+    try { hash.update(fs.readFileSync(path.join(root, f))); } catch (_) { /* not built yet */ }
+  }
+  return hash.digest('hex').slice(0, 10);
+})();
 
 app.set('trust proxy', 1); // behind Hostinger / Nginx proxy
 app.set('view engine', 'ejs');
@@ -31,11 +49,12 @@ app.use(
       directives: {
         defaultSrc: ["'self'"],
         // Alpine.js (standard build) evaluates expressions with Function().
-        scriptSrc: ["'self'", "'unsafe-eval'"],
+        scriptSrc: ["'self'", "'unsafe-eval'", ...ADS.script],
         styleSrc: ["'self'", "'unsafe-inline'"],
-        imgSrc: ["'self'", 'data:', 'blob:', 'https://res.cloudinary.com'],
+        imgSrc: ["'self'", 'data:', 'blob:', 'https://res.cloudinary.com', ...ADS.img],
         mediaSrc: ["'self'", 'blob:', 'https://res.cloudinary.com'],
-        connectSrc: ["'self'", env.APP_URL.replace(/^http/, 'ws')], // Socket.io
+        connectSrc: ["'self'", env.APP_URL.replace(/^http/, 'ws'), ...ADS.connect], // Socket.io + ads
+        frameSrc: ["'self'", ...ADS.frame],
         formAction: ["'self'"],
         upgradeInsecureRequests: env.isProd ? [] : null,
       },
@@ -51,6 +70,11 @@ if (!env.isTest) {
 }
 
 const staticOpts = { maxAge: env.isProd ? '7d' : 0 };
+// The service worker must always be revalidated, and may control the whole site.
+app.get('/sw.js', (req, res) => {
+  res.set({ 'Cache-Control': 'no-cache', 'Service-Worker-Allowed': '/' });
+  res.sendFile(path.join(root, 'public/sw.js'));
+});
 app.use(express.static(path.join(root, 'public'), staticOpts));
 if (!env.uploadDir.startsWith(path.join(root, 'public'))) {
   app.use('/uploads', express.static(env.uploadDir, staticOpts));
@@ -75,6 +99,14 @@ app.use((req, res, next) => {
     noAds: false,
     wide: false,
     builtCvName: req.session.builtCv?.name || null, // guest CV made with the builder
+    assetVersion,
+    adsEnabled: env.adsEnabled,
+    adsClient: env.ADSENSE_CLIENT_ID,
+    adSlots: { feed: env.ADSENSE_SLOT_FEED, sidebar: env.ADSENSE_SLOT_SIDEBAR, job: env.ADSENSE_SLOT_JOB },
+    consent: req.cookies?.st_consent || (req.get('cookie') || '').match(/(?:^|;\s*)st_consent=(granted|denied)/)?.[1] || null,
+    ogImage: `${env.APP_URL}/icons/og-default.jpg`,
+    // Private or personal pages are never indexed.
+    noindex: /^\/(admin|parametres|mes-|cv|candidatures|notifications|enregistrements|publier|menu|recherche|reinitialiser|mot-de-passe-oublie|reels\/nouveau|offres\/nouvelle|offres\/[^/]+\/modifier)/.test(req.path),
   });
   next();
 });

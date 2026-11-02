@@ -5,6 +5,8 @@ const { CITIES, SECTORS } = require('../config/constants');
 const { byAuthor } = require('./postController');
 const { byRecruiter } = require('./jobController');
 const { isFollowing } = require('../services/follows');
+const env = require('../config/env');
+const { absoluteUrl } = require('../utils/viewHelpers');
 
 async function show(req, res, next) {
   const profileUser = await User.findOne({ where: { username: req.params.username } });
@@ -27,6 +29,9 @@ async function show(req, res, next) {
     tab,
     posts,
     followsProfile: await isFollowing(req.user?.id, profileUser.id),
+    ogType: 'profile',
+    canonical: `${env.APP_URL}/profil/${profileUser.username}`,
+    ...(profileUser.avatarUrl ? { ogImage: absoluteUrl(profileUser.avatarUrl) } : {}),
   });
 }
 

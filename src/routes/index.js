@@ -15,6 +15,7 @@ const reel = require('../controllers/reelController');
 const report = require('../controllers/reportController');
 const admin = require('../controllers/adminController');
 const notification = require('../controllers/notificationController');
+const seo = require('../controllers/seoController');
 const { authLimiter, postLimiter, commentLimiter, actionLimiter, applyLimiter, serverMailLimiter, cvBuildLimiter } = require('../middlewares/rateLimit');
 const { imageUpload, cvUpload, reelUpload, handleUploadErrors } = require('../middlewares/upload');
 
@@ -24,6 +25,11 @@ const logoUpload = handleUploadErrors(imageUpload.single('companyLogo'));
 const router = express.Router();
 
 router.get('/', pages.home);
+
+// SEO & AdSense files
+router.get('/robots.txt', seo.robots);
+router.get('/sitemap.xml', seo.sitemap);
+router.get('/ads.txt', seo.adsTxt);
 
 // Auth
 router.get('/inscription', requireGuest, auth.showRegister);

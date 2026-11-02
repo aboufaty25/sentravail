@@ -54,6 +54,17 @@
     }
   }
 
+  // ---------- PWA ----------
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
+  }
+  let deferredInstall = null;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredInstall = e;
+    window.dispatchEvent(new CustomEvent('st-installable'));
+  });
+
   // ---------- Real-time notifications (Socket.io; long-polling fallback if WebSockets are blocked) ----------
   function setBadges(n) {
     document.querySelectorAll('[data-notif-badge]').forEach((b) => {
@@ -590,6 +601,42 @@
           toast(json.message);
           this.close();
         } catch (_) { this.error = 'Pas de connexion internet.'; } finally { this.sending = false; }
+      },
+    }));
+
+    // "Installer l'application" banner (Android/desktop prompt, iOS instructions). Hidden 30 days after dismissal.
+    Alpine.data('installPrompt', () => ({
+      show: false,
+      ios: false,
+      init() {
+        const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+        let dismissed = 0;
+        try { dismissed = Number(localStorage.getItem('st-install-dismissed') || 0); } catch (_) { /* ignore */ }
+        if (standalone || Date.now() - dismissed < 30 * 864e5) return;
+        const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent) && !/crios|fxios/i.test(navigator.userAgent);
+        if (isIos) { this.ios = true; setTimeout(() => this.reveal(), 4000); return; }
+        if (deferredInstall) this.reveal();
+        window.addEventListener('st-installable', () => this.reveal());
+      },
+      // Never on top of the cookie banner: wait until it has been answered.
+      reveal() {
+        const banner = document.getElementById('consent-banner');
+        if (banner && !banner.classList.contains('hidden')) {
+          document.addEventListener('click', (e) => { if (e.target.closest('[data-consent]')) setTimeout(() => this.reveal(), 800); }, { once: true });
+          return;
+        }
+        this.show = true;
+      },
+      async install() {
+        if (!deferredInstall) return;
+        deferredInstall.prompt();
+        await deferredInstall.userChoice.catch(() => null);
+        deferredInstall = null;
+        this.show = false;
+      },
+      dismiss() {
+        this.show = false;
+        try { localStorage.setItem('st-install-dismissed', String(Date.now())); } catch (_) { /* ignore */ }
       },
     }));
 

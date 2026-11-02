@@ -54,7 +54,9 @@ Comptes de démo (mot de passe : `SEED_PASSWORD`, par défaut `Sentravail2026!`)
 7. **CV** : stockés en privé dans `~/sentravail-private/cvs` (jamais accessibles publiquement, téléchargeables uniquement par lien signé). À inclure dans les sauvegardes.
 8. **SMTP** (obligatoire pour « Envoyer via SenTravail » et « Mot de passe oublié ») : hPanel → Emails → créer `no-reply@sentravail.com`, puis `SMTP_HOST=smtp.hostinger.com`, `SMTP_PORT=465`, `SMTP_SECURE=true`, `SMTP_USER` / `SMTP_PASSWORD` = cette adresse et son mot de passe.
 9. **Temps réel** : Socket.io utilise les WebSockets si l'hébergement les autorise, sinon des requêtes HTTP régulières (aucun réglage nécessaire). Une seule instance de l'application doit tourner (pas de mode cluster).
-10. hPanel → Avancé → **Tâches Cron** : `npm run scores` toutes les 15 minutes (le serveur le fait aussi tant qu'il est actif).
+10. **AdSense** : une fois le site accepté, renseigner `ADSENSE_CLIENT_ID` (ca-pub-…) et créer 3 blocs d'annonces « Display » (fil, colonne, page offre) pour `ADSENSE_SLOT_FEED`, `ADSENSE_SLOT_SIDEBAR`, `ADSENSE_SLOT_JOB`. `/ads.txt` est généré automatiquement. Sans identifiant : ni publicité ni bandeau cookies.
+11. **Google Search Console** : déclarer `https://sentravail.com/sitemap.xml`.
+12. hPanel → Avancé → **Tâches Cron** : `npm run scores` toutes les 15 minutes (le serveur le fait aussi tant qu'il est actif).
 
 ## Feuille de route
 
@@ -67,5 +69,5 @@ Comptes de démo (mot de passe : `SEED_PASSWORD`, par défaut `Sentravail2026!`)
 - [x] **Phase 7 — Réels** : vidéos de 30 s max (MP4/MOV, 40 Mo) stockées sur le serveur, durée vérifiée dans le navigateur et côté serveur (lecture de l'en-tête MP4, sans ffmpeg), miniature générée dans le navigateur, envoi avec barre de progression, onglet Réels plein écran (lecture auto, son coupé, j'aime/commentaires/partage/abonnement), réels dans le fil (lecture auto sauf connexion lente) et sur le profil, vues comptées une fois par session
 - [x] **Phase 8 — Admin** : tableau de bord, file d'approbation des mises à la une (durée ou refus motivé), gestion des offres à la une, signalements (publications, commentaires, profils) avec masquage automatique (`REPORT_AUTOHIDE`) et modération (supprimer, suspendre, classer), gestion des utilisateurs (suspension, rôle, badge vérifié), villes et secteurs modifiables
 - [x] **Phase 9 — Notifications** : notifications en temps réel (Socket.io, repli automatique en long-polling), pastille de compteur, regroupement (« X et 3 autres »), page Notifications, emails pour les décisions de candidature et de mise à la une (désactivables), nouvelles offres des recruteurs suivis
-- [ ] Phase 10 — PWA, SEO, AdSense
+- [x] **Phase 10 — PWA, SEO, AdSense** : application installable (manifest, icônes, service worker, page hors-ligne, invitation à installer), `robots.txt` et `sitemap.xml` dynamiques, Open Graph/Twitter par page, `noindex` sur les pages privées, AdSense chargé uniquement après consentement (fil toutes les 6 publications, colonne de droite, bas de page offre ; jamais sur les formulaires, la candidature, l'admin ni les erreurs), `ads.txt` généré
 - [ ] Phase 11 — Production

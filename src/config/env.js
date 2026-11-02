@@ -29,6 +29,10 @@ const schema = z.object({
   FEED_PAGE_SIZE: z.coerce.number().int().min(3).max(50).default(10),
   VIRAL_THRESHOLD: z.coerce.number().default(5),
   FEATURED_DAYS: z.coerce.number().int().min(1).max(90).default(7),
+  ADSENSE_CLIENT_ID: z.string().trim().optional().default('').refine((v) => !v || /^ca-pub-\d{10,20}$/.test(v), 'ADSENSE_CLIENT_ID must look like ca-pub-1234567890123456'),
+  ADSENSE_SLOT_FEED: z.string().trim().optional().default(''),
+  ADSENSE_SLOT_SIDEBAR: z.string().trim().optional().default(''),
+  ADSENSE_SLOT_JOB: z.string().trim().optional().default(''),
   REPORT_AUTOHIDE: z.coerce.number().int().min(1).max(100).default(5),
 });
 
@@ -42,6 +46,7 @@ const env = parsed.data;
 env.isProd = env.NODE_ENV === 'production';
 env.isTest = env.NODE_ENV === 'test';
 if (env.isTest) env.DB_NAME = env.DB_NAME_TEST;
+env.adsEnabled = !!env.ADSENSE_CLIENT_ID;
 env.cloudinaryEnabled = !!(env.CLOUDINARY_CLOUD_NAME && env.CLOUDINARY_API_KEY && env.CLOUDINARY_API_SECRET);
 // Uploaded files must live OUTSIDE the app folder in production, otherwise a redeploy
 // from GitHub can wipe them. Default: ~/sentravail-uploads (e.g. /home/u123456789/sentravail-uploads).

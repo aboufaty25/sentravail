@@ -16,8 +16,10 @@
     <a href="/contact" class="hover:underline">Contact</a>
     <a href="/confidentialite" class="hover:underline">Confidentialité</a>
     <a href="/conditions" class="hover:underline">Conditions</a>
+    <% if (adsEnabled) { %><a href="/confidentialite#cookies" data-consent-reset class="hover:underline">Cookies</a><% } %>
     <span>SenTravail © <%= new Date().getFullYear() %></span>
   </footer>
+  <%- include('../partials/consentBanner') %>
   <%- script %>
 </body>
 </html>

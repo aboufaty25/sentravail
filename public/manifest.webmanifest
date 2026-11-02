@@ -1,0 +1,24 @@
+{
+  "name": "SenTravail — Le réseau social de l'emploi au Sénégal",
+  "short_name": "SenTravail",
+  "description": "Offres d'emploi, CV, recruteurs et candidats au Sénégal.",
+  "lang": "fr-SN",
+  "dir": "ltr",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f0f2f5",
+  "theme_color": "#1668e3",
+  "categories": ["business", "social", "productivity"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Offres d'emploi", "url": "/offres", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Réels", "url": "/reels", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Mes candidatures", "url": "/mes-candidatures", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

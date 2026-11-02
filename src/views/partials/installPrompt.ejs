@@ -1,0 +1,11 @@
+<div x-data="installPrompt()" x-cloak x-show="show" x-transition
+  class="fixed inset-x-3 bottom-3 z-[54] flex items-center gap-3 rounded-xl bg-white p-3 shadow-2xl ring-1 ring-black/5 sm:left-auto sm:right-4 sm:w-[380px]" role="dialog" aria-label="Installer l'application">
+  <img src="/icons/icon-192.png" alt="" class="h-11 w-11 shrink-0 rounded-xl" width="44" height="44">
+  <div class="min-w-0 flex-1 text-sm">
+    <p class="font-semibold">Installer SenTravail</p>
+    <p x-show="!ios" class="text-gray-500">Accès rapide depuis l'écran d'accueil, même en 3G.</p>
+    <p x-show="ios" class="text-gray-500">Touchez <span aria-label="Partager">⎋</span> Partager puis « Sur l'écran d'accueil ».</p>
+  </div>
+  <button type="button" x-show="!ios" class="btn-primary !px-3 !py-1.5 text-sm" @click="install()">Installer</button>
+  <button type="button" class="icon-btn !h-8 !w-8 shrink-0 !bg-transparent" @click="dismiss()" aria-label="Plus tard"><%- icon('x', 'w-4 h-4') %></button>
+</div>

@@ -3,18 +3,32 @@
 <title><%= title === 'SenTravail' ? title : `${title} | SenTravail` %></title>
 <meta name="description" content="<%= metaDescription %>">
 <meta name="theme-color" content="#1668e3">
+<% if (noindex) { %><meta name="robots" content="noindex, nofollow"><% } %>
 <% if (locals.canonical) { %><link rel="canonical" href="<%= canonical %>"><% } %>
 <meta property="og:site_name" content="SenTravail">
+<meta property="og:locale" content="fr_FR">
 <meta property="og:type" content="<%= locals.ogType || 'website' %>">
 <meta property="og:title" content="<%= title %>">
 <meta property="og:description" content="<%= metaDescription %>">
-<% if (locals.canonical) { %><meta property="og:url" content="<%= canonical %>"><% } %>
+<meta property="og:url" content="<%= locals.canonical || `${appUrl}${currentPath}` %>">
+<meta property="og:image" content="<%= ogImage %>">
+<meta name="twitter:card" content="<%= ogImage.endsWith('og-default.jpg') ? 'summary_large_image' : 'summary' %>">
+<meta name="twitter:title" content="<%= title %>">
+<meta name="twitter:description" content="<%= metaDescription %>">
+<meta name="twitter:image" content="<%= ogImage %>">
 <% if (locals.jsonLd) { %><script type="application/ld+json"><%- jsonLd %></script><% } %>
 <link rel="icon" href="/icons/logo.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/css/app.css">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="SenTravail">
+<link rel="stylesheet" href="/css/app.css?v=<%= assetVersion %>">
 <meta name="csrf-token" content="<%= csrfToken %>">
 <script src="/vendor/htmx/htmx.min.js" defer></script>
-<%# app.js must run before Alpine so its components are registered on alpine:init %>
 <% if (locals.currentUser) { %><script src="/socket.io/socket.io.min.js" defer></script><% } %>
-<script src="/js/app.js" defer></script>
+<%# app.js must run before Alpine so its components are registered on alpine:init %>
+<script src="/js/app.js?v=<%= assetVersion %>" defer></script>
 <script src="/vendor/alpine/cdn.min.js" defer></script>
+<%# AdSense loads only after consent (public/js/ads.js), never on ad-free pages %>
+<% if (adsEnabled && !noAds) { %><script src="/js/ads.js?v=<%= assetVersion %>" data-client="<%= adsClient %>" defer></script><% } %>
