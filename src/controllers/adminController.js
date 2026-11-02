@@ -358,26 +358,22 @@ const moderation = require('../services/moderation');
 
 // Counters shown in the admin navigation (every admin page).
 async function adminCounts(req, res, next) {
-  const [pending, filteredPosts, filteredComments, reported, verifications] = await Promise.all([
-    Post.count({ where: { status: 'pending_approval', moderationReason: 'new_account' } }),
+  const [filteredPosts, filteredComments, reported, verifications] = await Promise.all([
     Post.count({ where: { status: 'pending_approval', moderationReason: 'filter' } }),
     Comment.count({ where: { status: 'pending_approval', moderationReason: 'filter' } }),
     Report.count({ where: { status: 'open' }, distinct: true, col: 'targetId' }),
     User.count({ where: { verificationStatus: 'pending' } }),
   ]);
-  res.locals.adminCounts = { pending, filtered: filteredPosts + filteredComments, reported, verifications };
+  res.locals.adminCounts = { filtered: filteredPosts + filteredComments, reported, verifications };
   next();
 }
 
-// Moderation queue: "En attente" (new accounts) and "Bloqués par le filtre".
+// Moderation queue: publications and comments blocked by the anti-scam filter.
 async function moderationQueue(req, res) {
-  const tab = req.params.tab === 'filtre' ? 'filtre' : 'attente';
-  const reason = tab === 'filtre' ? 'filter' : 'new_account';
+  const tab = 'filtre';
   const [postRows, commentRows] = await Promise.all([
-    Post.findAll({ where: { status: 'pending_approval', moderationReason: reason }, include: posts.postInclude(), order: [['createdAt', 'ASC']], limit: 100 }),
-    tab === 'filtre'
-      ? Comment.findAll({ where: { status: 'pending_approval', moderationReason: 'filter' }, include: [{ model: User, as: 'author', attributes: posts.AUTHOR_ATTRS }], order: [['createdAt', 'ASC']], limit: 100 })
-      : [],
+    Post.findAll({ where: { status: 'pending_approval', moderationReason: 'filter' }, include: posts.postInclude(), order: [['createdAt', 'ASC']], limit: 100 }),
+    Comment.findAll({ where: { status: 'pending_approval', moderationReason: 'filter' }, include: [{ model: User, as: 'author', attributes: posts.AUTHOR_ATTRS }], order: [['createdAt', 'ASC']], limit: 100 }),
   ]);
   await posts.hydrate(postRows, req.user);
   view(res, 'moderation', { title: 'Modération', section: 'moderation', tab, posts: postRows, comments: commentRows });
@@ -386,7 +382,7 @@ async function moderationQueue(req, res) {
 async function moderatePost(req, res) {
   const post = await Post.findByPk(req.params.id);
   if (!post || post.status !== 'pending_approval') throw fail(404, 'Publication introuvable ou déjà traitée.');
-  const back = post.moderationReason === 'filter' ? '/admin/moderation/filtre' : post.moderationReason === 'reports' ? '/admin/signalements' : '/admin/moderation';
+  const back = post.moderationReason === 'reports' ? '/admin/signalements' : '/admin/moderation';
   if (req.body?.action === 'approve') {
     await moderationActions.approvePost(post, req.user);
     if (post.moderationReason === 'reports') await closeReports('post', post.id, req.user, 'dismissed', 'dismissed');
@@ -413,7 +409,7 @@ async function moderateComment(req, res) {
   } else {
     throw fail(422, 'Action inconnue.');
   }
-  return res.redirect('/admin/moderation/filtre');
+  return res.redirect('/admin/moderation');
 }
 
 // Recruiter verification requests.

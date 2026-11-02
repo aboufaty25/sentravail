@@ -44,7 +44,7 @@ docs/DEPLOIEMENT.md
 
 ## Rôles
 
-- **Candidat** : profil, CV, publier « Je cherche un emploi », « Événement », « J'ai été recruté ! », postuler, s'abonner, aimer, commenter, partager.
+- **Candidat** : profil, CV, publier (directement, sans validation préalable) « Je cherche un emploi », « Événement », « J'ai été recruté ! », postuler, s'abonner, aimer, commenter, partager.
 - **Recruteur** : tout sauf « Je cherche un emploi » + page entreprise, offres d'emploi, candidatures reçues, demande de badge vérifié.
 - **Admin** : tout + offres officielles, modération, vérifications, filtre anti-arnaque, utilisateurs, villes et secteurs.
 
@@ -67,13 +67,13 @@ docs/DEPLOIEMENT.md
 
 ## Garde-fous (`src/services/moderation.js`)
 
-- **Niveaux de confiance** : les publications d'un nouveau compte passent en modération admin ; après **3 publications approuvées**, l'utilisateur publie directement. Les comptes vérifiés et l'admin publient directement.
+- **Pas de modération a priori** : tous les comptes, nouveaux compris, publient directement. Seuls le filtre anti-arnaque et les signalements envoient un contenu en modération.
 - **Badge vérifié (recruteurs)** : demande avec NINEA, RCCM ou email professionnel (Gmail, Yahoo, Hotmail… refusés ; propriété confirmée par lien), validation par l'admin.
 - **Filtre anti-arnaque** : publication, offre (création et modification), partage ou commentaire contenant un terme interdit (« frais de dossier », « paiement », « payer », « investissement », « argent facile », « Wave », « Orange Money », « dépôt »…) → bloqué et envoyé en modération. Liste modifiable dans l'administration (`/admin/filtre`), comparaison sans accents ni majuscules, mots entiers.
 - Message **« Un vrai recruteur ne demande jamais d'argent »** sur chaque page d'offre et dans le modal Postuler.
 - **Limites** : 1 « Je cherche un emploi » par jour et par utilisateur ; liens externes interdits aux comptes non vérifiés (les adresses email restent autorisées) ; longueur maximale par type.
 - **Signalements** : à partir de **3** (`REPORT_AUTOHIDE`), la publication ou le commentaire est masqué en attendant la décision de l'admin.
-- **Administration** : file de modération `/admin/moderation` avec 3 onglets — En attente (nouveaux comptes), Signalés, Bloqués par le filtre — plus `/admin/verifications` et `/admin/filtre`.
+- **Administration** : file de modération `/admin/moderation` avec 2 onglets — Bloqués par le filtre, Signalés — plus `/admin/verifications` et `/admin/filtre`.
 
 ## Pas de vidéo
 

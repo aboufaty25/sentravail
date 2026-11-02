@@ -102,7 +102,7 @@ async function create(req, res) {
   });
 
   if (decision.status !== 'published') {
-    req.flash('info', decision.moderationReason === 'filter' ? moderation.MESSAGES.pendingFilter : moderation.MESSAGES.pendingNewAccount);
+    req.flash('info', moderation.MESSAGES.pendingFilter);
     return res.redirect(job.url);
   }
   await notifications.notifyFollowersOfJob(req.user, post, job);

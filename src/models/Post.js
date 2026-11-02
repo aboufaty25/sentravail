@@ -30,6 +30,7 @@ Post.init(
     featureStatus: { type: DataTypes.ENUM(...FEATURE_STATUSES), allowNull: false, defaultValue: 'none' },
     featureRejectReason: { type: DataTypes.STRING(300) },
     // Why a post is waiting for moderation (status = pending_approval).
+    // 'new_account' is a legacy value kept for old rows; new accounts are no longer moderated.
     moderationReason: { type: DataTypes.ENUM('new_account', 'filter', 'reports') },
     moderationNote: { type: DataTypes.STRING(300) }, // e.g. matched filter terms, rejection reason
     likesCount: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false, defaultValue: 0 },

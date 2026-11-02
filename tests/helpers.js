@@ -32,7 +32,6 @@ async function createUser(overrides = {}) {
     email: `user-${n}@example.com`,
     passwordHash: await bcrypt.hash(overrides.password || 'password123', 4),
     role: 'candidate',
-    approvedPostsCount: 3, // trusted by default; guardrail tests use 0
     ...overrides,
   });
 }

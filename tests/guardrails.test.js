@@ -41,52 +41,46 @@ describe('Anti-scam filter (unit)', () => {
   });
 });
 
-describe('Trust levels', () => {
-  test('a new account goes to moderation until 3 publications are approved', async () => {
-    const u = await createUser({ email: 'new@ex.com', approvedPostsCount: 0, firstName: 'Nouveau' });
+describe('New accounts', () => {
+  test('a brand-new account publishes directly, without moderation', async () => {
+    const u = await createUser({ email: 'new@ex.com', firstName: 'Nouveau' });
     const s = await loginAs(u);
     const res = await publish(s, 'recrute', hired('Caissier'));
     expect(res.status).toBe(302);
-    const p = await Post.findOne({ where: { authorId: u.id }, order: [['id', 'DESC']] });
-    expect([p.status, p.moderationReason]).toEqual(['pending_approval', 'new_account']);
-    // hidden from others, visible to the author with a banner
-    expect((await request(app).get(`/publications/${p.id}`)).status).toBe(404);
-    expect((await s.agent.get(`/publications/${p.id}`)).text).toContain('En attente de validation');
-    expect((await request(app).get('/fil?page=1')).text).not.toContain('Caissier');
-
-    // admin approves 3 publications -> the 4th is published directly
-    for (let i = 0; i < 3; i += 1) {
-      const post = i === 0 ? p : await Post.create({ type: 'hired', title: `Poste ${i}`, authorId: u.id, status: 'pending_approval', moderationReason: 'new_account' });
-      expect((await form(adminS, `/admin/moderation/publications/${post.id}`, { action: 'approve' })).status).toBe(302);
-    }
-    await u.reload();
-    expect(u.approvedPostsCount).toBe(3);
-    await notifications.flush();
-    expect(await Notification.count({ where: { userId: u.id, type: 'post_approved' } })).toBe(3);
-    await publish(s, 'recrute', hired('Vendeur'));
-    expect((await Post.findOne({ where: { authorId: u.id, title: 'Vendeur' } })).status).toBe('published');
-  });
-
-  test('verified accounts and admins publish directly', async () => {
-    const v = await createUser({ email: 'verified@ex.com', approvedPostsCount: 0, isVerified: true });
-    await publish(await loginAs(v), 'recrute', hired('Comptable'));
-    expect((await Post.findOne({ where: { authorId: v.id } })).status).toBe('published');
-  });
-
-  test('rejection notifies the author with the reason', async () => {
-    const u = await createUser({ email: 'rej@ex.com', approvedPostsCount: 0 });
-    await publish(await loginAs(u), 'recrute', hired('Poste douteux'));
+    expect(res.headers.location).toMatch(/^\/\?nouveau=\d+$/);
     const p = await Post.findOne({ where: { authorId: u.id } });
-    await form(adminS, `/admin/moderation/publications/${p.id}`, { action: 'reject', reason: 'Information non vérifiable' });
+    expect([p.status, p.moderationReason]).toEqual(['published', null]);
+    expect((await request(app).get(`/publications/${p.id}`)).status).toBe(200);
+    expect((await adminS.agent.get('/admin/moderation')).text).not.toContain('Caissier');
+  });
+
+  test('a filtered publication rejected by the admin notifies the author with the reason', async () => {
+    const u = await createUser({ email: 'rej@ex.com' });
+    await publish(await loginAs(u), 'recrute', hired('Poste douteux', 'Petit investissement de départ demandé'));
+    const p = await Post.findOne({ where: { authorId: u.id } });
+    expect([p.status, p.moderationReason]).toEqual(['pending_approval', 'filter']);
+    await form(adminS, `/admin/moderation/publications/${p.id}`, { action: 'reject', reason: 'Demande d’argent' });
     await p.reload();
     expect(p.status).toBe('rejected');
     await notifications.flush();
     const n = await Notification.findOne({ where: { userId: u.id, type: 'post_rejected' } });
-    expect(n.data.reason).toBe('Information non vérifiable');
+    expect(n.data.reason).toBe('Demande d’argent');
   });
 
-  test('a recruiter offer from a new account is held and followers are notified only on approval', async () => {
-    const rec = await createUser({ email: 'newrec@ex.com', role: 'recruiter', approvedPostsCount: 0 });
+  test('approving a filtered publication makes it visible and notifies the author', async () => {
+    const u = await createUser({ email: 'ok@ex.com' });
+    await publish(await loginAs(u), 'recrute', hired('Comptable', 'Paiement des salaires et déclarations sociales'));
+    const p = await Post.findOne({ where: { authorId: u.id } });
+    expect(p.status).toBe('pending_approval');
+    await form(adminS, `/admin/moderation/publications/${p.id}`, { action: 'approve' });
+    await p.reload();
+    expect(p.status).toBe('published');
+    await notifications.flush();
+    expect(await Notification.count({ where: { userId: u.id, type: 'post_approved' } })).toBe(1);
+  });
+
+  test('a filtered offer is held and followers are notified only on approval', async () => {
+    const rec = await createUser({ email: 'newrec@ex.com', role: 'recruiter' });
     const follower = await createUser({ email: 'fol@ex.com' });
     await require('../src/models').Follow.create({ followerId: follower.id, followingId: rec.id });
     const rs = await loginAs(rec);

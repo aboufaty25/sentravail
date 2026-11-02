@@ -76,7 +76,7 @@ Ne définissez pas `PORT` : Hostinger le fournit. L'application refuse de démar
    - par SSH : `cd` dans le dossier de l'application puis `npm run make-admin -- votre@email.com` ;
    - ou dans phpMyAdmin : `UPDATE users SET role = 'admin' WHERE email = 'votre@email.com';`
 5. Allez sur `/admin` : publiez une première offre officielle, ajustez villes et secteurs, relisez la liste du **filtre anti-arnaque** (`/admin/filtre`).
-   Consultez chaque jour la **file de modération** (`/admin/moderation`) et les **demandes de badge** (`/admin/verifications`) : les premières publications des nouveaux comptes y attendent votre validation.
+   Consultez chaque jour la **file de modération** (`/admin/moderation` : contenus bloqués par le filtre et signalés) et les **demandes de badge** (`/admin/verifications`).
 6. Vérifiez `https://sentravail.com/sitemap.xml` et `https://sentravail.com/robots.txt`.
 
 Les données de démonstration (`npm run seed`) **ne doivent pas** être utilisées en production (le script refuse de tourner avec `NODE_ENV=production`).

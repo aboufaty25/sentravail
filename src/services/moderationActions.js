@@ -6,12 +6,10 @@ const { snippet } = require('./posts');
 
 // Admin decision on a held publication.
 async function approvePost(post, admin) {
-  const wasNewOrFiltered = ['new_account', 'filter'].includes(post.moderationReason);
   await post.update({ status: 'published', moderationReason: null, moderationNote: null });
   // Appears as fresh in the feed from the moment it is approved.
   await sequelize.query('UPDATE posts SET createdAt = UTC_TIMESTAMP() WHERE id = ?', { replacements: [post.id] });
   await refreshScore(post.id);
-  if (wasNewOrFiltered) await adjustCounter(User, post.authorId, 'approvedPostsCount', 1);
   await notifications.notify({ userId: post.authorId, actorId: admin.id, type: 'post_approved', postId: post.id, data: { snippet: snippet(post) } });
   if (post.type === 'job') {
     const [author, job] = await Promise.all([User.findByPk(post.authorId), Job.findOne({ where: { postId: post.id } })]);

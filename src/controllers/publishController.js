@@ -77,7 +77,7 @@ async function create(req, res) {
     score: baseScore({ createdAt: now }),
   });
   if (decision.status !== 'published') {
-    req.flash('info', decision.moderationReason === 'filter' ? moderation.MESSAGES.pendingFilter : moderation.MESSAGES.pendingNewAccount);
+    req.flash('info', moderation.MESSAGES.pendingFilter);
     return res.redirect(`/publications/${post.id}`);
   }
   req.flash('success', 'Publication partagée.');

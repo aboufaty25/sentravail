@@ -47,13 +47,13 @@ Comptes de démo (mot de passe `Sentravail2026!`) :
 | Comptes | inscription candidat/recruteur, connexion email ou téléphone, mot de passe oublié, profils publics, paramètres |
 | Publications | 5 types structurés (offre, je cherche un emploi, événement, j'ai été recruté, conseil carrière), une carte par type, une image de 2 Mo max |
 | Fil | public, classement par score (`services/feedRanking.js`), défilement infini, réactions (appui long), commentaires (500 car.), partages, enregistrements |
-| Garde-fous | niveaux de confiance, badge vérifié recruteur (NINEA/RCCM/email pro), filtre anti-arnaque modifiable, limites, masquage à 3 signalements |
+| Garde-fous | publication directe pour tous, badge vérifié recruteur (NINEA/RCCM/email pro), filtre anti-arnaque modifiable, limites, masquage à 3 signalements |
 | Accès ouvert | tout est consultable sans compte ; fenêtre « Connectez-vous pour continuer » sur les actions réservées, retour à la page d'origine |
 | Offres | publication (recruteurs/admin), pages `/offres/:slug` avec données `JobPosting`, recherche par mot-clé/ville/secteur/contrat, mise à la une |
 | Candidatures | modal pré-rempli, invités acceptés, CV importé ou créé, `mailto:` avec lien de CV signé, confirmation, envoi de secours par le serveur, suivi des deux côtés |
 | CV | créateur en 7 étapes, aperçu en direct, 2 modèles, export PDF |
 | Réseau | abonnements, suggestions, visibilité « Mon réseau », viralité, fil personnalisé, recherche de personnes et entreprises |
-| Administration | tableau de bord, file de modération (en attente, signalés, bloqués par le filtre), vérifications, filtre, mises à la une, utilisateurs, villes et secteurs |
+| Administration | tableau de bord, file de modération (bloqués par le filtre, signalés), vérifications, filtre, mises à la une, utilisateurs, villes et secteurs |
 | Notifications | temps réel (Socket.io, repli HTTP), regroupement, page dédiée, emails importants désactivables |
 | PWA / SEO / AdSense | installable, hors-ligne, sitemap/robots/Open Graph, publicités après consentement uniquement, `ads.txt` généré |
 

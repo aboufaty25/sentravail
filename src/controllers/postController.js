@@ -164,7 +164,7 @@ async function share(req, res) {
     score: baseScore({ createdAt: new Date() }),
   });
   if (decision.status !== 'published') {
-    return res.status(201).json({ id: post.id, message: decision.moderationReason === 'filter' ? moderation.MESSAGES.pendingFilter : moderation.MESSAGES.pendingNewAccount });
+    return res.status(201).json({ id: post.id, message: moderation.MESSAGES.pendingFilter });
   }
   await adjustCounter(Post, original.id, 'sharesCount', 1);
   await refreshScore(original.id);

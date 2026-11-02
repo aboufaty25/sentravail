@@ -56,8 +56,7 @@ const people = [
     await sequelize.sync({ force: true });
     const passwordHash = await bcrypt.hash(env.SEED_PASSWORD, 10);
     const users = {};
-    // Demo members are trusted (they publish directly); new sign-ups start at 0.
-    for (const p of people) users[p.username] = await User.create({ approvedPostsCount: 3, verificationStatus: p.isVerified ? 'approved' : 'none', ...p, passwordHash });
+    for (const p of people) users[p.username] = await User.create({ verificationStatus: p.isVerified ? 'approved' : 'none', ...p, passwordHash });
     await BannedTerm.bulkCreate(BannedTerm.DEFAULTS.map((term) => ({ term })));
 
     const hoursAgo = (h) => new Date(Date.now() - h * 3_600_000);

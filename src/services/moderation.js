@@ -1,8 +1,6 @@
 const { Op } = require('sequelize');
 const { BannedTerm, Post } = require('../models');
 
-const TRUSTED_AFTER = 3; // approved publications before posting directly
-
 // ---------- Anti-scam filter ----------
 
 // "Dépôt  d'ARGENT!" -> "depot d argent"
@@ -52,22 +50,13 @@ function canPostLinks(user) {
   return !!user && (user.isVerified || user.role === 'admin');
 }
 
-// ---------- Trust level ----------
-
-function isTrusted(user) {
-  return user.role === 'admin' || user.isVerified || user.approvedPostsCount >= TRUSTED_AFTER;
-}
-
 /**
- * Publication status decided server-side:
- * - banned terms → moderation ("filter"), whoever the author is (admins excepted);
- * - new account (fewer than 3 approved publications, not verified) → moderation ("new_account");
- * - otherwise published.
+ * Publication status decided server-side. Every account publishes directly, new ones
+ * included; only banned terms send a publication to moderation (admins excepted).
  */
 async function decidePublication(user, texts) {
   const found = user.role === 'admin' ? [] : await findBannedTerms(texts);
   if (found.length) return { status: 'pending_approval', moderationReason: 'filter', moderationNote: `Termes détectés : ${found.join(', ')}`.slice(0, 300) };
-  if (!isTrusted(user)) return { status: 'pending_approval', moderationReason: 'new_account', moderationNote: null };
   return { status: 'published', moderationReason: null, moderationNote: null };
 }
 
@@ -88,12 +77,11 @@ async function jobSearchPostedToday(userId) {
 const MESSAGES = {
   link: 'Les liens externes sont réservés aux comptes vérifiés. Retirez le lien de votre texte.',
   pendingFilter: 'Votre publication contient des termes souvent utilisés dans les arnaques. Elle sera vérifiée par notre équipe avant d’être visible.',
-  pendingNewAccount: 'Merci ! Les premières publications des nouveaux comptes sont vérifiées par notre équipe avant d’être visibles.',
   commentFilter: 'Votre commentaire contient des termes souvent utilisés dans les arnaques. Il sera vérifié avant d’être visible.',
   jobSearchDaily: 'Vous avez déjà publié une recherche d’emploi aujourd’hui. Vous pourrez en publier une autre demain.',
 };
 
 module.exports = {
-  TRUSTED_AFTER, normalize, findBannedTerms, invalidateTerms, hasExternalLink, canPostLinks, isTrusted,
+  normalize, findBannedTerms, invalidateTerms, hasExternalLink, canPostLinks,
   decidePublication, decideComment, jobSearchPostedToday, MESSAGES,
 };

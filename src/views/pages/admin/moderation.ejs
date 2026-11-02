@@ -1,6 +1,6 @@
 <%- include('../../partials/adminNav') %>
 <p class="mb-3 px-1 text-sm text-gray-600">
-  <%= tab === 'filtre' ? 'Publications et commentaires bloqués par le filtre anti-arnaque. Vérifiez qu’il ne s’agit pas d’une demande d’argent avant d’approuver.' : `Premières publications des nouveaux comptes : un compte publie directement après 3 publications approuvées.` %>
+  Publications et commentaires bloqués par le filtre anti-arnaque. Vérifiez qu’il ne s’agit pas d’une demande d’argent avant d’approuver.
 </p>
 <% if (!posts.length && !comments.length) { %>
   <section class="card rounded-lg px-4 py-10 text-center text-gray-500">Rien à traiter. 🎉</section>
