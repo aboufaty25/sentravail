@@ -72,7 +72,7 @@
       <button type="submit" class="btn-primary w-full !py-3 text-base" :disabled="sending">
         <span x-show="!sending">Envoyer ma candidature</span><span x-show="sending">Préparation…</span>
       </button>
-      <p class="text-center text-xs text-gray-500">Votre messagerie va s'ouvrir avec l'email prêt à envoyer au recruteur.</p>
+      <p class="text-center text-xs text-gray-500" x-text="job.mode === 'platform' ? 'Votre candidature est transmise directement au recruteur sur SenTravail.' : 'Votre messagerie va s\'ouvrir avec l\'email prêt à envoyer au recruteur.'"></p>
     </form>
 
     <%# Step 2: did you send it? %>

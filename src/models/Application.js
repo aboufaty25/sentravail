@@ -1,7 +1,11 @@
 const { DataTypes, Model } = require('sequelize');
 const sequelize = require('../config/db');
 
-const STATUSES = ['opened_mail', 'confirmed_sent', 'viewed', 'shortlisted', 'rejected'];
+const STATUSES = ['opened_mail', 'confirmed_sent', 'viewed', 'shortlisted', 'interview', 'offer', 'hired', 'rejected'];
+// Recruitment pipeline (ATS), in order. 'rejected' can happen at any stage.
+const PIPELINE = ['confirmed_sent', 'viewed', 'shortlisted', 'interview', 'offer', 'hired'];
+// Stages a recruiter can move an application to.
+const RECRUITER_STAGES = ['viewed', 'shortlisted', 'interview', 'offer', 'hired', 'rejected'];
 
 class Application extends Model {}
 
@@ -23,8 +27,13 @@ Application.init(
     cvName: { type: DataTypes.STRING(160) },
     message: { type: DataTypes.TEXT },
     status: { type: DataTypes.ENUM(...STATUSES), allowNull: false, defaultValue: 'opened_mail' },
-    sentVia: { type: DataTypes.ENUM('mailto', 'server') },
+    sentVia: { type: DataTypes.ENUM('mailto', 'server', 'platform') },
     sentAt: { type: DataTypes.DATE },
+    // ATS
+    recruiterNote: { type: DataTypes.TEXT }, // private, never shown to the candidate
+    interviewAt: { type: DataTypes.DATE },
+    interviewPlace: { type: DataTypes.STRING(200) }, // address, phone or video link
+    stageAt: { type: DataTypes.DATE }, // last stage change
   },
   {
     sequelize,
@@ -40,11 +49,16 @@ Application.init(
 );
 
 Application.STATUSES = STATUSES;
+Application.PIPELINE = PIPELINE;
+Application.RECRUITER_STAGES = RECRUITER_STAGES;
 Application.STATUS_LABELS = {
-  opened_mail: { candidate: 'Email à confirmer', recruiter: 'Email non confirmé', color: 'bg-amber-100 text-amber-800' },
-  confirmed_sent: { candidate: 'Envoyée', recruiter: 'Nouvelle', color: 'bg-brand-100 text-brand-800' },
-  viewed: { candidate: 'Vue par le recruteur', recruiter: 'Vue', color: 'bg-gray-200 text-gray-700' },
-  shortlisted: { candidate: 'Présélectionné(e) 🎉', recruiter: 'Présélectionnée', color: 'bg-green-100 text-green-800' },
-  rejected: { candidate: 'Non retenue', recruiter: 'Refusée', color: 'bg-red-100 text-red-700' },
+  opened_mail: { candidate: 'Email à confirmer', recruiter: 'Email non confirmé', short: 'Non confirmée', color: 'bg-amber-100 text-amber-800' },
+  confirmed_sent: { candidate: 'Envoyée', recruiter: 'Nouvelle', short: 'Envoyée', color: 'bg-brand-100 text-brand-800' },
+  viewed: { candidate: 'Vue par le recruteur', recruiter: 'À examiner', short: 'Vue', color: 'bg-gray-200 text-gray-700' },
+  shortlisted: { candidate: 'Présélectionné(e) 🎉', recruiter: 'Présélectionnée', short: 'Présélection', color: 'bg-green-100 text-green-800' },
+  interview: { candidate: 'Entretien prévu', recruiter: 'Entretien', short: 'Entretien', color: 'bg-purple-100 text-purple-800' },
+  offer: { candidate: "Proposition d'embauche 🎉", recruiter: 'Proposition', short: 'Proposition', color: 'bg-teal-100 text-teal-800' },
+  hired: { candidate: 'Embauché(e) 🎉', recruiter: 'Embauché(e)', short: 'Embauché(e)', color: 'bg-green-600 text-white' },
+  rejected: { candidate: 'Non retenue', recruiter: 'Refusée', short: 'Non retenue', color: 'bg-red-100 text-red-700' },
 };
 module.exports = Application;

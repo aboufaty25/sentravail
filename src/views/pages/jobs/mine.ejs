@@ -1,8 +1,16 @@
 <div class="space-y-2 sm:space-y-4">
   <div class="flex items-center justify-between px-3 sm:px-0">
-    <h1 class="text-2xl font-bold">Mes offres</h1>
+    <h1 class="text-2xl font-bold">Tableau de recrutement</h1>
     <a href="/offres/nouvelle" class="btn-primary !py-1.5 text-sm"><%- icon('plus', 'w-4 h-4') %> Publier une offre</a>
   </div>
+  <% const all = Object.values(counts); const sum = (fn) => all.reduce((s, c) => s + fn(c), 0); %>
+  <% if (posts.length) { %>
+    <ul class="grid grid-cols-2 gap-1.5 px-2 text-center sm:grid-cols-4 sm:gap-2 sm:px-0" aria-label="Résumé du recrutement">
+      <% [['Offres', posts.length, 'text-gray-900'], ['Candidatures', sum(c => c.total), 'text-brand-700'], ['Entretiens', sum(c => c.stages.interview || 0), 'text-purple-700'], ['Embauches', sum(c => c.stages.hired || 0), 'text-green-700']].forEach(([label, value, color]) => { %>
+        <li class="card rounded-lg px-1 py-2.5"><span class="block text-2xl font-bold leading-none <%= color %>"><%= value %></span><span class="mt-1 block text-xs text-gray-600"><%= label %></span></li>
+      <% }) %>
+    </ul>
+  <% } %>
   <% if (!posts.length) { %>
     <section class="card px-4 py-10 text-center">
       <span class="mx-auto block w-fit text-brand-600"><%- icon('briefcase', 'w-12 h-12') %></span>
@@ -23,11 +31,13 @@
             <% if (p.featureStatus === 'rejected') { %><span class="rounded-full bg-red-50 px-2 py-0.5 font-semibold text-red-700">Mise à la une refusée</span><% } %>
             <span class="text-gray-500"><%= formatCount(p.viewsCount) %> vues · <%= formatCount(p.likesCount) %> réactions · <%= formatCount(p.savesCount) %> enregistrements</span>
           </div>
-          <% const c = counts[p.id] || { total: 0, fresh: 0 }; %>
+          <% const c = counts[p.id] || { total: 0, fresh: 0, stages: {} }; %>
           <a href="/mes-offres/<%= j.slug %>/candidatures" class="mt-2 inline-flex items-center gap-1.5 rounded-md bg-brand-50 px-2.5 py-1 text-sm font-semibold text-brand-700 hover:bg-brand-100">
             <%- icon('inbox', 'w-4 h-4') %> <%= c.total %> candidature<%= c.total > 1 ? 's' : '' %>
             <% if (c.fresh) { %><span class="rounded-full bg-red-600 px-1.5 text-[11px] text-white"><%= c.fresh %> nouvelle<%= c.fresh > 1 ? 's' : '' %></span><% } %>
           </a>
+          <% const bits = [['shortlisted', 'présélection'], ['interview', 'entretien'], ['offer', 'proposition'], ['hired', 'embauche']].filter(([k]) => c.stages[k]); %>
+          <% if (bits.length) { %><p class="mt-1 text-xs text-gray-500"><%= bits.map(([k, l]) => `${c.stages[k]} ${l}${c.stages[k] > 1 ? 's' : ''}`).join(' · ') %></p><% } %>
         </div>
         <a href="<%= j.url %>/modifier" class="icon-btn shrink-0" aria-label="Modifier"><%- icon('pencil', 'w-4 h-4') %></a>
       </li>

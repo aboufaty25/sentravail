@@ -1,7 +1,7 @@
 <% const left = daysLeft(job.deadline);
    const isLink = job.applyMode === 'link';
    const applyHost = isLink ? (() => { try { return new URL(job.applyUrl).hostname.replace(/^www\./, ''); } catch { return 'lien externe'; } })() : '';
-   const applyEvent = `$dispatch('open-apply', { slug: '${job.slug}', title: ${JSON.stringify(job.title)}, company: ${JSON.stringify(job.companyName)}${pendingApplicationId ? `, pendingId: ${pendingApplicationId}` : ''} })`; %>
+   const applyEvent = `$dispatch('open-apply', { slug: '${job.slug}', mode: '${job.applyMode}', title: ${JSON.stringify(job.title)}, company: ${JSON.stringify(job.companyName)}${pendingApplicationId ? `, pendingId: ${pendingApplicationId}` : ''} })`; %>
 <div x-data <%- autoApply && !isLink && !job.isExpired && !canManage ? `x-init="$nextTick(() => ${escapeHtml(applyEvent)})"` : '' %> class="space-y-2 pb-4 sm:space-y-4">
   <article class="card" aria-labelledby="job-title">
     <% if (job.image) { %>
@@ -60,6 +60,8 @@
           <% if (canManage) { %>
             <% if (job.applyMode === 'link') { %>
               <p class="mt-1 text-sm text-gray-600">Le bouton « Postuler » envoie les candidats vers <a href="<%= job.applyUrl %>" target="_blank" rel="noopener nofollow ugc" class="break-all font-semibold text-brand-600 hover:underline"><%= job.applyUrl %></a>.</p>
+            <% } else if (job.applyMode === 'platform') { %>
+              <p class="mt-1 text-sm text-gray-600">Les candidatures arrivent dans votre <a href="/mes-offres/<%= job.slug %>/candidatures" class="font-semibold text-brand-600 hover:underline">tableau de recrutement</a>.</p>
             <% } else { %>
               <p class="mt-1 text-sm text-gray-600">Les candidatures arrivent à <strong><%= job.applyEmail %></strong> et dans <a href="/mes-offres/<%= job.slug %>/candidatures" class="font-semibold text-brand-600 hover:underline">la liste des candidatures</a>.</p>
             <% } %>
@@ -67,7 +69,7 @@
             <p class="mt-1 text-sm text-gray-600">La candidature se fait sur le site du recruteur (<%= applyHost %>).</p>
             <a href="<%= job.applyUrl %>" target="_blank" rel="noopener nofollow ugc" class="btn-primary mt-3 w-full !py-3 text-base"><%- icon('link', 'w-4 h-4') %> Postuler sur le site du recruteur</a>
           <% } else { %>
-            <p class="mt-1 text-sm text-gray-600">Envoyez votre CV et un message au recruteur en moins d'une minute.</p>
+            <p class="mt-1 text-sm text-gray-600"><%= job.applyMode === 'platform' ? 'Postulez directement sur SenTravail et suivez votre candidature étape par étape.' : "Envoyez votre CV et un message au recruteur en moins d'une minute." %></p>
             <button type="button" class="btn-primary mt-3 w-full !py-3 text-base" @click="<%= applyEvent %>">Postuler</button>
           <% } %>
         <% } %>

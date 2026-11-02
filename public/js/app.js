@@ -243,7 +243,7 @@
       mailto: '',
       doneMessage: '',
       show(d) {
-        this.job = { slug: d.slug, title: d.title, company: d.company };
+        this.job = { slug: d.slug, title: d.title, company: d.company, mode: d.mode || 'email' };
         this.errors = {};
         this.error = '';
         if (d.pendingId) {
@@ -299,6 +299,11 @@
             return;
           }
           this.appId = json.id;
+          if (json.sent) { // on-platform recruitment: received right away
+            this.doneMessage = json.message;
+            this.step = 'done';
+            return;
+          }
           this.mailto = json.mailto;
           this.step = 'confirm';
           window.location.href = this.mailto; // opens the device's mail app

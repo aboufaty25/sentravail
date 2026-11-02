@@ -64,7 +64,7 @@ docs/DEPLOIEMENT.md
 - Commentaires libres, **500 caractères max**, soumis au filtre de contenu.
 - **Au maximum une image** par publication (affiche), compressée dans le navigateur, **2 Mo max**. Exception : une offre peut avoir en plus le **logo de l'entreprise** (champ `companyLogo` du formulaire ; pas de logo par défaut pour l'admin, qui publie pour d'autres entreprises).
 - **Image d'une offre** (`jobs.image`, distincte du logo `companyLogo`) : affichée en grand dans le fil comme une photo Facebook, avec le titre et un court extrait en dessous ; en haut de la page de l'offre ; et comme aperçu de partage (`og:image`, `summary_large_image`). Le partage externe d'une offre pointe toujours vers `/offres/:slug`.
-- **Candidature à une offre** (`jobs.applyMode`) : « Par email » (modal Postuler sur SenTravail, envoi à `applyEmail`) ou « Par lien externe » (`applyUrl`, réservé aux comptes vérifiés et à l'admin, vérifié côté serveur ; « Postuler » ouvre le lien, pas de candidature sur le site). Aucun email pré-rempli pour l'admin ; celui du compte pour un recruteur.
+- **Candidature à une offre** (`jobs.applyMode`) : « Sur SenTravail » (`platform`, par défaut pour les recruteurs : candidature reçue directement, sans étape email, gérée dans l'ATS), « Par email » (modal Postuler sur SenTravail, envoi à `applyEmail`) ou « Par lien externe » (`applyUrl`, réservé aux comptes vérifiés et à l'admin, vérifié côté serveur ; « Postuler » ouvre le lien, pas de candidature sur le site). Aucun email pré-rempli pour l'admin ; celui du compte pour un recruteur.
 - Les anciennes publications libres (`text`/`photo`) restent en base mais sont masquées.
 
 ## Garde-fous (`src/services/moderation.js`)
@@ -101,6 +101,13 @@ Aucun réel, aucun upload vidéo : ni onglet, ni route, ni modèle, ni code fron
 4. Sans compte : proposition discrète « Créez un compte pour suivre vos candidatures », jamais imposée.
 5. Anti-spam : champ piège invisible (`website`) et limites par IP (6/heure, 20/jour pour les visiteurs).
 6. CV stockés hors du dossier public, téléchargeables uniquement par lien signé.
+
+## Recrutement sur la plateforme (ATS)
+
+- Étapes d'une candidature (`Application.status`) : `confirmed_sent` (nouvelle) → `viewed` (à examiner) → `shortlisted` → `interview` → `offer` → `hired`, ou `rejected` à tout moment (`opened_mail` = email pas encore confirmé, hors pipeline).
+- **Recruteur** : `/mes-offres` = tableau de recrutement (offres, candidatures, entretiens, embauches) ; `/mes-offres/:slug/candidatures` = tableau Kanban 6 colonnes sur ordinateur, filtres par étape sur mobile, changement d'étape par liste déroulante ; `/candidatures/:id` = fiche avec progression, boutons d'étape, planification d'entretien (date, lieu ou lien), **notes privées** (`recruiterNote`, jamais montrées au candidat). Propriétaire de l'offre ou admin uniquement (vérifié côté serveur).
+- **Candidat** : `/mes-candidatures` = résumé + barre de progression par candidature, détails de l'entretien, « Partager la bonne nouvelle » une fois embauché.
+- Notification (dans l'application + email) au candidat à chaque étape importante, y compris pour les candidats sans compte (par email) ; le recruteur reçoit un email pour chaque candidature « Sur SenTravail ».
 
 ## Fil d'actualité
 

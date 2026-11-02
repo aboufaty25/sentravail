@@ -96,6 +96,7 @@ router.get('/mes-candidatures', requireAuth, application.mine);
 router.get('/mes-offres/:slug/candidatures', ...recruiterOnly, application.forJob);
 router.get('/candidatures/:id', ...recruiterOnly, application.show);
 router.post('/candidatures/:id/statut', ...recruiterOnly, application.setStatus);
+router.post('/candidatures/:id/note', ...recruiterOnly, application.saveNote);
 
 // CV
 router.get('/cv', requireAuth, application.myCv);

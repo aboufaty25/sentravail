@@ -1,0 +1,30 @@
+<%# One application in the recruiter's ATS (board column or mobile list). %>
+<% const a = app; %>
+<article class="rounded-lg border border-gray-200 bg-white p-2.5 shadow-sm">
+  <div class="flex items-start gap-2.5">
+    <span class="hidden h-9 w-9 shrink-0 min-[1400px]:flex <%= locals.where === 'd' ? '' : '!flex' %> items-center justify-center rounded-full bg-gray-200 text-sm font-semibold text-gray-700"><%= (a.firstName[0] + a.lastName[0]).toUpperCase() %></span>
+    <div class="min-w-0 flex-1">
+      <a href="/candidatures/<%= a.id %>" class="block truncate font-semibold hover:underline"><%= a.firstName %> <%= a.lastName %></a>
+      <p class="truncate text-xs text-gray-500"><%= timeAgo(a.sentAt || a.createdAt) %><%= a.sentVia === 'platform' ? ' · via SenTravail' : '' %></p>
+    </div>
+    <% if (a.status === 'confirmed_sent') { %><span class="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-red-600" title="Nouvelle"></span><% } %>
+  </div>
+  <% if (a.status === 'interview' && a.interviewAt) { %>
+    <p class="mt-2 rounded-md bg-purple-50 px-2 py-1 text-xs text-purple-800"><%- icon('calendar', 'w-3.5 h-3.5 inline align-[-2px]') %> <%= formatDateTime(a.interviewAt) %></p>
+  <% } %>
+  <% if (a.recruiterNote) { %><p class="mt-2 line-clamp-2 text-xs italic text-gray-500">« <%= a.recruiterNote %> »</p><% } %>
+  <div class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5">
+    <a href="<%= cvLink(a) %>" class="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:underline"><%- icon('document', 'w-3.5 h-3.5') %> CV</a>
+    <% if (a.status !== 'opened_mail') { %>
+    <form method="post" action="/candidatures/<%= a.id %>/statut" class="ml-auto min-w-0 <%= locals.where === 'd' ? 'w-full' : '' %>" x-data>
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <input type="hidden" name="retour" value="<%= currentPath %>">
+      <label class="sr-only" for="stage-<%= a.id %>-<%= locals.where || 'l' %>">Étape de <%= a.firstName %> <%= a.lastName %></label>
+      <select id="stage-<%= a.id %>-<%= locals.where || 'l' %>" name="status" @change="$el.form.requestSubmit()" class="<%= locals.where === 'd' ? 'w-full' : '' %> rounded-md border border-gray-300 bg-white py-1 pl-2 pr-7 text-xs font-semibold text-gray-700">
+        <% if (a.status === 'confirmed_sent') { %><option selected disabled>Nouvelle</option><% } %>
+        <% STAGES.forEach(st => { %><option value="<%= st %>" <%= a.status === st ? 'selected' : '' %>><%= LABELS[st].recruiter %></option><% }) %>
+      </select>
+    </form>
+    <% } %>
+  </div>
+</article>

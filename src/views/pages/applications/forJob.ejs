@@ -1,35 +1,70 @@
-<% const total = Object.values(counts).reduce((a, b) => a + b, 0); %>
-<div class="space-y-2 sm:space-y-4">
-  <div class="card px-4 py-4">
-    <a href="/mes-offres" class="mb-2 inline-flex items-center gap-1 text-sm font-medium text-gray-500 hover:underline"><%- icon('arrowLeft', 'w-4 h-4') %> Mes offres</a>
+<%
+  // ATS columns: "À traiter" groups new and viewed applications.
+  const COLUMNS = [
+    { key: 'todo', label: 'À traiter', statuses: ['confirmed_sent', 'viewed'], tone: 'border-brand-500' },
+    { key: 'shortlisted', label: 'Présélection', statuses: ['shortlisted'], tone: 'border-green-500' },
+    { key: 'interview', label: 'Entretien', statuses: ['interview'], tone: 'border-purple-500' },
+    { key: 'offer', label: 'Proposition', statuses: ['offer'], tone: 'border-teal-500' },
+    { key: 'hired', label: 'Embauché(e)', statuses: ['hired'], tone: 'border-green-700' },
+    { key: 'rejected', label: 'Refusée', statuses: ['rejected'], tone: 'border-red-500' },
+  ];
+  const received = all.filter(a => a.status !== 'opened_mail');
+  const pending = all.filter(a => a.status === 'opened_mail');
+  const n = (st) => counts[st] || 0;
+%>
+<div class="space-y-2 sm:space-y-3">
+  <div class="card px-4 py-4 sm:rounded-lg">
+    <a href="/mes-offres" class="mb-2 inline-flex items-center gap-1 text-sm font-medium text-gray-500 hover:underline"><%- icon('arrowLeft', 'w-4 h-4') %> Tableau de recrutement</a>
     <h1 class="text-xl font-bold">Candidatures reçues</h1>
-    <p class="text-sm text-gray-600"><a href="<%= job.url %>" class="font-medium hover:underline"><%= job.title %></a> · <%= job.location %> · <%= job.contractType %></p>
-    <nav class="-mx-1 mt-3 flex gap-2 overflow-x-auto px-1 text-sm [scrollbar-width:none]" aria-label="Filtrer">
-      <a href="?" class="shrink-0 rounded-full px-3 py-1.5 font-semibold <%= !filter ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-700' %>">Toutes (<%= total %>)</a>
-      <% ['confirmed_sent', 'viewed', 'shortlisted', 'rejected', 'opened_mail'].forEach(st => { if (!counts[st]) return; %>
-        <a href="?statut=<%= st %>" class="shrink-0 rounded-full px-3 py-1.5 font-semibold <%= filter === st ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-700' %>"><%= LABELS[st].recruiter %> (<%= counts[st] %>)</a>
-      <% }) %>
-    </nav>
-  </div>
+    <p class="text-sm text-gray-600"><a href="<%= job.url %>" class="font-medium hover:underline"><%= job.title %></a> · <%= job.location %> · <%= job.contractType %>
+      <% if (job.applyMode !== 'platform') { %> · <span class="text-gray-500"><%= job.applyMode === 'link' ? 'candidature par lien externe' : 'candidature par email' %></span><% } %></p>
 
-  <% if (!applications.length) { %>
-    <section class="card px-4 py-10 text-center text-gray-500">Aucune candidature pour le moment. Partagez votre offre pour la faire connaître !</section>
-  <% } else { %>
-    <ul class="card divide-y divide-gray-100">
-      <% applications.forEach(a => { %>
-        <li class="flex items-center gap-3 px-4 py-3">
-          <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gray-200 font-semibold text-gray-700"><%= (a.firstName[0] + a.lastName[0]).toUpperCase() %></span>
-          <div class="min-w-0 flex-1">
-            <a href="/candidatures/<%= a.id %>" class="font-semibold hover:underline"><%= a.firstName %> <%= a.lastName %></a>
-            <p class="truncate text-sm text-gray-500"><%= a.email %> · <%= a.phone %></p>
-            <p class="text-xs text-gray-400"><%= timeAgo(a.createdAt) %></p>
-          </div>
-          <div class="flex flex-col items-end gap-1.5">
-            <%- include('../../partials/applicationStatus', { app: a }) %>
-            <a href="<%= cvLink(a) %>" class="text-sm font-semibold text-brand-600 hover:underline">CV</a>
-          </div>
+    <%# Pipeline summary %>
+    <ol class="mt-3 grid grid-cols-3 gap-1.5 text-center sm:grid-cols-6" aria-label="Étapes du recrutement">
+      <% COLUMNS.forEach(c => { const count = c.statuses.reduce((s, st) => s + n(st), 0); %>
+        <li class="rounded-lg border-t-4 <%= c.tone %> bg-gray-50 px-1 py-2">
+          <span class="block text-xl font-bold leading-none"><%= count %></span>
+          <span class="mt-1 block text-[11px] font-medium text-gray-600 sm:text-xs"><%= c.label %></span>
         </li>
       <% }) %>
-    </ul>
+    </ol>
+  </div>
+
+  <% if (!received.length) { %>
+    <section class="card px-4 py-10 text-center text-gray-500 sm:rounded-lg">
+      <span class="mx-auto block w-fit text-brand-600"><%- icon('inbox', 'w-10 h-10') %></span>
+      <p class="mt-2">Aucune candidature pour le moment. Partagez votre offre pour la faire connaître !</p>
+    </section>
+  <% } else { %>
+    <%# Mobile: filter chips + list %>
+    <div class="lg:hidden">
+      <nav class="-mx-0 flex gap-2 overflow-x-auto px-3 pb-1 text-sm [scrollbar-width:none]" aria-label="Filtrer par étape">
+        <a href="?" class="shrink-0 rounded-full px-3 py-1.5 font-semibold <%= !filter ? 'bg-brand-600 text-white' : 'bg-white text-gray-700 shadow-card' %>">Toutes (<%= received.length %>)</a>
+        <% ['confirmed_sent', 'viewed', 'shortlisted', 'interview', 'offer', 'hired', 'rejected'].forEach(st => { if (!n(st)) return; %>
+          <a href="?statut=<%= st %>" class="shrink-0 rounded-full px-3 py-1.5 font-semibold <%= filter === st ? 'bg-brand-600 text-white' : 'bg-white text-gray-700 shadow-card' %>"><%= LABELS[st].recruiter %> (<%= n(st) %>)</a>
+        <% }) %>
+      </nav>
+      <div class="mt-2 space-y-2 px-2">
+        <% applications.filter(a => a.status !== 'opened_mail' || filter === 'opened_mail').forEach(a => { %><%- include('../../partials/atsCard', { app: a, where: 'm' }) %><% }) %>
+      </div>
+    </div>
+
+    <%# Desktop: board %>
+    <div class="hidden gap-2 pb-2 lg:grid lg:grid-cols-6" aria-label="Tableau des candidatures">
+      <% COLUMNS.forEach(c => { const items = received.filter(a => c.statuses.includes(a.status)); %>
+        <section class="flex min-w-0 flex-col rounded-lg bg-gray-100 p-1.5" aria-labelledby="col-<%= c.key %>">
+          <h2 id="col-<%= c.key %>" class="mb-2 flex items-center justify-between border-t-4 <%= c.tone %> rounded-t px-1 pt-2 text-sm font-semibold"><%= c.label %> <span class="rounded-full bg-white px-2 text-xs text-gray-600"><%= items.length %></span></h2>
+          <div class="space-y-2">
+            <% items.forEach(a => { %><%- include('../../partials/atsCard', { app: a, where: 'd' }) %><% }) %>
+            <% if (!items.length) { %><p class="px-1 py-4 text-center text-xs text-gray-400">Aucune</p><% } %>
+          </div>
+        </section>
+      <% }) %>
+    </div>
+  <% } %>
+
+  <% if (pending.length) { %>
+    <p class="px-3 text-xs text-gray-500 sm:px-1"><%= pending.length %> candidat<%= pending.length > 1 ? 's ont' : ' a' %> commencé à postuler sans confirmer l'envoi de l'email.
+      <a href="?statut=opened_mail" class="font-semibold text-brand-600 hover:underline lg:hidden">Voir</a></p>
   <% } %>
 </div>

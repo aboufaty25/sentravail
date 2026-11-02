@@ -288,7 +288,7 @@ describe('Recruiter side', () => {
   test('owner sees received applications with counts; others cannot', async () => {
     const list = await rec.agent.get(`/mes-offres/${job.slug}/candidatures`);
     expect(list.status).toBe(200);
-    expect(list.text).toContain('review@example.com');
+    expect(list.text).toContain(`href="/candidatures/${appId}"`);
     expect((await other.agent.get(`/mes-offres/${job.slug}/candidatures`)).status).toBe(403);
     expect((await cand.agent.get(`/mes-offres/${job.slug}/candidatures`)).status).toBe(403);
     expect((await adm.agent.get(`/mes-offres/${job.slug}/candidatures`)).status).toBe(200);

@@ -23,6 +23,14 @@ const applicationSchema = z.object({
   saveToProfile: z.string().optional(),
 });
 
-const statusSchema = z.object({ status: z.enum(['viewed', 'shortlisted', 'rejected']) });
+const statusSchema = z.object({
+  status: z.enum(['viewed', 'shortlisted', 'interview', 'offer', 'hired', 'rejected']),
+  // Interview details (optional, only used with status=interview).
+  interviewAt: z.string().optional().default('').refine((v) => !v || /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(v), 'Date invalide.'),
+  interviewPlace: z.string().trim().max(200, '200 caractères maximum.').optional().default(''),
+  retour: z.string().optional(),
+});
 
-module.exports = { applicationSchema, statusSchema };
+const noteSchema = z.object({ note: z.string().trim().max(2000, 'Note trop longue (2000 caractères maximum).').optional().default('') });
+
+module.exports = { applicationSchema, statusSchema, noteSchema };

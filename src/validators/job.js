@@ -18,7 +18,7 @@ const jobSchema = z.object({
   salary: optional(80),
   // One description field: missions, profile and benefits together.
   description: text(30, 8000, 'Description'),
-  applyMode: z.enum(['email', 'link'], { message: 'Choisissez comment recevoir les candidatures.' }).catch('email'),
+  applyMode: z.enum(['platform', 'email', 'link'], { message: 'Choisissez comment recevoir les candidatures.' }).catch('email'),
   applyEmail: z.string().trim().toLowerCase().max(190).optional().default(''),
   applyUrl: z.string().trim().max(500).optional().default(''),
   deadline: z
@@ -34,7 +34,7 @@ const jobSchema = z.object({
   if (d.applyMode === 'email') {
     if (!d.applyEmail) ctx.addIssue({ code: 'custom', path: ['applyEmail'], message: "Indiquez l'adresse email qui recevra les candidatures." });
     else if (!z.email().safeParse(d.applyEmail).success) ctx.addIssue({ code: 'custom', path: ['applyEmail'], message: 'Adresse email de candidature invalide.' });
-  } else if (!/^https?:\/\/[^\s/$.?#][^\s]*\.[^\s]{2,}$/i.test(d.applyUrl)) {
+  } else if (d.applyMode === 'link' && !/^https?:\/\/[^\s/$.?#][^\s]*\.[^\s]{2,}$/i.test(d.applyUrl)) {
     ctx.addIssue({ code: 'custom', path: ['applyUrl'], message: 'Indiquez un lien valide, commençant par https://' });
   }
 });

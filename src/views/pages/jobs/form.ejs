@@ -59,9 +59,13 @@
     </div>
 
     <% const canLink = currentUser.isVerified || currentUser.role === 'admin'; %>
-    <fieldset x-data="{ mode: '<%= v.applyMode === 'link' ? 'link' : 'email' %>' }">
+    <fieldset x-data="{ mode: '<%= ['link', 'platform'].includes(v.applyMode) ? v.applyMode : 'email' %>' }">
       <legend class="label">Comment recevoir les candidatures ? *</legend>
-      <div class="grid gap-2 sm:grid-cols-2">
+      <div class="grid gap-2 sm:grid-cols-3">
+        <label class="flex cursor-pointer items-start gap-3 rounded-lg border p-3" :class="mode === 'platform' ? 'border-brand-600 bg-brand-50' : 'border-gray-200'">
+          <input type="radio" name="applyMode" value="platform" x-model="mode" class="mt-1 h-4 w-4">
+          <span><span class="font-semibold">Sur SenTravail</span><span class="block text-sm text-gray-500">Recevez et suivez les candidatures dans votre tableau de recrutement (présélection, entretien, embauche).</span></span>
+        </label>
         <label class="flex cursor-pointer items-start gap-3 rounded-lg border p-3" :class="mode === 'email' ? 'border-brand-600 bg-brand-50' : 'border-gray-200'">
           <input type="radio" name="applyMode" value="email" x-model="mode" class="mt-1 h-4 w-4">
           <span><span class="font-semibold">Par email</span><span class="block text-sm text-gray-500">Les candidats postulent sur SenTravail ; vous recevez leur message et leur CV par email.</span></span>

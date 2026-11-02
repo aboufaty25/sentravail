@@ -2,7 +2,9 @@ const fs = require('fs');
 const { hxTrigger } = require('../utils/hx');
 const { Op } = require('sequelize');
 const { Application, Post, Job, User } = require('../models');
-const { applicationSchema, statusSchema } = require('../validators/application');
+const { applicationSchema, statusSchema, noteSchema } = require('../validators/application');
+const { safeReturn } = require('../utils/returnTo');
+const { formatDateTime } = require('../utils/viewHelpers');
 const { fieldErrors } = require('../validators/auth');
 const cvStorage = require('../services/cvStorage');
 const applications = require('../services/applications');
@@ -83,9 +85,19 @@ async function apply(req, res) {
     message: d.message || null,
     status: 'opened_mail',
   };
+  // On-platform recruitment (ATS): the application is received right away, no email step.
+  if (job.applyMode === 'platform') Object.assign(fields, { status: 'confirmed_sent', sentVia: 'platform', sentAt: new Date(), stageAt: new Date() });
   const app = existing ? await existing.update(fields) : await Application.create(fields);
   rememberInSession(req, app);
 
+  if (job.applyMode === 'platform') {
+    await notifyRecruiter(app, { email: true });
+    return res.status(201).json({
+      id: app.id,
+      sent: true,
+      message: req.user ? 'Le recruteur la reçoit sur SenTravail. Suivez son avancement dans « Mes candidatures ».' : 'Le recruteur la reçoit sur SenTravail et vous répondra par email ou par téléphone.',
+    });
+  }
   return res.status(201).json({ id: app.id, mailto: applications.mailtoFor(app, job.applyEmail) });
 }
 
@@ -95,9 +107,16 @@ async function loadOwnApplication(req) {
   return app;
 }
 
-// In-app notification for the recruiter (the application itself already reached them by email).
-function notifyRecruiter(app) {
+// In-app notification for the recruiter (+ email for on-platform applications, which are not
+// otherwise emailed to them).
+function notifyRecruiter(app, { email = false } = {}) {
   return notifications.notify({
+    email: email ? () => ({
+      subject: `Nouvelle candidature : ${app.jobTitle}`,
+      title: 'Nouvelle candidature',
+      lines: [`${app.firstName} ${app.lastName} a postulé à votre offre « ${app.jobTitle} ».`, 'Consultez son CV et faites avancer sa candidature dans votre tableau de suivi.'],
+      cta: { label: 'Voir la candidature', url: `${env.APP_URL}/candidatures/${app.id}` },
+    }) : null,
     userId: app.recruiterId,
     actorId: app.candidateId,
     type: 'application',
@@ -142,7 +161,14 @@ async function mailto(req, res) {
 
 async function mine(req, res) {
   const list = await Application.findAll({ where: { candidateId: req.user.id }, order: [['createdAt', 'DESC']], limit: 200 });
-  res.render('pages/applications/mine', { title: 'Mes candidatures', noAds: true, applications: list, LABELS: Application.STATUS_LABELS });
+  const active = list.filter((a) => !['opened_mail', 'rejected', 'hired'].includes(a.status));
+  const summary = {
+    total: list.filter((a) => a.status !== 'opened_mail').length,
+    inProgress: active.length,
+    interviews: list.filter((a) => a.status === 'interview').length,
+    hired: list.filter((a) => a.status === 'hired').length,
+  };
+  res.render('pages/applications/mine', { title: 'Mes candidatures', noAds: true, applications: list, summary, LABELS: Application.STATUS_LABELS, PIPELINE: Application.PIPELINE });
 }
 
 // ---------- Recruiter side ----------
@@ -158,9 +184,15 @@ async function forJob(req, res) {
     limit: 500,
   });
   const counts = await Application.count({ where: { jobPostId: post.id }, group: ['status'] });
+  // Board shows every application; the mobile list is filtered by stage.
+  const all = status ? await Application.findAll({ where: { jobPostId: post.id }, order: [['createdAt', 'DESC']], limit: 500 }) : list;
   res.render('pages/applications/forJob', {
     title: `Candidatures — ${post.job.title}`,
     noAds: true,
+    wide: true,
+    all,
+    STAGES: Application.RECRUITER_STAGES,
+    PIPELINE: Application.PIPELINE,
     post,
     job: post.job,
     applications: list,
@@ -181,8 +213,24 @@ async function show(req, res) {
     noAds: true,
     app,
     LABELS: Application.STATUS_LABELS,
+    PIPELINE: Application.PIPELINE,
     cvPath: cvStorage.signedPath(app.cvKey, app.cvName, 1),
   });
+}
+
+// Private recruiter note on an application.
+async function saveNote(req, res) {
+  const app = await Application.findByPk(req.params.id);
+  if (!app) throw httpError(404, 'Candidature introuvable.');
+  if (!canManageApplication(req, app)) throw httpError(403, "Vous ne pouvez pas modifier cette candidature.");
+  const parsed = noteSchema.safeParse(req.body || {});
+  if (!parsed.success) {
+    req.flash('error', parsed.error.issues[0].message);
+    return res.redirect(`/candidatures/${app.id}`);
+  }
+  await app.update({ recruiterNote: parsed.data.note || null });
+  req.flash('success', 'Note enregistrée.');
+  return res.redirect(`/candidatures/${app.id}#notes`);
 }
 
 async function setStatus(req, res) {
@@ -191,15 +239,24 @@ async function setStatus(req, res) {
   if (!canManageApplication(req, app)) throw httpError(403, "Vous ne pouvez pas modifier cette candidature.");
   const parsed = statusSchema.safeParse(req.body || {});
   if (!parsed.success) throw httpError(422, 'Statut invalide.');
+  const d = parsed.data;
   const previous = app.status;
-  await app.update({ status: parsed.data.status });
-  if (previous !== app.status) await notifyCandidate(app);
+  const previousInterview = app.interviewAt && new Date(app.interviewAt).getTime();
+  const changes = { status: d.status };
+  if (d.status !== previous) changes.stageAt = new Date();
+  if (d.status === 'interview') {
+    if (d.interviewAt) changes.interviewAt = new Date(`${d.interviewAt.slice(0, 16)}:00Z`); // Dakar = UTC
+    if (d.interviewPlace || d.interviewAt) changes.interviewPlace = d.interviewPlace || null;
+  }
+  await app.update(changes);
+  const rescheduled = d.status === 'interview' && app.interviewAt && new Date(app.interviewAt).getTime() !== previousInterview;
+  if (previous !== app.status || rescheduled) await notifyCandidate(app);
   if (req.get('HX-Request')) {
     hxTrigger(res, { toast: { message: 'Statut mis à jour.' } });
     return res.render('partials/applicationStatus', { layout: false, app, LABELS: Application.STATUS_LABELS });
   }
-  req.flash('success', 'Statut mis à jour.');
-  return res.redirect(`/candidatures/${app.id}`);
+  req.flash('success', `Candidature déplacée : ${Application.STATUS_LABELS[app.status].recruiter}.`);
+  return res.redirect(safeReturn(d.retour) || `/candidatures/${app.id}`);
 }
 
 // ---------- CV download (signed link) ----------
@@ -250,26 +307,46 @@ async function countsByJob(postIds) {
     group: ['jobPostId'],
   });
   const fresh = await Application.count({ where: { jobPostId: { [Op.in]: postIds }, status: 'confirmed_sent' }, group: ['jobPostId'] });
+  const byStage = await Application.count({ where: { jobPostId: { [Op.in]: postIds }, status: { [Op.ne]: 'opened_mail' } }, group: ['jobPostId', 'status'] });
   const out = {};
-  for (const r of rows) out[r.jobPostId] = { total: Number(r.count), fresh: 0 };
-  for (const r of fresh) (out[r.jobPostId] ||= { total: 0, fresh: 0 }).fresh = Number(r.count);
+  for (const r of rows) out[r.jobPostId] = { total: Number(r.count), fresh: 0, stages: {} };
+  for (const r of fresh) (out[r.jobPostId] ||= { total: 0, fresh: 0, stages: {} }).fresh = Number(r.count);
+  for (const r of byStage) (out[r.jobPostId] ||= { total: 0, fresh: 0, stages: {} }).stages[r.status] = Number(r.count);
   return out;
 }
 
-// Candidate: in-app (members) + email for decisions (members and guests).
+// Candidate: in-app (members) + email at each important stage (members and guests).
+function candidateEmail(app) {
+  const hi = `Bonjour ${app.firstName},`;
+  const job = `« ${app.jobTitle} »`;
+  const myApps = { label: 'Voir mes candidatures', url: `${env.APP_URL}/mes-candidatures` };
+  switch (app.status) {
+    case 'shortlisted':
+      return { subject: `Bonne nouvelle pour votre candidature ${job}`, title: 'Vous êtes présélectionné(e) !', lines: [hi, `${app.companyName} a présélectionné votre candidature au poste ${job}. Le recruteur va vous contacter par email ou par téléphone.`], cta: myApps };
+    case 'interview':
+      return {
+        subject: `Entretien pour le poste ${job}`,
+        title: 'Vous êtes invité(e) à un entretien',
+        lines: [hi, `${app.companyName} vous invite à un entretien pour le poste ${job}.`,
+          ...(app.interviewAt ? [`Date : ${formatDateTime(app.interviewAt)}`] : []),
+          ...(app.interviewPlace ? [`Lieu : ${app.interviewPlace}`] : []),
+          ...(!app.interviewAt ? ['Le recruteur vous précisera la date et le lieu.'] : [])],
+        cta: myApps,
+      };
+    case 'offer':
+      return { subject: `Proposition d'embauche : ${app.jobTitle}`, title: "Vous avez reçu une proposition d'embauche !", lines: [hi, `${app.companyName} souhaite vous proposer le poste ${job}. Le recruteur va vous contacter pour les détails.`], cta: myApps };
+    case 'hired':
+      return { subject: `Félicitations : ${app.jobTitle}`, title: 'Félicitations, vous êtes embauché(e) !', lines: [hi, `${app.companyName} confirme votre recrutement au poste ${job}. Pensez à partager la bonne nouvelle avec « J'ai été recruté ! ».`], cta: myApps };
+    case 'rejected':
+      return { subject: `Votre candidature ${job}`, title: 'Réponse à votre candidature', lines: [hi, `${app.companyName} n'a pas retenu votre candidature au poste ${job}. Ne vous découragez pas : de nouvelles offres sont publiées chaque jour.`], cta: { label: 'Voir les offres', url: `${env.APP_URL}/offres` } };
+    default:
+      return null;
+  }
+}
+
 async function notifyCandidate(app) {
   const statusLabel = Application.STATUS_LABELS[app.status].candidate;
-  const decision = app.status === 'shortlisted' || app.status === 'rejected';
-  const email = decision
-    ? {
-        subject: app.status === 'shortlisted' ? `Bonne nouvelle pour votre candidature « ${app.jobTitle} »` : `Votre candidature « ${app.jobTitle} »`,
-        title: app.status === 'shortlisted' ? 'Vous êtes présélectionné(e) !' : 'Réponse à votre candidature',
-        lines: app.status === 'shortlisted'
-          ? [`Bonjour ${app.firstName},`, `${app.companyName} a présélectionné votre candidature au poste « ${app.jobTitle} ». Le recruteur va vous contacter par email ou par téléphone.`]
-          : [`Bonjour ${app.firstName},`, `${app.companyName} n'a pas retenu votre candidature au poste « ${app.jobTitle} ». Ne vous découragez pas : de nouvelles offres sont publiées chaque jour.`],
-        cta: app.status === 'shortlisted' ? { label: 'Voir mes candidatures', url: `${env.APP_URL}/mes-candidatures` } : { label: 'Voir les offres', url: `${env.APP_URL}/offres` },
-      }
-    : null;
+  const email = candidateEmail(app);
   if (app.candidateId) {
     await notifications.notify({ userId: app.candidateId, type: 'application_status', postId: app.jobPostId, applicationId: app.id, data: { jobTitle: app.jobTitle, statusLabel: statusLabel.replace(' 🎉', '') }, email: email ? () => email : null });
   } else if (email) {
@@ -277,4 +354,4 @@ async function notifyCandidate(app) {
   }
 }
 
-module.exports = { apply, confirm, sendViaServer, mailto, mine, forJob, show, setStatus, downloadCv, myCv, uploadMyCv, removeMyCv, countsByJob };
+module.exports = { apply, confirm, sendViaServer, mailto, mine, forJob, show, setStatus, saveNote, downloadCv, myCv, uploadMyCv, removeMyCv, countsByJob };

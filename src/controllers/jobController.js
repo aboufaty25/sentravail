@@ -38,7 +38,7 @@ const jobFields = (d) => ({
   requirements: null, // merged into the description (single field)
   benefits: null,
   applyMode: d.applyMode,
-  applyEmail: d.applyMode === 'email' ? d.applyEmail : null,
+  applyEmail: d.applyMode === 'email' ? d.applyEmail : null, // 'platform': managed in the ATS
   applyUrl: d.applyMode === 'link' ? d.applyUrl : null,
   deadline: d.deadline || null,
 });
@@ -54,7 +54,8 @@ function newForm(req, res) {
     errors: {},
     values: {
       companyName: u.companyName || '',
-      applyMode: 'email',
+      // Recruiters manage applications on SenTravail by default; admins publish for other companies.
+      applyMode: u.role === 'admin' ? 'email' : 'platform',
       // Admins publish for other companies: no default email, so it is never forgotten.
       applyEmail: u.role === 'admin' ? '' : u.email,
       location: u.city || '',

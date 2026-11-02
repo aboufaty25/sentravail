@@ -1,29 +1,58 @@
-<div class="card space-y-4 px-4 py-5 sm:px-6">
-  <a href="<%= app.jobSlug ? `/mes-offres/${app.jobSlug}/candidatures` : '/mes-offres' %>" class="inline-flex items-center gap-1 text-sm font-medium text-gray-500 hover:underline"><%- icon('arrowLeft', 'w-4 h-4') %> Candidatures</a>
-  <div class="flex items-start justify-between gap-3">
-    <div>
-      <h1 class="text-2xl font-bold"><%= app.firstName %> <%= app.lastName %></h1>
-      <p class="text-sm text-gray-600">Pour « <%= app.jobTitle %> » · le <%= formatDate(app.createdAt) %></p>
+<% const toLocalInput = (d) => d ? new Date(d).toISOString().slice(0, 16) : ''; %>
+<div class="space-y-2 sm:space-y-3">
+  <div class="card space-y-4 px-4 py-5 sm:rounded-lg sm:px-6">
+    <a href="<%= app.jobSlug ? `/mes-offres/${app.jobSlug}/candidatures` : '/mes-offres' %>" class="inline-flex items-center gap-1 text-sm font-medium text-gray-500 hover:underline"><%- icon('arrowLeft', 'w-4 h-4') %> Candidatures</a>
+    <div class="flex items-start justify-between gap-3">
+      <div>
+        <h1 class="text-2xl font-bold"><%= app.firstName %> <%= app.lastName %></h1>
+        <p class="text-sm text-gray-600">Pour « <%= app.jobTitle %> » · le <%= formatDate(app.sentAt || app.createdAt) %><%= app.sentVia === 'platform' ? ' · via SenTravail' : '' %></p>
+      </div>
+      <%- include('../../partials/applicationStatus', { app }) %>
     </div>
-    <%- include('../../partials/applicationStatus', { app }) %>
+    <%- include('../../partials/atsStepper', { app, audience: 'recruiter' }) %>
+    <dl class="grid gap-2 text-sm sm:grid-cols-2">
+      <div class="rounded-lg bg-gray-50 p-3"><dt class="text-xs text-gray-500">Email</dt><dd><a href="mailto:<%= app.email %>" class="font-semibold text-brand-600 hover:underline"><%= app.email %></a></dd></div>
+      <div class="rounded-lg bg-gray-50 p-3"><dt class="text-xs text-gray-500">Téléphone</dt><dd><a href="tel:<%= app.phone %>" class="font-semibold text-brand-600 hover:underline"><%= app.phone %></a></dd></div>
+    </dl>
+    <% if (app.message) { %>
+      <section><h2 class="mb-1 font-semibold">Message</h2><p class="whitespace-pre-line rounded-lg bg-gray-50 p-3 text-[15px]"><%= app.message %></p></section>
+    <% } %>
+    <a href="<%= cvPath %>" class="btn-primary w-full sm:w-auto"><%- icon('document', 'w-5 h-5') %> Télécharger le CV (<%= app.cvName || 'CV' %>)</a>
   </div>
-  <dl class="grid gap-2 text-sm sm:grid-cols-2">
-    <div class="rounded-lg bg-gray-50 p-3"><dt class="text-xs text-gray-500">Email</dt><dd><a href="mailto:<%= app.email %>" class="font-semibold text-brand-600 hover:underline"><%= app.email %></a></dd></div>
-    <div class="rounded-lg bg-gray-50 p-3"><dt class="text-xs text-gray-500">Téléphone</dt><dd><a href="tel:<%= app.phone %>" class="font-semibold text-brand-600 hover:underline"><%= app.phone %></a></dd></div>
-  </dl>
-  <% if (app.message) { %>
-    <section><h2 class="mb-1 font-semibold">Message</h2><p class="whitespace-pre-line rounded-lg bg-gray-50 p-3 text-[15px]"><%= app.message %></p></section>
-  <% } %>
-  <a href="<%= cvPath %>" class="btn-primary w-full sm:w-auto"><%- icon('document', 'w-5 h-5') %> Télécharger le CV (<%= app.cvName || 'CV' %>)</a>
-  <section>
-    <h2 class="mb-2 font-semibold">Décision</h2>
-    <div class="grid grid-cols-3 gap-2">
-      <% [['viewed', 'À étudier', 'btn-light'], ['shortlisted', 'Présélectionner', 'btn-success'], ['rejected', 'Refuser', 'btn bg-red-50 text-red-700 hover:bg-red-100']].forEach(([st, label, cls]) => { %>
+
+  <% if (app.status !== 'opened_mail') { %>
+  <section class="card px-4 py-4 sm:rounded-lg sm:px-6" aria-labelledby="stage-title">
+    <h2 id="stage-title" class="font-semibold">Faire avancer la candidature</h2>
+    <p class="text-sm text-gray-500">Le candidat est prévenu à chaque étape (notification et email).</p>
+    <div class="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+      <% [['viewed', 'À examiner', 'btn-light'], ['shortlisted', 'Présélectionner', 'btn-success'], ['offer', 'Faire une proposition', 'btn bg-teal-50 text-teal-800 hover:bg-teal-100'], ['hired', 'Embaucher', 'btn bg-green-700 text-white hover:bg-green-800'], ['rejected', 'Refuser', 'btn bg-red-50 text-red-700 hover:bg-red-100']].forEach(([st, label, cls]) => { %>
         <form method="post" action="/candidatures/<%= app.id %>/statut">
           <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="status" value="<%= st %>">
-          <button class="<%= cls %> w-full !px-2 text-sm <%= app.status === st ? 'ring-2 ring-offset-1 ring-brand-500' : '' %>"><%= label %></button>
+          <button class="<%= cls %> w-full !px-2 text-sm <%= app.status === st ? 'ring-2 ring-offset-1 ring-brand-500' : '' %>" <%= app.status === st ? 'aria-current=true' : '' %>><%= label %></button>
         </form>
       <% }) %>
     </div>
+
+    <form method="post" action="/candidatures/<%= app.id %>/statut" class="mt-4 rounded-lg border border-purple-200 bg-purple-50/50 p-3">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="status" value="interview">
+      <h3 class="flex items-center gap-1.5 font-semibold text-purple-900"><%- icon('calendar', 'w-4 h-4') %> <%= app.status === 'interview' ? "Entretien" : 'Planifier un entretien' %></h3>
+      <% if (app.status === 'interview' && app.interviewAt) { %><p class="text-sm text-purple-900">Prévu le <strong><%= formatDateTime(app.interviewAt) %></strong><%= app.interviewPlace ? ` · ${app.interviewPlace}` : '' %></p><% } %>
+      <div class="mt-2 grid gap-2 sm:grid-cols-2">
+        <div><label for="iv-at" class="label">Date et heure</label><input id="iv-at" type="datetime-local" name="interviewAt" value="<%= toLocalInput(app.interviewAt) %>" class="input !py-2"></div>
+        <div><label for="iv-place" class="label">Lieu ou lien</label><input id="iv-place" name="interviewPlace" maxlength="200" value="<%= app.interviewPlace || '' %>" placeholder="Adresse, téléphone ou lien visio" class="input !py-2"></div>
+      </div>
+      <button class="btn mt-2 w-full bg-purple-700 text-white hover:bg-purple-800 sm:w-auto"><%= app.status === 'interview' ? "Mettre à jour l'entretien" : "Inviter à l'entretien" %></button>
+    </form>
+  </section>
+  <% } %>
+
+  <section id="notes" class="card px-4 py-4 sm:rounded-lg sm:px-6" aria-labelledby="notes-title">
+    <h2 id="notes-title" class="font-semibold">Notes privées</h2>
+    <p class="text-sm text-gray-500">Visibles uniquement par vous, jamais par le candidat.</p>
+    <form method="post" action="/candidatures/<%= app.id %>/note" class="mt-2 space-y-2">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <textarea name="note" rows="4" maxlength="2000" class="input" placeholder="Points forts, disponibilité, prétentions salariales…"><%= app.recruiterNote || '' %></textarea>
+      <button class="btn-light">Enregistrer la note</button>
+    </form>
   </section>
 </div>

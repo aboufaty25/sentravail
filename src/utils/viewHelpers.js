@@ -110,6 +110,15 @@ function formatDate(value) {
   return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 }
 
+// "mar. 12 nov. 2026 à 10:30" (Dakar time = UTC).
+function formatDateTime(value) {
+  if (!value) return '';
+  const d = new Date(value);
+  const date = d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Africa/Dakar' });
+  const time = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Dakar' });
+  return `${date} à ${time}`;
+}
+
 // Days left before a DATEONLY deadline (negative when expired).
 function daysLeft(deadline) {
   if (!deadline) return null;
@@ -149,4 +158,4 @@ function loginAttr(user, message) {
   return user ? '' : `data-login="${escapeHtml(message)}"`;
 }
 
-module.exports = { guestAvatar, loginAttr, POST_TYPES, EVENT_KINDS, publishOptions, absoluteUrl, REPORT_REASONS, queryString, formatDate, daysLeft, icon, avatar, roleLabel, timeAgo, formatCount, escapeHtml, richText, imageUrl, reactionSummary, REACTIONS };
+module.exports = { formatDateTime, guestAvatar, loginAttr, POST_TYPES, EVENT_KINDS, publishOptions, absoluteUrl, REPORT_REASONS, queryString, formatDate, daysLeft, icon, avatar, roleLabel, timeAgo, formatCount, escapeHtml, richText, imageUrl, reactionSummary, REACTIONS };

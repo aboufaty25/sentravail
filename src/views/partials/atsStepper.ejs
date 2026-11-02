@@ -1,0 +1,20 @@
+<%# Progress through the recruitment stages. `app`, `audience` ('candidate' | 'recruiter'). %>
+<% const steps = [['confirmed_sent', 'Envoyée'], ['shortlisted', 'Présélection'], ['interview', 'Entretien'], ['offer', 'Proposition'], ['hired', 'Embauche']];
+   const order = { opened_mail: -1, confirmed_sent: 0, viewed: 0, shortlisted: 1, interview: 2, offer: 3, hired: 4 };
+   const rejected = app.status === 'rejected';
+   const at = rejected ? -1 : order[app.status]; %>
+<% if (rejected) { %>
+  <p class="flex items-center gap-2 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700"><%- icon('x', 'w-4 h-4') %> <%= locals.audience === 'candidate' ? "Candidature non retenue. D'autres offres vous attendent !" : 'Candidature refusée.' %></p>
+<% } else { %>
+  <ol class="flex items-start" aria-label="Avancement de la candidature">
+    <% steps.forEach(([key, label], i) => { const done = i <= at; const current = i === at; %>
+      <li class="relative flex flex-1 flex-col items-center text-center" <%= current ? 'aria-current=step' : '' %>>
+        <% if (i > 0) { %><span class="absolute right-1/2 top-3 -z-0 h-0.5 w-full <%= i <= at ? 'bg-green-600' : 'bg-gray-200' %>" aria-hidden="true"></span><% } %>
+        <span class="relative z-10 flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold <%= done ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-500' %> <%= current ? 'ring-4 ring-green-100' : '' %>">
+          <% if (done && !current) { %><%- icon('check', 'w-3.5 h-3.5') %><% } else { %><%= i + 1 %><% } %>
+        </span>
+        <span class="mt-1 text-[10px] leading-tight sm:text-xs <%= current ? 'font-semibold text-gray-900' : 'text-gray-500' %>"><%= label %></span>
+      </li>
+    <% }) %>
+  </ol>
+<% } %>
