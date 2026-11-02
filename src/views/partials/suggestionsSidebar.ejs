@@ -7,7 +7,8 @@
         <a href="/profil/<%= u.username %>" class="block truncate text-sm font-semibold hover:underline"><%= u.firstName %> <%= u.lastName %></a>
         <p class="truncate text-xs text-gray-500"><%= u.reason %></p>
       </div>
-      <%- include('followButton', { targetId: u.id, following: false, variant: 'link' }) %>
+      <% if (currentUser) { %><%- include('followButton', { targetId: u.id, following: false, variant: 'link' }) %>
+      <% } else { %><button type="button" class="text-[13px] font-semibold text-brand-600 hover:underline" data-login="Connectez-vous pour vous abonner et suivre ses publications.">· S'abonner</button><% } %>
     </li>
   <% }) %>
 </ul>

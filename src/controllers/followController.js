@@ -44,8 +44,7 @@ async function network(req, res) {
 }
 
 async function sidebarSuggestions(req, res) {
-  if (!req.user) return res.send('');
-  const list = await follows.suggestions(req.user, 4);
+  const list = req.user ? await follows.suggestions(req.user, 4) : await follows.popular(4);
   res.set('Cache-Control', 'private, max-age=60');
   return res.render('partials/suggestionsSidebar', { layout: false, suggestions: list });
 }

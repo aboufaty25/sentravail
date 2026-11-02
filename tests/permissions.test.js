@@ -44,7 +44,18 @@ describe('Route protection', () => {
     expect(home.text).toContain('data-login="Connectez-vous pour enregistrer');
     expect(home.text).toContain('data-login="Connectez-vous pour vous abonner');
     expect(home.text).toContain('Connectez-vous pour continuer');
-    expect(home.text).not.toContain('Quoi de neuf');
+    // Same interface as members: composer, tabs and menu, behind the login window.
+    expect(home.text).toContain('Quoi de neuf dans votre recherche d');
+    expect(home.text).toContain('data-login="Connectez-vous pour publier');
+    expect(home.text).toContain('href="/reseau" data-login=');
+    expect(home.text).toContain('href="/notifications" data-login=');
+    expect(home.text).not.toContain('action="/deconnexion"');
+    const menu = await request(app).get('/menu');
+    expect(menu.text).toContain('Mon CV');
+    expect(menu.text).toContain('data-login="Connectez-vous pour suivre vos candidatures."');
+    const suggestions = await request(app).get('/reseau/suggestions');
+    expect(suggestions.status).toBe(200);
+    expect(suggestions.text).toContain('data-login="Connectez-vous pour vous abonner');
   });
 
   test('logged-in user cannot see login/register pages', async () => {

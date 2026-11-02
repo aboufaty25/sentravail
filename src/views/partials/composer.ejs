@@ -1,13 +1,14 @@
 <%# "Quoi de neuf ?" opens the choice of publication type (no free-form posts). %>
+<% const PUBLISH_LOGIN = "Connectez-vous pour publier une offre, une recherche d'emploi ou un événement."; %>
 <section class="card px-3 py-3 sm:px-4" aria-label="Publier" x-data="{ open: false }" @keydown.escape.window="open = false">
   <div class="flex items-center gap-2">
-    <a href="/profil/<%= currentUser.username %>" class="shrink-0"><%- avatar(currentUser, 'w-10 h-10') %></a>
-    <button type="button" @click="open = true" class="flex-1 rounded-full border border-gray-300 px-4 py-2.5 text-left text-[15px] text-gray-500 hover:bg-gray-100">Quoi de neuf dans votre recherche d'emploi ?</button>
+    <% if (currentUser) { %><a href="/profil/<%= currentUser.username %>" class="shrink-0"><%- avatar(currentUser, 'w-10 h-10') %></a><% } else { %><%- guestAvatar('w-10 h-10') %><% } %>
+    <button type="button" <%- loginAttr(currentUser, PUBLISH_LOGIN) %> @click="open = true" class="flex-1 rounded-full border border-gray-300 px-4 py-2.5 text-left text-[15px] text-gray-500 hover:bg-gray-100">Quoi de neuf dans votre recherche d'emploi ?</button>
   </div>
   <div class="mt-3 grid grid-cols-3 border-t border-gray-200 pt-2 text-[13px] font-semibold text-gray-600">
-    <% const quick = currentUser.hasRole('recruiter', 'admin') ? [['/offres/nouvelle', 'briefcase', 'text-brand-600', 'Offre'], ['/publier/evenement', 'calendar', 'text-orange-600', 'Événement'], ['/publier/recrute', 'star', 'text-amber-600', 'Recruté !']] : [['/publier/recherche-emploi', 'search', 'text-emerald-600', 'Je cherche'], ['/publier/evenement', 'calendar', 'text-orange-600', 'Événement'], ['/publier/recrute', 'star', 'text-amber-600', 'Recruté !']]; %>
+    <% const quick = currentUser && currentUser.hasRole('recruiter', 'admin') ? [['/offres/nouvelle', 'briefcase', 'text-brand-600', 'Offre'], ['/publier/evenement', 'calendar', 'text-orange-600', 'Événement'], ['/publier/recrute', 'star', 'text-amber-600', 'Recruté !']] : [['/publier/recherche-emploi', 'search', 'text-emerald-600', 'Je cherche'], ['/publier/evenement', 'calendar', 'text-orange-600', 'Événement'], ['/publier/recrute', 'star', 'text-amber-600', 'Recruté !']]; %>
     <% quick.forEach(([href, ic, color, label]) => { %>
-      <a href="<%= href %>" class="flex items-center justify-center gap-1.5 rounded-md py-2 hover:bg-gray-100"><span class="<%= color %>"><%- icon(ic, 'w-5 h-5') %></span> <%= label %></a>
+      <a href="<%= href %>" <%- loginAttr(currentUser, PUBLISH_LOGIN) %> class="flex items-center justify-center gap-1.5 rounded-md py-2 hover:bg-gray-100"><span class="<%= color %>"><%- icon(ic, 'w-5 h-5') %></span> <%= label %></a>
     <% }) %>
   </div>
 
@@ -19,6 +20,6 @@
       <h2 id="publish-title" class="text-lg font-semibold">Que voulez-vous publier ?</h2>
       <button type="button" class="icon-btn" @click="open = false" aria-label="Fermer"><%- icon('x', 'w-5 h-5') %></button>
     </div>
-    <%- include('publishOptions', { options: publishOptions(currentUser) }) %>
+    <% if (currentUser) { %><%- include('publishOptions', { options: publishOptions(currentUser) }) %><% } %>
   </div>
 </section>

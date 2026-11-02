@@ -139,4 +139,14 @@ function publishOptions(user) {
 
 const { TYPES: POST_TYPES, EVENT_KINDS } = require('../config/postTypes');
 
-module.exports = { POST_TYPES, EVENT_KINDS, publishOptions, absoluteUrl, REPORT_REASONS, queryString, formatDate, daysLeft, icon, avatar, roleLabel, timeAgo, formatCount, escapeHtml, richText, imageUrl, reactionSummary, REACTIONS };
+// Generic avatar for visitors (same size and shape as a member avatar).
+function guestAvatar(size = 'w-10 h-10') {
+  return `<span class="${size} shrink-0 rounded-full bg-gray-200 text-gray-500 inline-flex items-center justify-center" aria-hidden="true">${icon('user', 'w-3/5 h-3/5')}</span>`;
+}
+
+// For visitors, members-only links open the login window instead (same markup otherwise).
+function loginAttr(user, message) {
+  return user ? '' : `data-login="${escapeHtml(message)}"`;
+}
+
+module.exports = { guestAvatar, loginAttr, POST_TYPES, EVENT_KINDS, publishOptions, absoluteUrl, REPORT_REASONS, queryString, formatDate, daysLeft, icon, avatar, roleLabel, timeAgo, formatCount, escapeHtml, richText, imageUrl, reactionSummary, REACTIONS };

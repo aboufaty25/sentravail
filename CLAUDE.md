@@ -82,6 +82,7 @@ Aucun réel, aucun upload vidéo : ni onglet, ni route, ni modèle, ni code fron
 ## Accès ouvert (important pour AdSense et le SEO)
 
 - **Consultable sans compte et indexable** : fil (accueil), offres, pages offre complètes, profils, événements, recherche, pages de publication.
+- **Même interface pour tous** : un visiteur voit exactement ce que voit un membre (onglets Réseau et Notifications, bouton +, « Quoi de neuf ? », menu, colonnes latérales, suggestions). Seuls les boutons réservés changent de comportement : ils ouvrent la fenêtre de connexion. Utiliser `loginAttr(currentUser, message)` et `guestAvatar()` (`src/utils/viewHelpers.js`) plutôt que des variantes « invité » de la page.
 - **Connexion obligatoire** pour : publier, commenter, aimer, partager dans son fil, s'abonner, enregistrer, signaler, créer un CV. Côté visiteur, ces boutons portent `data-login="message"` et ouvrent la fenêtre « Connectez-vous pour continuer » (Se connecter / Créer un compte) ; après connexion ou inscription, retour à la page d'origine via `?retour=` (chemins du site uniquement, `src/utils/returnTo.js`). Côté serveur, `requireAuth` répond 401 + `require-login` aux actions htmx et redirige les pages vers `/connexion?retour=…`.
 - Le partage externe (WhatsApp, Facebook, copier le lien) reste ouvert à tous.
 

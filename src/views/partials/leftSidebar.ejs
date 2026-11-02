@@ -1,3 +1,14 @@
+<% if (!currentUser) { %>
+<div class="card overflow-hidden">
+  <div class="h-16 bg-gradient-to-r from-brand-600 to-senegal-green"></div>
+  <div class="-mt-8 px-4 pb-4 text-center">
+    <span class="inline-block rounded-full ring-4 ring-white"><%- guestAvatar('w-16 h-16') %></span>
+    <p class="mt-2 font-semibold">Invité</p>
+    <p class="text-sm text-gray-500">Connectez-vous pour publier et suivre vos candidatures</p>
+    <div class="mt-3 grid grid-cols-2 gap-2"><a href="/connexion<%= currentPath !== '/' ? queryString({ retour: currentPath }) : '' %>" class="btn-light !px-2 !py-1.5 text-sm">Connexion</a><a href="/inscription" class="btn-success !px-2 !py-1.5 text-sm">S'inscrire</a></div>
+  </div>
+</div>
+<% } else { %>
 <div class="card overflow-hidden">
   <div class="h-16 bg-gradient-to-r from-brand-600 to-senegal-green"></div>
   <div class="-mt-8 px-4 pb-4 text-center">
@@ -12,11 +23,12 @@
     <span class="text-gray-500">Abonnements</span><span class="font-semibold text-brand-600"><%= formatCount(currentUser.followingCount) %></span>
   </div>
 </div>
+<% } %>
 <nav class="card mt-3 p-2" aria-label="Raccourcis">
-  <a href="/cv" class="menu-item"><span class="text-brand-600"><%- icon('document') %></span> Mon CV</a>
-  <a href="/mes-candidatures" class="menu-item"><span class="text-brand-600"><%- icon('inbox') %></span> Mes candidatures</a>
-  <a href="/enregistrements" class="menu-item"><span class="text-brand-600"><%- icon('bookmark') %></span> Enregistrements</a>
-  <% if (currentUser.hasRole('recruiter', 'admin')) { %>
+  <a href="/cv" <%- loginAttr(currentUser, 'Connectez-vous pour créer et gérer votre CV.') %> class="menu-item"><span class="text-brand-600"><%- icon('document') %></span> Mon CV</a>
+  <a href="/mes-candidatures" <%- loginAttr(currentUser, 'Connectez-vous pour suivre vos candidatures.') %> class="menu-item"><span class="text-brand-600"><%- icon('inbox') %></span> Mes candidatures</a>
+  <a href="/enregistrements" <%- loginAttr(currentUser, 'Connectez-vous pour retrouver les offres enregistrées.') %> class="menu-item"><span class="text-brand-600"><%- icon('bookmark') %></span> Enregistrements</a>
+  <% if (currentUser && currentUser.hasRole('recruiter', 'admin')) { %>
     <a href="/mes-offres" class="menu-item"><span class="text-brand-600"><%- icon('briefcase') %></span> Mes offres</a>
   <% } %>
 </nav>

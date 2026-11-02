@@ -86,6 +86,13 @@ async function suggestions(viewer, limit = 12) {
   return out;
 }
 
+// Most followed accounts (suggestions for visitors).
+async function popular(limit = 4) {
+  const list = await User.findAll({ where: { isBanned: false }, attributes: CARD_ATTRS, order: [['followersCount', 'DESC'], ['id', 'DESC']], limit });
+  for (const u of list) u.reason = u.followersCount ? `${u.followersCount} abonné${u.followersCount > 1 ? 's' : ''}` : u.role === 'recruiter' ? 'Recruteur sur SenTravail' : 'Sur SenTravail';
+  return list;
+}
+
 async function listFollowers(userId, viewer, limit = 100) {
   const rows = await Follow.findAll({
     where: { followingId: userId },
@@ -113,4 +120,4 @@ async function withFollowState(users, viewer) {
   return users;
 }
 
-module.exports = { CARD_ATTRS, followedIds, isFollowing, followingAmong, follow, unfollow, suggestions, listFollowers, listFollowing, withFollowState };
+module.exports = { popular, CARD_ATTRS, followedIds, isFollowing, followingAmong, follow, unfollow, suggestions, listFollowers, listFollowing, withFollowState };
