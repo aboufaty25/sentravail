@@ -39,8 +39,12 @@
       <% if (job.isExpired) { %>
         <span class="btn bg-gray-100 !py-2 text-gray-400" aria-disabled="true">Clôturée</span>
       <% } else { %>
+        <% if (job.applyMode === 'link') { %>
+        <a href="<%= job.applyUrl %>" target="_blank" rel="noopener nofollow ugc" class="btn-primary !py-2">Postuler <%- icon('link', 'w-4 h-4') %></a>
+        <% } else { %>
         <% const applyEvt = `$dispatch('open-apply', { slug: '${job.slug}', title: ${JSON.stringify(job.title)}, company: ${JSON.stringify(job.companyName)} })`; %>
         <a href="<%= job.url %>#postuler" class="btn-primary !py-2" @click.prevent="<%= applyEvt %>">Postuler</a>
+        <% } %>
       <% } %>
     </div>
   </div>

@@ -36,6 +36,7 @@ async function apply(req, res) {
   if (!post || !post.job || post.status !== 'published' || post.author.isBanned) throw httpError(404, "Cette offre n'existe plus.");
   const job = post.job;
   if (job.isExpired) throw httpError(410, 'Cette offre est clôturée.');
+  if (job.applyMode === 'link') throw httpError(400, 'Pour cette offre, la candidature se fait sur le site du recruteur.');
   if (req.user && req.user.id === post.authorId) throw httpError(403, 'Vous ne pouvez pas postuler à votre propre offre.');
 
   const parsed = applicationSchema.safeParse(req.body || {});

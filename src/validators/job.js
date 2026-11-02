@@ -16,10 +16,11 @@ const jobSchema = z.object({
   contractType: z.enum(CONTRACT_TYPES, { message: 'Choisissez un type de contrat.' }),
   sector: z.string().refine((v) => SECTORS.includes(v), 'Choisissez un secteur.'),
   salary: optional(80),
+  // One description field: missions, profile and benefits together.
   description: text(30, 8000, 'Description'),
-  requirements: optional(4000),
-  benefits: optional(3000),
-  applyEmail: z.string().trim().toLowerCase().email('Adresse email de candidature invalide.').max(190),
+  applyMode: z.enum(['email', 'link'], { message: 'Choisissez comment recevoir les candidatures.' }).catch('email'),
+  applyEmail: z.string().trim().toLowerCase().max(190).optional().default(''),
+  applyUrl: z.string().trim().max(500).optional().default(''),
   deadline: z
     .string()
     .optional()
@@ -29,6 +30,13 @@ const jobSchema = z.object({
   text: optional(2000), // optional intro shown above the job card in the feed
   requestFeatured: z.string().optional(),
   isOfficial: z.string().optional(),
+}).superRefine((d, ctx) => {
+  if (d.applyMode === 'email') {
+    if (!d.applyEmail) ctx.addIssue({ code: 'custom', path: ['applyEmail'], message: "Indiquez l'adresse email qui recevra les candidatures." });
+    else if (!z.email().safeParse(d.applyEmail).success) ctx.addIssue({ code: 'custom', path: ['applyEmail'], message: 'Adresse email de candidature invalide.' });
+  } else if (!/^https?:\/\/[^\s/$.?#][^\s]*\.[^\s]{2,}$/i.test(d.applyUrl)) {
+    ctx.addIssue({ code: 'custom', path: ['applyUrl'], message: 'Indiquez un lien valide, commençant par https://' });
+  }
 });
 
 const searchSchema = z.object({

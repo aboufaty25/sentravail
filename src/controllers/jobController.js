@@ -12,6 +12,7 @@ const { baseScore, refreshScore } = require('../services/feedRanking');
 const { adjustCounter } = require('../utils/counters');
 const { CITIES, SECTORS, CONTRACT_TYPES } = require('../config/constants');
 
+const APPLY_LINK_VERIFIED = 'Le lien externe de candidature est réservé aux comptes vérifiés. Choisissez « Par email » ou demandez le badge vérifié.';
 const formLocals = { CITIES, SECTORS, CONTRACT_TYPES, noAds: true };
 
 function notFound() {
@@ -34,9 +35,11 @@ const jobFields = (d) => ({
   sector: d.sector,
   salary: d.salary || null,
   description: d.description,
-  requirements: d.requirements || null,
-  benefits: d.benefits || null,
-  applyEmail: d.applyEmail,
+  requirements: null, // merged into the description (single field)
+  benefits: null,
+  applyMode: d.applyMode,
+  applyEmail: d.applyMode === 'email' ? d.applyEmail : null,
+  applyUrl: d.applyMode === 'link' ? d.applyUrl : null,
   deadline: d.deadline || null,
 });
 
@@ -51,7 +54,9 @@ function newForm(req, res) {
     errors: {},
     values: {
       companyName: u.companyName || '',
-      applyEmail: u.email,
+      applyMode: 'email',
+      // Admins publish for other companies: no default email, so it is never forgotten.
+      applyEmail: u.role === 'admin' ? '' : u.email,
       location: u.city || '',
       sector: u.sector || '',
       isOfficial: u.role === 'admin' ? 'on' : '',
@@ -67,11 +72,14 @@ async function create(req, res) {
   }
   const d = parsed.data;
   const isAdmin = req.user.role === 'admin';
-  const texts = [d.title, d.companyName, d.description, d.requirements, d.benefits, d.salary, d.text];
+  const texts = [d.title, d.companyName, d.description, d.salary, d.text];
   if (!moderation.canPostLinks(req.user) && moderation.hasExternalLink(texts)) {
     return res.status(422).render('pages/jobs/form', { ...formLocals, title: 'Publier une offre', mode: 'create', errors: { description: moderation.MESSAGES.link }, values: body });
   }
-  const decision = await moderation.decidePublication(req.user, texts);
+  if (d.applyMode === 'link' && !moderation.canPostLinks(req.user)) {
+    return res.status(422).render('pages/jobs/form', { ...formLocals, title: 'Publier une offre', mode: 'create', errors: { applyUrl: APPLY_LINK_VERIFIED }, values: body });
+  }
+  const decision = await moderation.decidePublication(req.user, [...texts, d.applyMode === 'link' ? d.applyUrl : '']);
 
   // Logo = the recruiter's company logo; the uploaded file is the offer's own image.
   const companyLogo = req.user.companyLogo || (req.user.role === 'recruiter' ? req.user.avatarUrl : null) || null;
@@ -161,15 +169,13 @@ function jobPostingJsonLd(post) {
     '@context': 'https://schema.org/',
     '@type': 'JobPosting',
     title: j.title,
-    description: [j.description, j.requirements && `Profil recherché :\n${j.requirements}`, j.benefits && `Avantages :\n${j.benefits}`]
-      .filter(Boolean)
-      .join('\n\n'),
+    description: mergedDescription(j),
     datePosted: new Date(post.createdAt).toISOString().slice(0, 10),
     employmentType: contractMap[j.contractType],
     hiringOrganization: { '@type': 'Organization', name: j.companyName, ...(j.companyLogo ? { logo: j.companyLogo.startsWith('http') ? j.companyLogo : `${env.APP_URL}${j.companyLogo}` } : {}) },
     jobLocation: { '@type': 'Place', address: { '@type': 'PostalAddress', addressLocality: j.location, addressCountry: 'SN' } },
     industry: j.sector,
-    directApply: true,
+    directApply: j.applyMode !== 'link',
     url: `${env.APP_URL}${j.url}`,
   };
   if (j.deadline) data.validThrough = `${j.deadline}T23:59:59Z`;
@@ -186,6 +192,11 @@ async function loadManaged(req) {
   return post;
 }
 
+// Older offers had separate "profile" and "benefits" fields: shown together in the single description.
+function mergedDescription(j) {
+  return [j.description, j.requirements && `Profil recherché :\n${j.requirements}`, j.benefits && `Avantages :\n${j.benefits}`].filter(Boolean).join('\n\n');
+}
+
 async function editForm(req, res) {
   const post = await loadManaged(req);
   res.render('pages/jobs/form', {
@@ -194,7 +205,7 @@ async function editForm(req, res) {
     mode: 'edit',
     job: post.job,
     errors: {},
-    values: { ...post.job.get({ plain: true }), text: post.text || '', isOfficial: post.job.isOfficial ? 'on' : '' },
+    values: { ...post.job.get({ plain: true }), description: mergedDescription(post.job), text: post.text || '', isOfficial: post.job.isOfficial ? 'on' : '' },
   });
 }
 
@@ -208,12 +219,15 @@ async function update(req, res) {
     });
   }
   const d = parsed.data;
-  const texts = [d.title, d.companyName, d.description, d.requirements, d.benefits, d.salary, d.text];
+  const texts = [d.title, d.companyName, d.description, d.salary, d.text];
   if (!moderation.canPostLinks(req.user) && moderation.hasExternalLink(texts)) {
     return res.status(422).render('pages/jobs/form', { ...formLocals, title: "Modifier l'offre", mode: 'edit', job: post.job, errors: { description: moderation.MESSAGES.link }, values: body });
   }
+  if (d.applyMode === 'link' && !moderation.canPostLinks(req.user)) {
+    return res.status(422).render('pages/jobs/form', { ...formLocals, title: "Modifier l'offre", mode: 'edit', job: post.job, errors: { applyUrl: APPLY_LINK_VERIFIED }, values: body });
+  }
   // An edit introducing banned terms sends the offer back to moderation.
-  const found = req.user.role === 'admin' ? [] : await moderation.findBannedTerms(texts);
+  const found = req.user.role === 'admin' ? [] : await moderation.findBannedTerms([...texts, d.applyMode === 'link' ? d.applyUrl : '']);
   if (found.length) await post.update({ status: 'pending_approval', moderationReason: 'filter', moderationNote: `Termes détectés : ${found.join(', ')}`.slice(0, 300) });
   const changes = jobFields(d);
   if (req.file) changes.image = await saveImage(req.file.buffer, 'jobs');

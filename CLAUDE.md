@@ -54,7 +54,7 @@ docs/DEPLOIEMENT.md
 
 | Type | Qui | Champs | Texte max |
 |---|---|---|---|
-| Offre d'emploi (`job`) | recruteurs, admin | poste, entreprise, ville, contrat, description, email de candidature, date limite | 8000 |
+| Offre d'emploi (`job`) | recruteurs, admin | poste, entreprise, ville, contrat, **une seule description** (missions, profil, avantages), mode de candidature, date limite | 8000 |
 | Je cherche un emploi (`job_search`) | candidats | métier, ville, années d'expérience, disponibilité, présentation | 600 |
 | Événement emploi (`event`) | tous | type (salon, concours, portes ouvertes, formation), titre, date, ville, lieu, description, affiche facultative | 1500 |
 | J'ai été recruté ! (`hired`) | tous | poste obtenu, entreprise facultative, message court | 300 |
@@ -64,6 +64,7 @@ docs/DEPLOIEMENT.md
 - Commentaires libres, **500 caractères max**, soumis au filtre de contenu.
 - **Au maximum une image** par publication (logo ou affiche), compressée dans le navigateur, **2 Mo max**.
 - **Image d'une offre** (`jobs.image`, distincte du logo `companyLogo`) : affichée en grand dans le fil comme une photo Facebook, avec le titre et un court extrait en dessous ; en haut de la page de l'offre ; et comme aperçu de partage (`og:image`, `summary_large_image`). Le partage externe d'une offre pointe toujours vers `/offres/:slug`.
+- **Candidature à une offre** (`jobs.applyMode`) : « Par email » (modal Postuler sur SenTravail, envoi à `applyEmail`) ou « Par lien externe » (`applyUrl`, réservé aux comptes vérifiés et à l'admin, vérifié côté serveur ; « Postuler » ouvre le lien, pas de candidature sur le site). Aucun email pré-rempli pour l'admin ; celui du compte pour un recruteur.
 - Les anciennes publications libres (`text`/`photo`) restent en base mais sont masquées.
 
 ## Garde-fous (`src/services/moderation.js`)

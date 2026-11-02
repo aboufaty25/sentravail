@@ -36,14 +36,36 @@
       <%- include('../../partials/field', { name: 'salary', label: 'Salaire (facultatif)', placeholder: 'Ex. 350 000 – 450 000 FCFA / mois' }) %>
       <%- include('../../partials/field', { name: 'deadline', type: 'date', label: 'Date limite de candidature' }) %>
     </div>
-    <% [['description', 'Description du poste *', 8, 'Missions, responsabilités, contexte…'], ['requirements', 'Profil recherché', 5, 'Diplômes, expérience, compétences…'], ['benefits', 'Avantages', 3, 'Transport, assurance, primes…']].forEach(([name, label, rows, ph]) => { %>
-      <div>
-        <label for="f-<%= name %>" class="label"><%= label %></label>
-        <textarea id="f-<%= name %>" name="<%= name %>" rows="<%= rows %>" class="input <%= err[name] ? 'input-error' : '' %>" placeholder="<%= ph %>"><%= v[name] || '' %></textarea>
-        <% if (err[name]) { %><p class="field-error"><%= err[name] %></p><% } %>
+    <div>
+      <label for="f-description" class="label">Description du poste *</label>
+      <textarea id="f-description" name="description" rows="12" maxlength="8000" class="input <%= err.description ? 'input-error' : '' %>" placeholder="Missions, profil recherché (diplômes, expérience, compétences), avantages, horaires…"><%= v.description || '' %></textarea>
+      <% if (err.description) { %><p class="field-error"><%= err.description %></p><% } %>
+    </div>
+
+    <% const canLink = currentUser.isVerified || currentUser.role === 'admin'; %>
+    <fieldset x-data="{ mode: '<%= v.applyMode === 'link' ? 'link' : 'email' %>' }">
+      <legend class="label">Comment recevoir les candidatures ? *</legend>
+      <div class="grid gap-2 sm:grid-cols-2">
+        <label class="flex cursor-pointer items-start gap-3 rounded-lg border p-3" :class="mode === 'email' ? 'border-brand-600 bg-brand-50' : 'border-gray-200'">
+          <input type="radio" name="applyMode" value="email" x-model="mode" class="mt-1 h-4 w-4">
+          <span><span class="font-semibold">Par email</span><span class="block text-sm text-gray-500">Les candidats postulent sur SenTravail ; vous recevez leur message et leur CV par email.</span></span>
+        </label>
+        <label class="flex items-start gap-3 rounded-lg border p-3 <%= canLink ? 'cursor-pointer' : 'opacity-60' %>" :class="mode === 'link' ? 'border-brand-600 bg-brand-50' : 'border-gray-200'">
+          <input type="radio" name="applyMode" value="link" x-model="mode" class="mt-1 h-4 w-4" <%= canLink ? '' : 'disabled' %>>
+          <span><span class="font-semibold">Par lien externe</span><span class="block text-sm text-gray-500"><%= canLink ? 'Le bouton « Postuler » ouvre votre site ou votre formulaire de candidature.' : 'Réservé aux comptes vérifiés (badge vérifié).' %></span></span>
+        </label>
       </div>
-    <% }) %>
-    <%- include('../../partials/field', { name: 'applyEmail', type: 'email', label: 'Email de réception des candidatures *', autocomplete: 'email', required: true }) %>
+      <div x-show="mode === 'email'" class="mt-3">
+        <label for="f-applyEmail" class="label">Email de réception des candidatures *</label>
+        <input id="f-applyEmail" name="applyEmail" type="email" autocomplete="off" value="<%= v.applyEmail || '' %>" placeholder="Ex. recrutement@entreprise.sn" class="input <%= err.applyEmail ? 'input-error' : '' %>">
+        <% if (err.applyEmail) { %><p class="field-error"><%= err.applyEmail %></p><% } %>
+      </div>
+      <div x-show="mode === 'link'" x-cloak class="mt-3">
+        <label for="f-applyUrl" class="label">Lien de candidature *</label>
+        <input id="f-applyUrl" name="applyUrl" type="url" inputmode="url" value="<%= v.applyUrl || '' %>" placeholder="https://www.entreprise.sn/carrieres/poste" class="input <%= err.applyUrl ? 'input-error' : '' %>">
+        <% if (err.applyUrl) { %><p class="field-error"><%= err.applyUrl %></p><% } %>
+      </div>
+    </fieldset>
     <div>
       <label for="f-text" class="label">Message d'accompagnement dans le fil (facultatif)</label>
       <textarea id="f-text" name="text" rows="2" maxlength="2000" class="input" placeholder="Ex. Nous recrutons ! Partagez autour de vous 🙏"><%= v.text || '' %></textarea>

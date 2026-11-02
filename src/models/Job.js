@@ -31,7 +31,10 @@ Job.init(
     description: { type: DataTypes.TEXT, allowNull: false },
     requirements: { type: DataTypes.TEXT },
     benefits: { type: DataTypes.TEXT },
-    applyEmail: { type: DataTypes.STRING(190), allowNull: false },
+    // How candidates apply: 'email' (modal on SenTravail, sent to applyEmail) or 'link' (external applyUrl).
+    applyMode: { type: DataTypes.ENUM('email', 'link'), allowNull: false, defaultValue: 'email' },
+    applyEmail: { type: DataTypes.STRING(190) },
+    applyUrl: { type: DataTypes.STRING(500) },
     deadline: { type: DataTypes.DATEONLY },
     isOfficial: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
   },

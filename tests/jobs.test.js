@@ -122,6 +122,65 @@ describe('Publishing jobs', () => {
   });
 });
 
+describe('Description and how to apply', () => {
+  test('single description field; old profile/benefits fields are merged when editing', async () => {
+    const form = await rec.agent.get('/offres/nouvelle');
+    expect(form.text).toContain('name="description"');
+    expect(form.text).not.toContain('name="requirements"');
+    expect(form.text).not.toContain('name="benefits"');
+    await createJob(rec, { ...validJob, requirements: 'ignoré', benefits: 'ignoré' });
+    const job = await lastJob();
+    expect(job.requirements).toBeNull();
+    expect(job.benefits).toBeNull();
+    await job.update({ requirements: 'BAC+3', benefits: 'Mutuelle' });
+    const edit = await rec.agent.get(`/offres/${job.slug}/modifier`);
+    expect(edit.text).toContain('Profil recherché :\nBAC+3');
+    expect(edit.text).toContain('Avantages :\nMutuelle');
+  });
+
+  test('admin form has no default application email; recruiter form has their own', async () => {
+    const adminForm = await adm.agent.get('/offres/nouvelle');
+    expect(adminForm.text).toMatch(/id="f-applyEmail" name="applyEmail" type="email" autocomplete="off" value=""/);
+    const recForm = await rec.agent.get('/offres/nouvelle');
+    expect(recForm.text).toContain('value="rec@ex.com"');
+  });
+
+  test('email mode requires a valid email', async () => {
+    const before = await Job.count();
+    const res = await createJob(adm, { ...validJob, applyMode: 'email', applyEmail: '' });
+    expect(res.status).toBe(422);
+    expect(res.text).toContain("Indiquez l&#39;adresse email qui recevra les candidatures.");
+    expect(await Job.count()).toBe(before);
+  });
+
+  test('external link: verified accounts and admin only; Postuler opens the link, no on-site application', async () => {
+    const link = { ...validJob, applyMode: 'link', applyEmail: '', applyUrl: 'https://www.ba-services.sn/carrieres/comptable' };
+    // Unverified recruiter: refused server-side.
+    const before = await Job.count();
+    const refused = await createJob(rec, link);
+    expect(refused.status).toBe(422);
+    expect(refused.text).toContain('réservé aux comptes vérifiés');
+    expect(await Job.count()).toBe(before);
+    // Invalid URL.
+    expect((await createJob(adm, { ...link, applyUrl: 'pas un lien' })).status).toBe(422);
+    // Admin: accepted.
+    expect((await createJob(adm, link)).status).toBe(302);
+    const job = await lastJob();
+    expect(job.applyMode).toBe('link');
+    expect(job.applyUrl).toBe(link.applyUrl);
+    expect(job.applyEmail).toBeNull();
+    const page = await request(app).get(`/offres/${job.slug}`);
+    expect(page.text).toContain(`href="${link.applyUrl}" target="_blank" rel="noopener nofollow ugc"`);
+    expect(page.text).toContain('Postuler sur le site du recruteur');
+    expect(page.text).toContain('"directApply":false');
+    const g = request.agent(app);
+    const csrf = (await g.get('/connexion')).text.match(/name="_csrf" value="([a-f0-9]+)"/)[1];
+    const apply = await g.post(`/offres/${job.slug}/postuler`).set('X-CSRF-Token', csrf).set('Accept', 'application/json')
+      .field('firstName', 'Awa').field('lastName', 'Ba').field('email', 'awa@example.com').field('phone', '770000000');
+    expect(apply.status).toBe(400);
+  });
+});
+
 describe('Job page', () => {
   let job;
   beforeAll(async () => {

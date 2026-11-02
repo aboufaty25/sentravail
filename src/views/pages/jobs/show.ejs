@@ -1,6 +1,8 @@
 <% const left = daysLeft(job.deadline);
+   const isLink = job.applyMode === 'link';
+   const applyHost = isLink ? (() => { try { return new URL(job.applyUrl).hostname.replace(/^www\./, ''); } catch { return 'lien externe'; } })() : '';
    const applyEvent = `$dispatch('open-apply', { slug: '${job.slug}', title: ${JSON.stringify(job.title)}, company: ${JSON.stringify(job.companyName)}${pendingApplicationId ? `, pendingId: ${pendingApplicationId}` : ''} })`; %>
-<div x-data <%- autoApply && !job.isExpired && !canManage ? `x-init="$nextTick(() => ${escapeHtml(applyEvent)})"` : '' %> class="space-y-2 pb-20 sm:space-y-4 lg:pb-0">
+<div x-data <%- autoApply && !isLink && !job.isExpired && !canManage ? `x-init="$nextTick(() => ${escapeHtml(applyEvent)})"` : '' %> class="space-y-2 pb-20 sm:space-y-4 lg:pb-0">
   <article class="card" aria-labelledby="job-title">
     <% if (job.image) { %>
       <img src="<%= imageUrl(job.image, 1200) %>" alt="<%= job.title %> — <%= job.companyName %>" decoding="async" class="block max-h-[520px] w-full bg-gray-100 object-cover sm:rounded-t-lg">
@@ -56,7 +58,14 @@
           <p class="mt-1 text-sm text-gray-600">Cette offre est clôturée depuis le <%= formatDate(job.deadline) %>.</p>
         <% } else { %>
           <% if (canManage) { %>
-            <p class="mt-1 text-sm text-gray-600">Les candidatures arrivent à <strong><%= job.applyEmail %></strong> et dans <a href="/mes-offres/<%= job.slug %>/candidatures" class="font-semibold text-brand-600 hover:underline">la liste des candidatures</a>.</p>
+            <% if (job.applyMode === 'link') { %>
+              <p class="mt-1 text-sm text-gray-600">Le bouton « Postuler » envoie les candidats vers <a href="<%= job.applyUrl %>" target="_blank" rel="noopener nofollow ugc" class="break-all font-semibold text-brand-600 hover:underline"><%= job.applyUrl %></a>.</p>
+            <% } else { %>
+              <p class="mt-1 text-sm text-gray-600">Les candidatures arrivent à <strong><%= job.applyEmail %></strong> et dans <a href="/mes-offres/<%= job.slug %>/candidatures" class="font-semibold text-brand-600 hover:underline">la liste des candidatures</a>.</p>
+            <% } %>
+          <% } else if (job.applyMode === 'link') { %>
+            <p class="mt-1 text-sm text-gray-600">La candidature se fait sur le site du recruteur (<%= applyHost %>).</p>
+            <a href="<%= job.applyUrl %>" target="_blank" rel="noopener nofollow ugc" class="btn-primary mt-3 hidden w-full lg:flex"><%- icon('link', 'w-4 h-4') %> Postuler sur le site du recruteur</a>
           <% } else { %>
             <p class="mt-1 text-sm text-gray-600">Envoyez votre CV et un message au recruteur en moins d'une minute.</p>
             <button type="button" class="btn-primary mt-3 hidden w-full lg:flex" @click="<%= applyEvent %>">Postuler</button>
@@ -71,8 +80,12 @@
   <%- include('../../partials/adSlot', { slot: 'job' }) %>
 
   <% if (!job.isExpired && !canManage) { %>
-    <div <%- pendingApplicationId ? `x-data x-init="$nextTick(() => ${escapeHtml(applyEvent)})"` : '' %> data-apply-bar class="fixed inset-x-0 bottom-0 z-30 border-t border-gray-200 bg-white px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] lg:hidden">
-      <button type="button" class="btn-primary w-full !py-3 text-base" @click="<%= applyEvent %>">Postuler</button>
+    <div <%- pendingApplicationId && !isLink ? `x-data x-init="$nextTick(() => ${escapeHtml(applyEvent)})"` : '' %> data-apply-bar class="fixed inset-x-0 bottom-0 z-30 border-t border-gray-200 bg-white px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] lg:hidden">
+      <% if (isLink) { %>
+        <a href="<%= job.applyUrl %>" target="_blank" rel="noopener nofollow ugc" class="btn-primary w-full !py-3 text-base"><%- icon('link', 'w-4 h-4') %> Postuler sur le site du recruteur</a>
+      <% } else { %>
+        <button type="button" class="btn-primary w-full !py-3 text-base" @click="<%= applyEvent %>">Postuler</button>
+      <% } %>
     </div>
   <% } %>
 </div>
