@@ -73,6 +73,7 @@ Ne définissez pas `PORT` : Hostinger le fournit. L'application refuse de démar
 2. Ouvrez `https://sentravail.com/sante` : la réponse doit être `{"status":"ok",…}`.
 3. Inscrivez-vous sur le site avec votre adresse.
 4. Nommez-vous **administrateur** :
+   - **le plus simple** (sans SSH) : dans hPanel → votre application Node.js → **Variables d'environnement**, ajoutez `ADMIN_EMAILS` = l'email avec lequel vous venez de vous inscrire, enregistrez puis **redémarrez** l'application. Déconnectez-vous et reconnectez-vous sur le site : l'entrée **Administration** apparaît dans le Menu (ou allez sur `/admin`). Plusieurs emails possibles, séparés par des virgules. Seuls des comptes déjà inscrits sont promus ;
    - par SSH : `cd` dans le dossier de l'application puis `npm run make-admin -- votre@email.com` ;
    - ou dans phpMyAdmin : `UPDATE users SET role = 'admin' WHERE email = 'votre@email.com';`
    - pour **changer le mot de passe** d'un compte (admin compris) : par SSH, `npm run set-password -- votre@email.com`, puis tapez le nouveau mot de passe (8 caractères minimum). Le compte est déconnecté de tous ses appareils.

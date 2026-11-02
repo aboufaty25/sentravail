@@ -114,6 +114,6 @@ Aucun réel, aucun upload vidéo : ni onglet, ni route, ni modèle, ni code fron
 - `npm run build` puis `npm start` : production
 - `npm test` : tests (base `DB_NAME_TEST`, vidée à chaque exécution)
 - `npm run seed` : données de démonstration (refuse de tourner en production)
-- `npm run make-admin -- email` : nommer un administrateur
+- `npm run make-admin -- email` : nommer un administrateur (ou variable `ADMIN_EMAILS`, appliquée au démarrage aux comptes existants)
 - `npm run set-password -- email` : changer le mot de passe d'un compte (saisi au clavier, déconnecte ses sessions)
 - `npm run scores` : recalcul des scores du fil

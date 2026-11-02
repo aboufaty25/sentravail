@@ -20,6 +20,7 @@ const schema = z.object({
   SMTP_PASSWORD: z.string().optional().default(''),
   MAIL_FROM: z.string().default('SenTravail <no-reply@sentravail.com>'),
   SEED_PASSWORD: z.string().default('Sentravail2026!'),
+  ADMIN_EMAILS: z.string().optional().default(''),
   CLOUDINARY_CLOUD_NAME: z.string().optional().default(''),
   CLOUDINARY_API_KEY: z.string().optional().default(''),
   CLOUDINARY_API_SECRET: z.string().optional().default(''),
