@@ -33,7 +33,7 @@ const schema = z.object({
   ADSENSE_SLOT_FEED: z.string().trim().optional().default(''),
   ADSENSE_SLOT_SIDEBAR: z.string().trim().optional().default(''),
   ADSENSE_SLOT_JOB: z.string().trim().optional().default(''),
-  REPORT_AUTOHIDE: z.coerce.number().int().min(1).max(100).default(5),
+  REPORT_AUTOHIDE: z.coerce.number().int().min(1).max(100).default(3),
 });
 
 const parsed = schema.safeParse(process.env);

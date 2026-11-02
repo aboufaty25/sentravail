@@ -6,6 +6,7 @@ const jobs = require('../services/jobs');
 const posts = require('../services/posts');
 const { saveImage } = require('../services/storage');
 const notifications = require('../services/notifications');
+const moderation = require('../services/moderation');
 const { absoluteUrl, imageUrl } = require('../utils/viewHelpers');
 const { baseScore, refreshScore } = require('../services/feedRanking');
 const { adjustCounter } = require('../utils/counters');
@@ -66,6 +67,11 @@ async function create(req, res) {
   }
   const d = parsed.data;
   const isAdmin = req.user.role === 'admin';
+  const texts = [d.title, d.companyName, d.description, d.requirements, d.benefits, d.salary, d.text];
+  if (!moderation.canPostLinks(req.user) && moderation.hasExternalLink(texts)) {
+    return res.status(422).render('pages/jobs/form', { ...formLocals, title: 'Publier une offre', mode: 'create', errors: { description: moderation.MESSAGES.link }, values: body });
+  }
+  const decision = await moderation.decidePublication(req.user, texts);
 
   let companyLogo = req.user.companyLogo || null;
   if (req.file) {
@@ -81,7 +87,7 @@ async function create(req, res) {
     type: 'job',
     text: d.text || null,
     visibility: 'public',
-    status: 'published',
+    ...decision,
     isFeatured: official,
     featuredUntil: official ? jobs.featuredUntilDate(now) : null,
     featureStatus: official ? 'approved' : d.requestFeatured === 'on' ? 'pending' : 'none',
@@ -95,6 +101,10 @@ async function create(req, res) {
     isOfficial: official,
   });
 
+  if (decision.status !== 'published') {
+    req.flash('info', decision.moderationReason === 'filter' ? moderation.MESSAGES.pendingFilter : moderation.MESSAGES.pendingNewAccount);
+    return res.redirect(job.url);
+  }
   await notifications.notifyFollowersOfJob(req.user, post, job);
   req.flash(
     'success',
@@ -192,6 +202,13 @@ async function update(req, res) {
     });
   }
   const d = parsed.data;
+  const texts = [d.title, d.companyName, d.description, d.requirements, d.benefits, d.salary, d.text];
+  if (!moderation.canPostLinks(req.user) && moderation.hasExternalLink(texts)) {
+    return res.status(422).render('pages/jobs/form', { ...formLocals, title: "Modifier l'offre", mode: 'edit', job: post.job, errors: { description: moderation.MESSAGES.link }, values: body });
+  }
+  // An edit introducing banned terms sends the offer back to moderation.
+  const found = req.user.role === 'admin' ? [] : await moderation.findBannedTerms(texts);
+  if (found.length) await post.update({ status: 'pending_approval', moderationReason: 'filter', moderationNote: `Termes détectés : ${found.join(', ')}`.slice(0, 300) });
   const changes = jobFields(d);
   if (req.file) changes.companyLogo = await saveImage(req.file.buffer, 'logos');
   await post.job.update(changes); // slug is kept so shared links keep working

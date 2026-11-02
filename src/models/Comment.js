@@ -11,6 +11,9 @@ Comment.init(
     parentCommentId: { type: DataTypes.INTEGER.UNSIGNED },
     text: { type: DataTypes.TEXT, allowNull: false },
     likesCount: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false, defaultValue: 0 },
+    status: { type: DataTypes.ENUM('published', 'pending_approval'), allowNull: false, defaultValue: 'published' },
+    moderationReason: { type: DataTypes.ENUM('filter', 'reports') },
+    moderationNote: { type: DataTypes.STRING(300) },
   },
   {
     sequelize,

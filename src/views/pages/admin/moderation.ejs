@@ -1,0 +1,38 @@
+<%- include('../../partials/adminNav') %>
+<p class="mb-3 px-1 text-sm text-gray-600">
+  <%= tab === 'filtre' ? 'Publications et commentaires bloqués par le filtre anti-arnaque. Vérifiez qu’il ne s’agit pas d’une demande d’argent avant d’approuver.' : `Premières publications des nouveaux comptes : un compte publie directement après 3 publications approuvées.` %>
+</p>
+<% if (!posts.length && !comments.length) { %>
+  <section class="card rounded-lg px-4 py-10 text-center text-gray-500">Rien à traiter. 🎉</section>
+<% } %>
+<ul class="space-y-3">
+  <% posts.forEach(post => { %>
+    <li class="space-y-2" x-data="{ reject: false }">
+      <% if (post.moderationNote && tab === 'filtre') { %><p class="rounded-md bg-red-50 px-3 py-2 text-sm font-semibold text-red-700"><%= post.moderationNote %></p><% } %>
+      <p class="px-1 text-xs text-gray-500">Auteur : <a href="/profil/<%= post.author.username %>" class="font-semibold hover:underline"><%= post.author.firstName %> <%= post.author.lastName %></a> · <%= roleLabel(post.author.role) %> · <%= post.author.isVerified ? 'vérifié' : 'non vérifié' %></p>
+      <%- include('../../partials/postCard', { post }) %>
+      <div class="flex flex-wrap gap-2">
+        <form method="post" action="/admin/moderation/publications/<%= post.id %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="action" value="approve">
+          <button class="btn-success !py-2"><%- icon('check', 'w-4 h-4') %> Approuver</button></form>
+        <button type="button" class="btn bg-red-50 !py-2 text-red-700 hover:bg-red-100" @click="reject = !reject">Refuser</button>
+      </div>
+      <form x-cloak x-show="reject" method="post" action="/admin/moderation/publications/<%= post.id %>" class="flex gap-2">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="action" value="reject">
+        <input name="reason" maxlength="300" class="input !py-2" placeholder="Motif (envoyé à l'auteur)">
+        <button class="btn bg-red-600 !py-2 text-white hover:bg-red-700">Confirmer</button>
+      </form>
+    </li>
+  <% }) %>
+  <% comments.forEach(c => { %>
+    <li class="card rounded-lg p-4">
+      <p class="text-xs font-semibold uppercase text-gray-500">Commentaire</p>
+      <% if (c.moderationNote) { %><p class="mt-1 text-sm font-semibold text-red-700"><%= c.moderationNote %></p><% } %>
+      <p class="mt-2 rounded-lg bg-gray-50 p-3 text-[15px]">« <%= c.text %> »</p>
+      <p class="mt-1 text-xs text-gray-500">Par <a href="/profil/<%= c.author.username %>" class="font-semibold hover:underline"><%= c.author.firstName %> <%= c.author.lastName %></a> · <a href="/publications/<%= c.postId %>" class="text-brand-600 hover:underline">voir la publication</a></p>
+      <div class="mt-2 flex gap-2">
+        <form method="post" action="/admin/moderation/commentaires/<%= c.id %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="action" value="approve"><button class="btn-success !py-1.5 text-sm">Publier</button></form>
+        <form method="post" action="/admin/moderation/commentaires/<%= c.id %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="action" value="reject"><button class="btn bg-red-600 !py-1.5 text-sm text-white hover:bg-red-700">Supprimer</button></form>
+      </div>
+    </li>
+  <% }) %>
+</ul>

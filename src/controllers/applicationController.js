@@ -1,4 +1,5 @@
 const fs = require('fs');
+const { hxTrigger } = require('../utils/hx');
 const { Op } = require('sequelize');
 const { Application, Post, Job, User } = require('../models');
 const { applicationSchema, statusSchema } = require('../validators/application');
@@ -188,7 +189,7 @@ async function setStatus(req, res) {
   await app.update({ status: parsed.data.status });
   if (previous !== app.status) await notifyCandidate(app);
   if (req.get('HX-Request')) {
-    res.set('HX-Trigger', JSON.stringify({ toast: { message: 'Statut mis à jour.' } }));
+    hxTrigger(res, { toast: { message: 'Statut mis à jour.' } });
     return res.render('partials/applicationStatus', { layout: false, app, LABELS: Application.STATUS_LABELS });
   }
   req.flash('success', 'Statut mis à jour.');

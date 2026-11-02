@@ -30,6 +30,14 @@
     </div>
   </header>
 
+  <% if (post.status === 'pending_approval') { %>
+    <p class="mx-3 mb-2 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800 sm:mx-4">
+      <%- icon('shield', 'w-4 h-4 inline align-[-3px]') %>
+      <%= post.moderationReason === 'filter' ? 'En attente de vérification : cette publication contient des termes souvent utilisés dans les arnaques.' : post.moderationReason === 'reports' ? 'Masquée suite à des signalements, en attente de décision.' : 'En attente de validation par notre équipe. Elle sera visible par tous une fois approuvée.' %>
+    </p>
+  <% } else if (post.status === 'rejected') { %>
+    <p class="mx-3 mb-2 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 sm:mx-4">Publication refusée par la modération<%= post.moderationNote ? ` : ${post.moderationNote}` : '' %>.</p>
+  <% } %>
   <% if (post.type === 'share') { %><%- include('postBody', { p: post }) %><% } else { %><%- include('postContent', { p: post }) %><% } %>
 
   <% if (post.sharedPostId) { %>

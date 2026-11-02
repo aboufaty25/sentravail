@@ -47,6 +47,10 @@ function describe(n) {
     case 'job_approved': return `Votre offre ${quote(d.jobTitle)} est à la une jusqu'au ${d.until}`;
     case 'job_rejected': return `Mise à la une refusée pour ${quote(d.jobTitle)}${d.reason ? ` : ${d.reason}` : ''}`;
     case 'new_job_from_followed': return `${who} a publié une offre : ${quote(d.jobTitle)}`;
+    case 'post_approved': return `Votre publication ${quote(d.snippet)} a été validée : elle est visible par tous.`;
+    case 'post_rejected': return `Votre publication ${quote(d.snippet)} a été refusée${d.reason ? ` : ${d.reason}` : '.'}`;
+    case 'verification_approved': return 'Votre compte est vérifié ✓ Le badge apparaît sur votre profil et vos publications.';
+    case 'verification_rejected': return `Votre demande de badge vérifié a été refusée${d.reason ? ` : ${d.reason}` : '.'}`;
     default: return 'Nouvelle notification';
   }
 }
@@ -60,11 +64,13 @@ function linkFor(n) {
     case 'job_approved':
     case 'job_rejected':
     case 'new_job_from_followed': return d.url || '/offres';
+    case 'verification_approved':
+    case 'verification_rejected': return '/parametres/verification';
     default: return n.postId ? `/publications/${n.postId}` : '/';
   }
 }
 
-const ICONS = { like: '👍', comment: '💬', reply: '💬', share: '↗️', follow: '👤', application: '📄', application_status: '📬', job_approved: '⭐', job_rejected: '⚠️', new_job_from_followed: '💼' };
+const ICONS = { post_approved: '✅', post_rejected: '⛔', verification_approved: '✔️', verification_rejected: '⚠️', like: '👍', comment: '💬', reply: '💬', share: '↗️', follow: '👤', application: '📄', application_status: '📬', job_approved: '⭐', job_rejected: '⚠️', new_job_from_followed: '💼' };
 
 // ---------- Email ----------
 function emailHtml(title, lines, cta) {

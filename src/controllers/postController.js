@@ -1,4 +1,5 @@
 const { UniqueConstraintError } = require('sequelize');
+const { hxTrigger } = require('../utils/hx');
 const { Post, Reaction, Save, User } = require('../models');
 const { shareSchema } = require('../validators/post');
 const { fieldErrors } = require('../validators/auth');
@@ -81,7 +82,7 @@ async function destroy(req, res, next) {
   // Images stored on our disk are removed too.
   await removeLocalMedia(post.mediaUrls || []);
   if (req.get('HX-Request')) {
-    res.set('HX-Trigger', JSON.stringify({ toast: { message: 'Publication supprimée.' } }));
+    hxTrigger(res, { toast: { message: 'Publication supprimée.' } });
     if (req.get('HX-Current-URL')?.includes(`/publications/${post.id}`)) res.set('HX-Redirect', '/');
     return res.send('');
   }
@@ -128,7 +129,7 @@ async function toggleSave(req, res) {
     message = 'Enregistré. Retrouvez-le dans « Enregistrements ».';
   }
   await refreshScore(post.id);
-  res.set('HX-Trigger', JSON.stringify({ toast: { message } }));
+  hxTrigger(res, { toast: { message } });
   return renderSocial(req, res, post.id);
 }
 
@@ -146,7 +147,12 @@ async function share(req, res) {
     throw err;
   }
   const parsed = shareSchema.safeParse(req.body || {});
-  if (!parsed.success) return res.status(422).json({ errors: fieldErrors(parsed.error) });
+  if (!parsed.success) return res.status(422).json({ errors: fieldErrors(parsed.error), error: parsed.error.issues[0].message });
+  const moderation = require('../services/moderation');
+  if (parsed.data.text && !moderation.canPostLinks(req.user) && moderation.hasExternalLink(parsed.data.text)) {
+    return res.status(422).json({ error: moderation.MESSAGES.link });
+  }
+  const decision = await moderation.decidePublication(req.user, [parsed.data.text]);
 
   const post = await Post.create({
     authorId: req.user.id,
@@ -154,8 +160,12 @@ async function share(req, res) {
     text: parsed.data.text || null,
     visibility: parsed.data.visibility,
     sharedPostId: original.id,
+    ...decision,
     score: baseScore({ createdAt: new Date() }),
   });
+  if (decision.status !== 'published') {
+    return res.status(201).json({ id: post.id, message: decision.moderationReason === 'filter' ? moderation.MESSAGES.pendingFilter : moderation.MESSAGES.pendingNewAccount });
+  }
   await adjustCounter(Post, original.id, 'sharesCount', 1);
   await refreshScore(original.id);
   await notify({ userId: original.authorId, actorId: req.user.id, type: 'share', postId: original.id, data: { snippet: require('../services/posts').snippet(original) } });

@@ -1,4 +1,5 @@
 const { User } = require('../models');
+const { hxTrigger } = require('../utils/hx');
 const follows = require('../services/follows');
 
 const VARIANTS = new Set(['button', 'link', 'card']);
@@ -13,7 +14,7 @@ async function renderButton(req, res, targetId, { changed = false } = {}) {
   if (changed) {
     const target = await User.findByPk(targetId, { attributes: ['followersCount'] });
     // Other buttons for the same account refresh themselves; counters update.
-    res.set('HX-Trigger', JSON.stringify({ [`follow-changed-${targetId}`]: { followersCount: target.followersCount } }));
+    hxTrigger(res, { [`follow-changed-${targetId}`]: { followersCount: target.followersCount } });
   }
   return res.render('partials/followButton', { layout: false, targetId, following, variant });
 }

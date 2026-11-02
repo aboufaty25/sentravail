@@ -6,6 +6,7 @@
       <a href="/profil/<%= ca.username %>" class="text-[13px] font-semibold hover:underline"><%= ca.firstName %> <%= ca.lastName %></a>
       <p class="whitespace-pre-line break-words text-[15px] leading-snug"><%- richText(comment.text) %></p>
     </div>
+    <% if (comment.status === 'pending_approval') { %><p class="px-2 text-xs font-semibold text-amber-700">En attente de vérification — visible par vous seul(e)</p><% } %>
     <div class="mt-0.5 flex items-center gap-3 px-2 text-xs text-gray-500">
       <span><%= timeAgo(comment.createdAt) %></span>
       <%- include('commentLike', { comment, liked: liked.has(comment.id) }) %>

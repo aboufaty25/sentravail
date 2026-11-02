@@ -5,6 +5,9 @@ const { sequelize, User } = require('../src/models');
 
 async function resetDb() {
   await sequelize.sync({ force: true });
+  const { BannedTerm } = require('../src/models');
+  await BannedTerm.bulkCreate(BannedTerm.DEFAULTS.map((term) => ({ term })));
+  require('../src/services/moderation').invalidateTerms();
 }
 
 async function closeDb() {
@@ -29,6 +32,7 @@ async function createUser(overrides = {}) {
     email: `user-${n}@example.com`,
     passwordHash: await bcrypt.hash(overrides.password || 'password123', 4),
     role: 'candidate',
+    approvedPostsCount: 3, // trusted by default; guardrail tests use 0
     ...overrides,
   });
 }

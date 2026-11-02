@@ -1,0 +1,39 @@
+<% const u = currentUser; const methods = { ninea: 'Numéro NINEA', rccm: 'Numéro RCCM', email: 'Email professionnel' }; %>
+<div class="card rounded-lg px-4 py-5 sm:px-6" x-data="{ method: '<%= values.method || 'ninea' %>' }">
+  <h1 class="flex items-center gap-2 text-xl font-semibold"><span class="text-brand-600"><%- icon('check', 'w-6 h-6') %></span> Badge vérifié</h1>
+  <p class="mt-1 text-sm text-gray-600">Le badge montre aux candidats que votre entreprise est réelle. Les comptes vérifiés publient directement, peuvent ajouter des liens et partager des conseils carrière.</p>
+
+  <% if (u.isVerified) { %>
+    <p class="mt-4 rounded-md bg-green-50 px-3 py-3 text-sm text-green-800">Votre compte est vérifié ✓</p>
+  <% } else if (u.role !== 'recruiter') { %>
+    <p class="mt-4 rounded-md bg-gray-50 px-3 py-3 text-sm text-gray-700">Le badge vérifié se demande depuis un compte recruteur. Les candidats peuvent être vérifiés par l'équipe SenTravail.</p>
+  <% } else { %>
+    <% if (u.verificationStatus === 'pending') { %>
+      <p class="mt-4 rounded-md bg-amber-50 px-3 py-3 text-sm text-amber-900">
+        Demande en cours (<%= methods[u.verificationMethod] %> : <strong><%= u.verificationValue %></strong>).
+        <%= u.verificationMethod === 'email' && !u.verificationEmailConfirmed ? 'Cliquez sur le lien reçu à cette adresse pour la confirmer.' : 'Notre équipe va la valider.' %>
+      </p>
+    <% } else if (u.verificationStatus === 'rejected') { %>
+      <p class="mt-4 rounded-md bg-red-50 px-3 py-3 text-sm text-red-700">Demande refusée<%= u.verificationNote ? ` : ${u.verificationNote}` : '' %>. Vous pouvez en faire une nouvelle.</p>
+    <% } %>
+    <form method="post" action="/parametres/verification" class="mt-4 space-y-3" novalidate>
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <fieldset class="grid gap-2 sm:grid-cols-3">
+        <legend class="label">Justificatif</legend>
+        <% Object.entries(methods).forEach(([k, l]) => { %>
+          <label class="flex cursor-pointer items-center gap-2 rounded-lg border-2 p-3 text-sm font-semibold" :class="method === '<%= k %>' ? 'border-brand-600 bg-brand-50' : 'border-gray-200'">
+            <input type="radio" name="method" value="<%= k %>" x-model="method" class="h-4 w-4"> <%= l %>
+          </label>
+        <% }) %>
+      </fieldset>
+      <div>
+        <label for="f-value" class="label" x-text="method === 'email' ? 'Votre email professionnel' : method === 'rccm' ? 'Numéro RCCM' : 'Numéro NINEA'"></label>
+        <input id="f-value" name="value" value="<%= values.value || '' %>" class="input <%= errors.value ? 'input-error' : '' %>" required
+          :placeholder="method === 'email' ? 'prenom.nom@votre-entreprise.sn' : method === 'rccm' ? 'SN-DKR-2020-B-12345' : '004562312 2V2'">
+        <% if (errors.value) { %><p class="field-error"><%= errors.value %></p><% } %>
+        <p class="mt-1 text-xs text-gray-500" x-show="method === 'email'">Pas de Gmail, Yahoo, Hotmail… Un lien de confirmation sera envoyé à cette adresse.</p>
+      </div>
+      <button class="btn-primary"><%= u.verificationStatus === 'pending' ? 'Remplacer ma demande' : 'Demander le badge' %></button>
+    </form>
+  <% } %>
+</div>

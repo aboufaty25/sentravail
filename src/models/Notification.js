@@ -5,6 +5,7 @@ const jsonColumn = require('../utils/jsonColumn');
 const TYPES = [
   'like', 'comment', 'reply', 'follow', 'share',
   'application', 'application_status', 'job_approved', 'job_rejected', 'new_job_from_followed',
+  'post_approved', 'post_rejected', 'verification_approved', 'verification_rejected',
 ];
 
 class Notification extends Model {}

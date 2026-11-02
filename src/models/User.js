@@ -61,6 +61,16 @@ User.init(
     resetTokenExpires: { type: DataTypes.DATE },
     lastLoginAt: { type: DataTypes.DATE },
     emailNotifications: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
+    // Trust level: publications go to moderation until 3 of them have been approved.
+    approvedPostsCount: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false, defaultValue: 0 },
+    // Recruiter verification request (NINEA, RCCM or professional email), validated by an admin.
+    verificationStatus: { type: DataTypes.ENUM('none', 'pending', 'approved', 'rejected'), allowNull: false, defaultValue: 'none' },
+    verificationMethod: { type: DataTypes.ENUM('ninea', 'rccm', 'email') },
+    verificationValue: { type: DataTypes.STRING(190) },
+    verificationEmailConfirmed: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+    verificationTokenHash: { type: DataTypes.STRING(64) },
+    verificationNote: { type: DataTypes.STRING(300) },
+    verificationRequestedAt: { type: DataTypes.DATE },
   },
   {
     sequelize,

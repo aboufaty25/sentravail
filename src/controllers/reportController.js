@@ -55,9 +55,16 @@ async function create(req, res) {
   }
 
   // Many reports: hide the post until an admin reviews it (protects users and AdSense).
-  if (d.targetType === 'post' && target.post.status === 'published') {
-    const open = await Report.count({ where: { targetType: 'post', targetId: d.targetId, status: 'open' } });
-    if (open >= env.REPORT_AUTOHIDE) await Post.update({ status: 'pending_approval' }, { where: { id: d.targetId } });
+  if (d.targetType === 'post' || d.targetType === 'comment') {
+    const open = await Report.count({ where: { targetType: d.targetType, targetId: d.targetId, status: 'open' } });
+    if (open >= env.REPORT_AUTOHIDE) {
+      const Model = d.targetType === 'post' ? Post : Comment;
+      const [hidden] = await Model.update({ status: 'pending_approval', moderationReason: 'reports' }, { where: { id: d.targetId, status: 'published' } });
+      if (hidden && d.targetType === 'comment') {
+        const c = await Comment.findByPk(d.targetId, { attributes: ['postId'] });
+        await require('../utils/counters').adjustCounter(Post, c.postId, 'commentsCount', -1);
+      }
+    }
   }
   return res.status(201).json({ message: 'Merci. Votre signalement a été envoyé à notre équipe de modération.' });
 }

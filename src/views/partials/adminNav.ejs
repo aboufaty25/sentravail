@@ -1,9 +1,17 @@
-<% const items = [['dashboard', '/admin', 'Tableau de bord'], ['features', '/admin/offres', 'Offres à la une'], ['reports', '/admin/signalements', 'Signalements'], ['users', '/admin/utilisateurs', 'Utilisateurs'], ['refs', '/admin/referentiels', 'Villes et secteurs']]; %>
+<% const c = locals.adminCounts || {}; const moderationCount = (c.pending || 0) + (c.filtered || 0) + (c.reported || 0);
+   const items = [['dashboard', '/admin', 'Tableau de bord', 0], ['moderation', '/admin/moderation', 'Modération', moderationCount], ['verifications', '/admin/verifications', 'Vérifications', c.verifications || 0], ['features', '/admin/offres', 'Offres à la une', 0], ['users', '/admin/utilisateurs', 'Utilisateurs', 0], ['filter', '/admin/filtre', 'Filtre anti-arnaque', 0], ['refs', '/admin/referentiels', 'Villes et secteurs', 0]]; %>
 <div class="card mb-3 px-3 py-3 sm:rounded-lg">
   <div class="flex items-center gap-2"><span class="text-brand-600"><%- icon('shield', 'w-6 h-6') %></span><h1 class="text-xl font-bold">Administration</h1></div>
   <nav class="-mx-1 mt-3 flex gap-2 overflow-x-auto px-1 text-sm font-semibold [scrollbar-width:none]" aria-label="Administration">
-    <% items.forEach(([key, href, label]) => { %>
-      <a href="<%= href %>" class="shrink-0 rounded-full px-3 py-1.5 <%= section === key ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' %>" <%= section === key ? 'aria-current=page' : '' %>><%= label %></a>
+    <% items.forEach(([key, href, label, n]) => { const on = section === key || (key === 'moderation' && section === 'reports'); %>
+      <a href="<%= href %>" class="inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 <%= on ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' %>" <%= on ? 'aria-current=page' : '' %>><%= label %><% if (n) { %><span class="rounded-full bg-red-600 px-1.5 text-[11px] text-white"><%= n %></span><% } %></a>
     <% }) %>
   </nav>
 </div>
+<% if (section === 'moderation' || section === 'reports') { const tabs = [['attente', '/admin/moderation', 'En attente', c.pending], ['signales', '/admin/signalements', 'Signalés', c.reported], ['filtre', '/admin/moderation/filtre', 'Bloqués par le filtre', c.filtered]]; const current = section === 'reports' ? 'signales' : locals.tab; %>
+  <nav class="mb-3 grid grid-cols-3 gap-1 rounded-lg bg-white p-1 text-center text-sm font-semibold shadow-card" aria-label="File de modération">
+    <% tabs.forEach(([key, href, label, n]) => { %>
+      <a href="<%= href %>" class="rounded-md px-2 py-2 <%= current === key ? 'bg-gray-900 text-white' : 'text-gray-700 hover:bg-gray-100' %>"><%= label %> <span class="<%= current === key ? 'text-white/80' : 'text-gray-400' %>">(<%= n || 0 %>)</span></a>
+    <% }) %>
+  </nav>
+<% } %>

@@ -1,0 +1,21 @@
+<%- include('../../partials/adminNav') %>
+<section class="card rounded-lg p-4">
+  <h2 class="text-lg font-semibold">Filtre anti-arnaque</h2>
+  <p class="mt-1 text-sm text-gray-600">Toute publication ou commentaire contenant l'un de ces mots (sans tenir compte des accents ni des majuscules) est bloqué et envoyé dans « Bloqués par le filtre ».</p>
+  <form method="post" action="/admin/filtre" class="mt-3 flex gap-2">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="action" value="add">
+    <input name="term" required maxlength="80" class="input !py-2" placeholder="Nouveau mot ou expression" aria-label="Nouveau mot ou expression">
+    <button class="btn-primary !py-2">Ajouter</button>
+  </form>
+  <ul class="mt-3 divide-y divide-gray-100">
+    <% terms.forEach(t => { %>
+      <li class="flex items-center gap-2 py-2">
+        <span class="flex-1 <%= t.active ? 'font-medium' : 'text-gray-400 line-through' %>"><%= t.term %></span>
+        <form method="post" action="/admin/filtre"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="action" value="toggle"><input type="hidden" name="id" value="<%= t.id %>">
+          <button class="text-sm font-semibold <%= t.active ? 'text-gray-600' : 'text-green-700' %> hover:underline"><%= t.active ? 'Désactiver' : 'Réactiver' %></button></form>
+        <form method="post" action="/admin/filtre" x-data @submit="confirm('Supprimer ce terme du filtre ?') || $event.preventDefault()"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="<%= t.id %>">
+          <button class="text-sm font-semibold text-red-600 hover:underline">Supprimer</button></form>
+      </li>
+    <% }) %>
+  </ul>
+</section>

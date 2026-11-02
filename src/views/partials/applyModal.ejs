@@ -70,6 +70,7 @@
         <textarea id="ap-message" name="message" x-model="f.message" rows="4" maxlength="1000" class="input resize-none" placeholder="Présentez-vous en quelques lignes et dites pourquoi ce poste vous intéresse."></textarea>
         <p class="mt-1 text-right text-xs text-gray-400"><span x-text="(f.message || '').length"></span>/1000</p></div>
 
+      <%- include('scamWarning') %>
       <p x-show="error" x-text="error" class="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700" role="alert"></p>
       <button type="submit" class="btn-primary w-full !py-3 text-base" :disabled="sending">
         <span x-show="!sending">Envoyer ma candidature</span><span x-show="sending">Préparation…</span>

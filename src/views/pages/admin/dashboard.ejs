@@ -5,7 +5,9 @@
   <%- tile('Offres actives', formatCount(stats.jobsActive), `${stats.featuredNow} à la une`, '/offres') %>
   <%- tile('Candidatures envoyées', formatCount(stats.applications), `+${stats.applications7} cette semaine`, '/admin') %>
   <%- tile('Publications', formatCount(stats.postsCount), 'hors offres', '/') %>
+  <%- tile('À modérer', (adminCounts.pending || 0) + (adminCounts.filtered || 0), `${adminCounts.pending || 0} nouveaux comptes · ${adminCounts.filtered || 0} bloqués par le filtre`, '/admin/moderation', (adminCounts.pending || 0) + (adminCounts.filtered || 0) > 0) %>
   <%- tile('Signalements à traiter', stats.openReports, 'contenus signalés', '/admin/signalements', stats.openReports > 0) %>
+  <%- tile('Badges à vérifier', adminCounts.verifications || 0, 'demandes de recruteurs', '/admin/verifications', (adminCounts.verifications || 0) > 0) %>
   <%- tile('Demandes de mise à la une', stats.pendingFeature, 'en attente de décision', '/admin/offres', stats.pendingFeature > 0) %>
   <%- tile('Candidats', formatCount(stats.roles.candidate || 0), '', '/admin/utilisateurs?role=candidate') %>
   <%- tile('Recruteurs', formatCount(stats.roles.recruiter || 0), '', '/admin/utilisateurs?role=recruiter') %>

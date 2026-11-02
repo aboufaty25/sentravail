@@ -190,7 +190,14 @@ async function reportAction(req, res) {
 
   if (action === 'dismiss') {
     // False alarm: close the reports and put a held post back online.
-    if (type === 'post') await Post.update({ status: 'published' }, { where: { id: targetId, status: 'pending_approval' } });
+    if (type === 'post') await Post.update({ status: 'published', moderationReason: null }, { where: { id: targetId, status: 'pending_approval' } });
+    if (type === 'comment') {
+      const [restored] = await Comment.update({ status: 'published', moderationReason: null }, { where: { id: targetId, status: 'pending_approval' } });
+      if (restored) {
+        const c = await Comment.findByPk(targetId, { attributes: ['postId'] });
+        await adjustCounter(Post, c.postId, 'commentsCount', 1);
+      }
+    }
     await closeReports(type, targetId, req.user, 'dismissed', 'dismissed');
     req.flash('success', 'Signalement classé sans suite.');
   } else if (action === 'remove') {
@@ -269,7 +276,7 @@ async function userAction(req, res) {
     await user.update({ isBanned: false });
     req.flash('success', `${user.firstName} ${user.lastName} est réactivé(e).`);
   } else if (action === 'verify' || action === 'unverify') {
-    await user.update({ isVerified: action === 'verify' });
+    await user.update({ isVerified: action === 'verify', verificationStatus: action === 'verify' ? 'approved' : 'none' });
     req.flash('success', action === 'verify' ? 'Badge « vérifié » ajouté.' : 'Badge « vérifié » retiré.');
   } else if (action === 'role') {
     const role = z.enum(['candidate', 'recruiter', 'admin']).safeParse(req.body.role);
@@ -343,3 +350,135 @@ async function refsUpdate(req, res) {
 }
 
 module.exports = { dashboard, featureQueue, approveFeature, rejectFeature, unfeature, reportsIndex, reportAction, usersIndex, userAction, refsIndex, refsAdd, refsUpdate };
+
+// ======================= Phase "garde-fous" =======================
+const { BannedTerm } = require('../models');
+const moderationActions = require('../services/moderationActions');
+const moderation = require('../services/moderation');
+
+// Counters shown in the admin navigation (every admin page).
+async function adminCounts(req, res, next) {
+  const [pending, filteredPosts, filteredComments, reported, verifications] = await Promise.all([
+    Post.count({ where: { status: 'pending_approval', moderationReason: 'new_account' } }),
+    Post.count({ where: { status: 'pending_approval', moderationReason: 'filter' } }),
+    Comment.count({ where: { status: 'pending_approval', moderationReason: 'filter' } }),
+    Report.count({ where: { status: 'open' }, distinct: true, col: 'targetId' }),
+    User.count({ where: { verificationStatus: 'pending' } }),
+  ]);
+  res.locals.adminCounts = { pending, filtered: filteredPosts + filteredComments, reported, verifications };
+  next();
+}
+
+// Moderation queue: "En attente" (new accounts) and "Bloqués par le filtre".
+async function moderationQueue(req, res) {
+  const tab = req.params.tab === 'filtre' ? 'filtre' : 'attente';
+  const reason = tab === 'filtre' ? 'filter' : 'new_account';
+  const [postRows, commentRows] = await Promise.all([
+    Post.findAll({ where: { status: 'pending_approval', moderationReason: reason }, include: posts.postInclude(), order: [['createdAt', 'ASC']], limit: 100 }),
+    tab === 'filtre'
+      ? Comment.findAll({ where: { status: 'pending_approval', moderationReason: 'filter' }, include: [{ model: User, as: 'author', attributes: posts.AUTHOR_ATTRS }], order: [['createdAt', 'ASC']], limit: 100 })
+      : [],
+  ]);
+  await posts.hydrate(postRows, req.user);
+  view(res, 'moderation', { title: 'Modération', section: 'moderation', tab, posts: postRows, comments: commentRows });
+}
+
+async function moderatePost(req, res) {
+  const post = await Post.findByPk(req.params.id);
+  if (!post || post.status !== 'pending_approval') throw fail(404, 'Publication introuvable ou déjà traitée.');
+  const back = post.moderationReason === 'filter' ? '/admin/moderation/filtre' : post.moderationReason === 'reports' ? '/admin/signalements' : '/admin/moderation';
+  if (req.body?.action === 'approve') {
+    await moderationActions.approvePost(post, req.user);
+    if (post.moderationReason === 'reports') await closeReports('post', post.id, req.user, 'dismissed', 'dismissed');
+    req.flash('success', 'Publication approuvée et visible par tous.');
+  } else if (req.body?.action === 'reject') {
+    await moderationActions.rejectPost(post, req.user, String(req.body.reason || '').trim());
+    if (post.moderationReason === 'reports') await closeReports('post', post.id, req.user, 'resolved', 'removed');
+    req.flash('success', 'Publication refusée.');
+  } else {
+    throw fail(422, 'Action inconnue.');
+  }
+  return res.redirect(back);
+}
+
+async function moderateComment(req, res) {
+  const comment = await Comment.findByPk(req.params.id);
+  if (!comment || comment.status !== 'pending_approval') throw fail(404, 'Commentaire introuvable ou déjà traité.');
+  if (req.body?.action === 'approve') {
+    await moderationActions.approveComment(comment);
+    req.flash('success', 'Commentaire publié.');
+  } else if (req.body?.action === 'reject') {
+    await moderationActions.rejectComment(comment);
+    req.flash('success', 'Commentaire supprimé.');
+  } else {
+    throw fail(422, 'Action inconnue.');
+  }
+  return res.redirect('/admin/moderation/filtre');
+}
+
+// Recruiter verification requests.
+async function verificationsIndex(req, res) {
+  const requests = await User.findAll({ where: { verificationStatus: 'pending' }, order: [['verificationRequestedAt', 'ASC']] });
+  view(res, 'verifications', { title: 'Vérifications', section: 'verifications', requests });
+}
+
+async function verificationDecision(req, res) {
+  const user = await User.findByPk(req.params.id);
+  if (!user || user.verificationStatus !== 'pending') throw fail(404, 'Demande introuvable ou déjà traitée.');
+  if (req.body?.action === 'approve') {
+    if (user.verificationMethod === 'email' && !user.verificationEmailConfirmed) {
+      req.flash('error', "L'adresse professionnelle n'a pas encore été confirmée par le recruteur.");
+      return res.redirect('/admin/verifications');
+    }
+    await user.update({ isVerified: true, verificationStatus: 'approved', verificationNote: null });
+    await notifications.notify({
+      userId: user.id, actorId: req.user.id, type: 'verification_approved',
+      email: (r) => ({ subject: 'Votre compte SenTravail est vérifié', title: 'Badge vérifié accordé ✓', lines: [`Bonjour ${r.firstName},`, 'Votre compte est désormais vérifié : le badge apparaît sur votre profil et vos offres, et vos publications sont visibles immédiatement.'], cta: { label: 'Voir mon profil', url: `${env.APP_URL}/profil/${user.username}` } }),
+    });
+    req.flash('success', `${user.companyName || user.firstName} est vérifié(e).`);
+  } else if (req.body?.action === 'reject') {
+    const reason = String(req.body.reason || '').trim().slice(0, 300) || 'Justificatif non valide';
+    await user.update({ verificationStatus: 'rejected', verificationNote: reason });
+    await notifications.notify({
+      userId: user.id, actorId: req.user.id, type: 'verification_rejected', data: { reason },
+      email: (r) => ({ subject: 'Votre demande de badge vérifié', title: 'Demande de badge non acceptée', lines: [`Bonjour ${r.firstName},`, `Motif : ${reason}`, 'Vous pouvez faire une nouvelle demande avec un autre justificatif.'], cta: { label: 'Nouvelle demande', url: `${env.APP_URL}/parametres/verification` } }),
+    });
+    req.flash('success', 'Demande refusée.');
+  } else {
+    throw fail(422, 'Action inconnue.');
+  }
+  return res.redirect('/admin/verifications');
+}
+
+// Anti-scam filter terms.
+async function filterIndex(req, res) {
+  const terms = await BannedTerm.findAll({ order: [['active', 'DESC'], ['term', 'ASC']] });
+  view(res, 'filter', { title: 'Filtre anti-arnaque', section: 'filter', terms });
+}
+
+async function filterUpdate(req, res) {
+  const action = req.body?.action;
+  if (action === 'add') {
+    const term = z.string().trim().min(2, 'Terme trop court.').max(80, 'Terme trop long.').safeParse(req.body.term || '');
+    if (!term.success) {
+      req.flash('error', term.error.issues[0].message);
+      return res.redirect('/admin/filtre');
+    }
+    const existing = (await BannedTerm.findAll()).find((t) => moderation.normalize(t.term) === moderation.normalize(term.data));
+    if (existing) await existing.update({ active: true });
+    else await BannedTerm.create({ term: term.data });
+    req.flash('success', `« ${term.data} » ajouté au filtre.`);
+  } else if (action === 'toggle' || action === 'delete') {
+    const t = await BannedTerm.findByPk(req.body.id);
+    if (!t) throw fail(404, 'Terme introuvable.');
+    if (action === 'toggle') await t.update({ active: !t.active });
+    else await t.destroy();
+    req.flash('success', action === 'delete' ? `« ${t.term} » supprimé.` : `« ${t.term} » ${t.active ? 'réactivé' : 'désactivé'}.`);
+  } else {
+    throw fail(422, 'Action inconnue.');
+  }
+  moderation.invalidateTerms();
+  return res.redirect('/admin/filtre');
+}
+
+Object.assign(module.exports, { adminCounts, moderationQueue, moderatePost, moderateComment, verificationsIndex, verificationDecision, filterIndex, filterUpdate });

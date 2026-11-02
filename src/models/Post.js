@@ -29,6 +29,9 @@ Post.init(
     featuredUntil: { type: DataTypes.DATE },
     featureStatus: { type: DataTypes.ENUM(...FEATURE_STATUSES), allowNull: false, defaultValue: 'none' },
     featureRejectReason: { type: DataTypes.STRING(300) },
+    // Why a post is waiting for moderation (status = pending_approval).
+    moderationReason: { type: DataTypes.ENUM('new_account', 'filter', 'reports') },
+    moderationNote: { type: DataTypes.STRING(300) }, // e.g. matched filter terms, rejection reason
     likesCount: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false, defaultValue: 0 },
     commentsCount: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false, defaultValue: 0 },
     sharesCount: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false, defaultValue: 0 },

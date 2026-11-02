@@ -5,6 +5,7 @@ const { fieldErrors } = require('../validators/auth');
 const { CITIES } = require('../config/constants');
 const { saveImage } = require('../services/storage');
 const { baseScore } = require('../services/feedRanking');
+const moderation = require('../services/moderation');
 
 function httpError(status, message) {
   const err = new Error(message);
@@ -49,6 +50,17 @@ async function create(req, res) {
   if (!parsed.success) return renderForm(res, type, { values: body, errors: fieldErrors(parsed.error), status: 422 });
 
   const fields = toPostFields(type.key, parsed.data);
+  const texts = [fields.title, fields.text, fields.details?.place, fields.details?.company];
+
+  // Guardrails (server-side): links, daily limit, filter and trust level.
+  if (!moderation.canPostLinks(req.user) && moderation.hasExternalLink(texts)) {
+    return renderForm(res, type, { values: body, errors: { _form: moderation.MESSAGES.link }, status: 422 });
+  }
+  if (type.key === 'job_search' && (await moderation.jobSearchPostedToday(req.user.id))) {
+    return renderForm(res, type, { values: body, errors: { _form: moderation.MESSAGES.jobSearchDaily }, status: 429 });
+  }
+  const decision = await moderation.decidePublication(req.user, texts);
+
   const mediaUrls = [];
   if (req.file) {
     if (!type.image) return renderForm(res, type, { values: body, errors: { image: "Ce type de publication n'accepte pas d'image." }, status: 422 });
@@ -61,9 +73,13 @@ async function create(req, res) {
     type: type.key,
     mediaUrls,
     visibility: parsed.data.visibility,
-    status: 'published',
+    ...decision,
     score: baseScore({ createdAt: now }),
   });
+  if (decision.status !== 'published') {
+    req.flash('info', decision.moderationReason === 'filter' ? moderation.MESSAGES.pendingFilter : moderation.MESSAGES.pendingNewAccount);
+    return res.redirect(`/publications/${post.id}`);
+  }
   req.flash('success', 'Publication partagée.');
   return res.redirect(`/?nouveau=${post.id}`);
 }

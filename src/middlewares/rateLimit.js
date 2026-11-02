@@ -1,4 +1,5 @@
 const rateLimit = require('express-rate-limit');
+const { hxTrigger } = require('../utils/hx');
 const env = require('../config/env');
 
 const authLimiter = rateLimit({
@@ -28,7 +29,7 @@ function userLimiter({ windowMs, limit, message }) {
     keyGenerator: (req) => `u${req.user.id}`,
     handler: (req, res) => {
       if (req.get('HX-Request')) {
-        res.set('HX-Trigger', JSON.stringify({ toast: { message, type: 'error' } }));
+        hxTrigger(res, { toast: { message, type: 'error' } });
         return res.status(429).send('');
       }
       return res.status(429).json({ error: message });

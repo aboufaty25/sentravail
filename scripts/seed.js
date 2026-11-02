@@ -1,7 +1,7 @@
 // Demo data. WARNING: drops and recreates all tables.
 const bcrypt = require('bcryptjs');
 const env = require('../src/config/env');
-const { sequelize, User, Post, Reaction, Comment, Job, Follow, Report } = require('../src/models');
+const { sequelize, User, Post, Reaction, Comment, Job, Follow, Report, BannedTerm } = require('../src/models');
 const refs = require('../src/services/refs');
 const { buildSlug, featuredUntilDate } = require('../src/services/jobs');
 const { refreshRecentScores } = require('../src/services/feedRanking');
@@ -56,7 +56,9 @@ const people = [
     await sequelize.sync({ force: true });
     const passwordHash = await bcrypt.hash(env.SEED_PASSWORD, 10);
     const users = {};
-    for (const p of people) users[p.username] = await User.create({ ...p, passwordHash });
+    // Demo members are trusted (they publish directly); new sign-ups start at 0.
+    for (const p of people) users[p.username] = await User.create({ approvedPostsCount: 3, verificationStatus: p.isVerified ? 'approved' : 'none', ...p, passwordHash });
+    await BannedTerm.bulkCreate(BannedTerm.DEFAULTS.map((term) => ({ term })));
 
     const hoursAgo = (h) => new Date(Date.now() - h * 3_600_000);
     const inDaysAt = (n, hour = 9) => new Date(`${new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 10)}T${String(hour).padStart(2, '0')}:00:00Z`);

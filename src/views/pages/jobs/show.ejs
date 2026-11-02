@@ -59,7 +59,7 @@
             <button type="button" class="btn-primary mt-3 hidden w-full lg:flex" @click="<%= applyEvent %>">Postuler</button>
           <% } %>
         <% } %>
-        <p class="mt-3 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">⚠️ Aucun recruteur ne doit vous demander d'argent pour un emploi. Signalez toute demande de paiement.</p>
+        <%- include('../../partials/scamWarning') %>
       </section>
     </div>
 

@@ -10,6 +10,9 @@
 <% if (u.hasRole('recruiter', 'admin')) { %>
   <a href="/mes-offres" class="menu-item"><span class="text-brand-600"><%- icon('briefcase') %></span> Mes offres et candidatures reçues</a>
 <% } %>
+<% if (u.role === 'recruiter') { %>
+  <a href="/parametres/verification" class="menu-item"><span class="text-brand-600"><%- icon('check') %></span> Badge vérifié <%= u.isVerified ? '✓' : '' %></a>
+<% } %>
 <% if (u.hasRole('admin')) { %>
   <a href="/admin" class="menu-item"><span class="text-brand-600"><%- icon('shield') %></span> Administration</a>
 <% } %>
