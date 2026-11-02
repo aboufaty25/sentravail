@@ -2,7 +2,7 @@
    const isLink = job.applyMode === 'link';
    const applyHost = isLink ? (() => { try { return new URL(job.applyUrl).hostname.replace(/^www\./, ''); } catch { return 'lien externe'; } })() : '';
    const applyEvent = `$dispatch('open-apply', { slug: '${job.slug}', title: ${JSON.stringify(job.title)}, company: ${JSON.stringify(job.companyName)}${pendingApplicationId ? `, pendingId: ${pendingApplicationId}` : ''} })`; %>
-<div x-data <%- autoApply && !isLink && !job.isExpired && !canManage ? `x-init="$nextTick(() => ${escapeHtml(applyEvent)})"` : '' %> class="space-y-2 pb-20 sm:space-y-4 lg:pb-0">
+<div x-data <%- autoApply && !isLink && !job.isExpired && !canManage ? `x-init="$nextTick(() => ${escapeHtml(applyEvent)})"` : '' %> class="space-y-2 pb-4 sm:space-y-4">
   <article class="card" aria-labelledby="job-title">
     <% if (job.image) { %>
       <img src="<%= imageUrl(job.image, 1200) %>" alt="<%= job.title %> — <%= job.companyName %>" decoding="async" class="block max-h-[520px] w-full bg-gray-100 object-cover sm:rounded-t-lg">
@@ -52,7 +52,7 @@
       <% if (job.requirements) { %><section><h2 class="mb-2 text-lg font-semibold">Profil recherché</h2><div class="whitespace-pre-line text-[15px] leading-relaxed text-gray-800"><%- richText(job.requirements) %></div></section><% } %>
       <% if (job.benefits) { %><section><h2 class="mb-2 text-lg font-semibold">Avantages</h2><div class="whitespace-pre-line text-[15px] leading-relaxed text-gray-800"><%- richText(job.benefits) %></div></section><% } %>
 
-      <section id="postuler" class="scroll-mt-32 rounded-lg border border-gray-200 p-4">
+      <section id="postuler" class="scroll-mt-32 rounded-lg border border-gray-200 p-4" <%- pendingApplicationId && !isLink && !job.isExpired && !canManage ? `x-data x-init="$nextTick(() => ${escapeHtml(applyEvent)})"` : '' %>>
         <h2 class="text-lg font-semibold">Postuler</h2>
         <% if (job.isExpired) { %>
           <p class="mt-1 text-sm text-gray-600">Cette offre est clôturée depuis le <%= formatDate(job.deadline) %>.</p>
@@ -65,10 +65,10 @@
             <% } %>
           <% } else if (job.applyMode === 'link') { %>
             <p class="mt-1 text-sm text-gray-600">La candidature se fait sur le site du recruteur (<%= applyHost %>).</p>
-            <a href="<%= job.applyUrl %>" target="_blank" rel="noopener nofollow ugc" class="btn-primary mt-3 hidden w-full lg:flex"><%- icon('link', 'w-4 h-4') %> Postuler sur le site du recruteur</a>
+            <a href="<%= job.applyUrl %>" target="_blank" rel="noopener nofollow ugc" class="btn-primary mt-3 w-full !py-3 text-base"><%- icon('link', 'w-4 h-4') %> Postuler sur le site du recruteur</a>
           <% } else { %>
             <p class="mt-1 text-sm text-gray-600">Envoyez votre CV et un message au recruteur en moins d'une minute.</p>
-            <button type="button" class="btn-primary mt-3 hidden w-full lg:flex" @click="<%= applyEvent %>">Postuler</button>
+            <button type="button" class="btn-primary mt-3 w-full !py-3 text-base" @click="<%= applyEvent %>">Postuler</button>
           <% } %>
         <% } %>
         <%- include('../../partials/scamWarning') %>
@@ -79,13 +79,13 @@
   </article>
   <%- include('../../partials/adSlot', { slot: 'job' }) %>
 
-  <% if (!job.isExpired && !canManage) { %>
-    <div <%- pendingApplicationId && !isLink ? `x-data x-init="$nextTick(() => ${escapeHtml(applyEvent)})"` : '' %> data-apply-bar class="fixed inset-x-0 bottom-0 z-30 border-t border-gray-200 bg-white px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] lg:hidden">
-      <% if (isLink) { %>
-        <a href="<%= job.applyUrl %>" target="_blank" rel="noopener nofollow ugc" class="btn-primary w-full !py-3 text-base"><%- icon('link', 'w-4 h-4') %> Postuler sur le site du recruteur</a>
-      <% } else { %>
-        <button type="button" class="btn-primary w-full !py-3 text-base" @click="<%= applyEvent %>">Postuler</button>
-      <% } %>
-    </div>
+  <% if (similarPosts.length) { %>
+    <section aria-labelledby="similar-title" class="px-2 sm:px-0">
+      <h2 id="similar-title" class="mb-2 px-1 text-lg font-semibold">Offres similaires</h2>
+      <div class="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-3">
+        <% similarPosts.forEach(sp => { %><%- include('../../partials/jobTile', { post: sp }) %><% }) %>
+      </div>
+      <p class="mt-3 text-center"><a href="/offres<%= queryString({ secteur: job.sector }) %>" class="text-sm font-semibold text-brand-600 hover:underline">Voir toutes les offres <%= job.sector %></a></p>
+    </section>
   <% } %>
 </div>

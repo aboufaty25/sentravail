@@ -1,0 +1,19 @@
+<%# Compact offer tile for grids (similar offers). %>
+<% const j = post.job; %>
+<a href="<%= j.url %>" class="card group flex flex-col overflow-hidden rounded-lg hover:shadow-md">
+  <% if (j.image) { %>
+    <img src="<%= imageUrl(j.image, 500) %>" alt="" loading="lazy" decoding="async" class="aspect-[1200/630] w-full bg-gray-100 object-cover">
+  <% } else { %>
+    <span class="flex aspect-[1200/630] w-full items-center justify-center bg-gradient-to-br from-brand-50 to-green-50">
+      <%- include('companyLogo', { job: j, size: 'w-12 h-12' }) %>
+    </span>
+  <% } %>
+  <span class="flex flex-1 flex-col p-2.5 sm:p-3">
+    <span class="line-clamp-2 text-[14px] font-bold leading-snug text-gray-900 group-hover:underline sm:text-[15px]"><%= j.title %></span>
+    <span class="mt-0.5 truncate text-[12px] text-gray-600 sm:text-[13px]"><%= j.companyName %></span>
+    <span class="mt-auto flex flex-wrap gap-x-2 pt-1.5 text-[12px] text-gray-500">
+      <span class="inline-flex items-center gap-0.5"><%- icon('pin', 'w-3.5 h-3.5') %><%= j.location %></span>
+      <span class="inline-flex items-center gap-0.5"><%- icon('briefcase', 'w-3.5 h-3.5') %><%= j.contractType %></span>
+    </span>
+  </span>
+</a>

@@ -220,6 +220,21 @@ describe('Job page', () => {
     expect((await request(app).get('/offres/..%2F..%2Fetc')).status).toBe(404);
   });
 
+  test('no sticky apply bar; similar offers (same sector or city) in a grid', async () => {
+    await createJob(adm, { ...validJob, title: 'Aide comptable', isOfficial: 'on' });
+    await createJob(adm, { ...validJob, title: 'Infirmier', sector: 'Santé', location: 'Thiès', isOfficial: 'on' });
+    await createJob(adm, { ...validJob, title: 'Chef comptable', isOfficial: 'on' });
+    const job = await lastJob();
+    const page = await request(app).get(`/offres/${job.slug}`);
+    expect(page.text).not.toContain('data-apply-bar');
+    expect(page.text).toContain('Offres similaires');
+    expect(page.text).toContain('grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-3');
+    const similar = page.text.slice(page.text.indexOf('Offres similaires'));
+    expect(similar).toContain('Aide comptable');
+    expect(similar).not.toContain('Infirmier');
+    expect(similar).not.toContain('>Chef comptable<');
+  });
+
   test('expired job shows as closed', async () => {
     await job.update({ deadline: inDays(-1) });
     const res = await request(app).get(`/offres/${job.slug}`);

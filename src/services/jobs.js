@@ -69,6 +69,22 @@ async function search({ q, ville, secteur, contrat, page }, viewer) {
   return { posts: await posts.hydrate(rows, viewer), total: count, hasMore: page * SEARCH_PAGE_SIZE < count };
 }
 
+// Offers close to this one (same sector or city), most relevant first.
+async function similar(post, limit = 6) {
+  const j = post.job;
+  const rows = await Post.findAll({
+    where: { type: 'job', status: 'published', id: { [Op.ne]: post.id } },
+    include: [
+      { model: Job, as: 'job', where: { ...activeJobWhere(), [Op.or]: [{ sector: j.sector }, { location: j.location }] }, required: true },
+      { model: User, as: 'author', attributes: posts.AUTHOR_ATTRS, where: { isBanned: false }, required: true },
+    ],
+    order: [['isFeatured', 'DESC'], ['createdAt', 'DESC'], ['id', 'DESC']],
+    limit: 30,
+  });
+  const rank = (p) => (p.job.sector === j.sector ? 2 : 0) + (p.job.location === j.location ? 1 : 0);
+  return rows.sort((a, b) => rank(b) - rank(a)).slice(0, limit);
+}
+
 async function findBySlug(slug) {
   if (!/^[a-z0-9-]{3,120}$/.test(slug)) return null;
   const job = await Job.findOne({ where: { slug } });
@@ -80,4 +96,4 @@ function canManage(post, viewer) {
   return !!viewer && (viewer.id === post.authorId || viewer.role === 'admin');
 }
 
-module.exports = { buildSlug, featuredUntilDate, featuredJobs, featuredPostWhere, search, findBySlug, canManage, activeJobWhere, SEARCH_PAGE_SIZE };
+module.exports = { similar, buildSlug, featuredUntilDate, featuredJobs, featuredPostWhere, search, findBySlug, canManage, activeJobWhere, SEARCH_PAGE_SIZE };

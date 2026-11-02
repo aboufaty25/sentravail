@@ -140,7 +140,9 @@ async function show(req, res, next) {
     const pending = await Application.findOne({ where: { jobPostId: post.id, status: 'opened_mail', ...mine }, order: [['id', 'DESC']] });
     if (pending) pendingApplicationId = pending.id;
   }
+  const similarPosts = await jobs.similar(post, 6);
   return res.render('pages/jobs/show', {
+    similarPosts,
     pendingApplicationId,
     autoApply: req.query.postuler === '1' && !pendingApplicationId,
     title: `${j.title} — ${j.companyName} (${j.location})`,
