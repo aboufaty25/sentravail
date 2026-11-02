@@ -122,6 +122,36 @@ describe('Publishing jobs', () => {
   });
 });
 
+describe('Company logo on offers', () => {
+  test('admin adds a company logo with the offer (no default logo for admins); can replace or remove it', async () => {
+    await adm.agent.get('/'); // warm session
+    const form = await adm.agent.get('/offres/nouvelle');
+    expect(form.text).toContain('name="companyLogo"');
+    const res = await adm.agent.post(`/offres/nouvelle?_csrf=${adm.csrf}`)
+      .field('title', 'Caissier').field('companyName', 'Auchan Sénégal').field('location', 'Dakar').field('contractType', 'CDI')
+      .field('sector', 'Comptabilité').field('description', validJob.description).field('applyMode', 'email').field('applyEmail', 'rh@auchan.example')
+      .attach('companyLogo', PNG, { filename: 'auchan.png', contentType: 'image/png' })
+      .attach('image', PNG, { filename: 'affiche.png', contentType: 'image/png' });
+    expect(res.status).toBe(302);
+    const job = await lastJob();
+    expect(job.companyLogo).toMatch(/^\/uploads\/logos\//);
+    expect(job.image).toMatch(/^\/uploads\/jobs\//);
+    expect((await request(app).get(`/offres/${job.slug}`)).text).toContain(`<img src="${job.companyLogo}" alt="Logo Auchan Sénégal"`);
+    // Without a logo: admin offers get no default logo.
+    await createJob(adm, { ...validJob, title: 'Vendeur' });
+    expect((await lastJob()).companyLogo).toBeNull();
+    // Remove the logo when editing.
+    const edit = await adm.agent.post(`/offres/${job.slug}/modifier?_csrf=${adm.csrf}`)
+      .field('title', 'Caissier').field('companyName', 'Auchan Sénégal').field('location', 'Dakar').field('contractType', 'CDI')
+      .field('sector', 'Comptabilité').field('description', validJob.description).field('applyMode', 'email').field('applyEmail', 'rh@auchan.example')
+      .field('removeLogo', 'on');
+    expect(edit.status).toBe(302);
+    await job.reload();
+    expect(job.companyLogo).toBeNull();
+    expect(job.image).toBeTruthy();
+  });
+});
+
 describe('Description and how to apply', () => {
   test('single description field; old profile/benefits fields are merged when editing', async () => {
     const form = await rec.agent.get('/offres/nouvelle');

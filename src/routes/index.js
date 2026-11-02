@@ -19,10 +19,11 @@ const seo = require('../controllers/seoController');
 const publish = require('../controllers/publishController');
 const events = require('../controllers/eventController');
 const { authLimiter, postLimiter, commentLimiter, actionLimiter, applyLimiter, serverMailLimiter, cvBuildLimiter } = require('../middlewares/rateLimit');
-const { imageUpload, brandingImageUpload, cvUpload, handleUploadErrors } = require('../middlewares/upload');
+const { imageUpload, brandingImageUpload, jobImagesUpload, cvUpload, handleUploadErrors } = require('../middlewares/upload');
 
 const recruiterOnly = [requireAuth, requireRole('recruiter', 'admin')];
-const logoUpload = handleUploadErrors(imageUpload.single('image'));
+// Job form: the offer image and the company logo (one file each).
+const jobUpload = handleUploadErrors(jobImagesUpload.fields([{ name: 'image', maxCount: 1 }, { name: 'companyLogo', maxCount: 1 }]));
 // Branding: one image, plus the 192 px icon generated in the browser for the app icon.
 const brandingUpload = handleUploadErrors(brandingImageUpload.fields([{ name: 'image', maxCount: 1 }, { name: 'icon192', maxCount: 1 }]));
 
@@ -78,10 +79,10 @@ router.get('/evenements', events.index);
 router.get('/offres', job.index);
 router.get('/offres-a-la-une', job.sidebarFeatured);
 router.get('/offres/nouvelle', ...recruiterOnly, job.newForm);
-router.post('/offres/nouvelle', ...recruiterOnly, postLimiter, logoUpload, job.create);
+router.post('/offres/nouvelle', ...recruiterOnly, postLimiter, jobUpload, job.create);
 router.get('/offres/:slug', job.show);
 router.get('/offres/:slug/modifier', requireAuth, job.editForm);
-router.post('/offres/:slug/modifier', requireAuth, logoUpload, job.update);
+router.post('/offres/:slug/modifier', requireAuth, jobUpload, job.update);
 router.post('/offres/:slug/supprimer', requireAuth, job.destroy);
 router.get('/mes-offres', ...recruiterOnly, job.mine);
 

@@ -9,6 +9,22 @@
   <form method="post" action="<%= action %>?_csrf=<%= csrfToken %>" enctype="multipart/form-data" class="space-y-4" novalidate>
     <%- include('../../partials/field', { name: 'title', label: 'Intitulé du poste *', placeholder: 'Ex. Comptable confirmé(e)', required: true }) %>
     <%- include('../../partials/field', { name: 'companyName', label: 'Entreprise *', autocomplete: 'organization', required: true }) %>
+    <% const logoNow = mode === 'edit' ? job.companyLogo : (currentUser.role === 'admin' ? null : currentUser.companyLogo); %>
+    <div x-data="{ preview: <%= logoNow ? `'${imageUrl(logoNow, 160)}'` : 'null' %> }" class="flex items-start gap-3">
+      <span class="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-gray-200 bg-white">
+        <template x-if="preview"><img :src="preview" alt="" class="h-full w-full object-contain p-0.5"></template>
+        <template x-if="!preview"><span class="text-gray-300"><%- icon('briefcase', 'w-7 h-7') %></span></template>
+      </span>
+      <div class="min-w-0 flex-1">
+        <label for="f-companyLogo" class="label">Logo de l'entreprise (facultatif)</label>
+        <p class="mb-1.5 text-xs text-gray-500"><%= currentUser.role === 'admin' ? "Logo de l'entreprise qui recrute. Sans logo, l'initiale de l'entreprise est affichée." : 'Affiché à côté du nom de l’entreprise. PNG transparent conseillé.' %></p>
+        <input id="f-companyLogo" name="companyLogo" type="file" accept="image/png,image/jpeg,image/webp" data-brand="logo" @brand-ready="preview = $event.detail.url"
+          class="block w-full text-sm text-gray-600 file:mr-3 file:rounded-md file:border-0 file:bg-gray-200 file:px-3 file:py-2 file:font-semibold">
+        <% if (mode === 'edit' && job.companyLogo) { %>
+          <label class="mt-2 inline-flex items-center gap-2 text-sm text-gray-600"><input type="checkbox" name="removeLogo" class="rounded border-gray-300"> Retirer le logo</label>
+        <% } %>
+      </div>
+    </div>
     <div x-data="{ preview: <%= mode === 'edit' && job.image ? `'${imageUrl(job.image, 800)}'` : 'null' %> }">
       <label for="f-image" class="label">Image de l'offre (facultatif)</label>
       <p class="mb-1.5 text-xs text-gray-500">Affiche ou visuel : affichée en grand dans le fil et lors des partages sur Facebook ou WhatsApp. Format paysage conseillé (1200 × 630). 2 Mo max.</p>

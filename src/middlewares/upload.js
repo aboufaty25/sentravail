@@ -23,6 +23,13 @@ const brandingImageUpload = multer({
   fileFilter: imageFileFilter,
 });
 
+// Job form: offer image + company logo, plus the form fields.
+const jobImagesUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: IMAGE_MAX_BYTES, files: 2, fields: 40 },
+  fileFilter: imageFileFilter,
+});
+
 // Turns multer errors into user-facing 4xx errors.
 function handleUploadErrors(mw) {
   return (req, res, next) =>
@@ -43,7 +50,7 @@ function handleUploadErrors(mw) {
     });
 }
 
-module.exports = { imageUpload, brandingImageUpload, handleUploadErrors };
+module.exports = { imageUpload, brandingImageUpload, jobImagesUpload, handleUploadErrors };
 
 const CV_TYPES = new Set([
   'application/pdf',

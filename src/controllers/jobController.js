@@ -81,9 +81,16 @@ async function create(req, res) {
   }
   const decision = await moderation.decidePublication(req.user, [...texts, d.applyMode === 'link' ? d.applyUrl : '']);
 
-  // Logo = the recruiter's company logo; the uploaded file is the offer's own image.
-  const companyLogo = req.user.companyLogo || (req.user.role === 'recruiter' ? req.user.avatarUrl : null) || null;
-  const image = req.file ? await saveImage(req.file.buffer, 'jobs') : null;
+  // Company logo: uploaded with the offer, else the recruiter's own logo (admins publish for
+  // other companies, so no default for them). The other file is the offer's own image.
+  const logoFile = req.files?.companyLogo?.[0];
+  const imageFile = req.files?.image?.[0];
+  let companyLogo = req.user.role === 'admin' ? null : req.user.companyLogo || (req.user.role === 'recruiter' ? req.user.avatarUrl : null) || null;
+  if (logoFile) {
+    companyLogo = await saveImage(logoFile.buffer, 'logos');
+    if (req.user.role === 'recruiter' && !req.user.companyLogo) await req.user.update({ companyLogo });
+  }
+  const image = imageFile ? await saveImage(imageFile.buffer, 'jobs') : null;
 
   // Admin offers are official and featured by default; recruiters may request featuring.
   const official = isAdmin && d.isOfficial === 'on';
@@ -232,8 +239,12 @@ async function update(req, res) {
   const found = req.user.role === 'admin' ? [] : await moderation.findBannedTerms([...texts, d.applyMode === 'link' ? d.applyUrl : '']);
   if (found.length) await post.update({ status: 'pending_approval', moderationReason: 'filter', moderationNote: `Termes détectés : ${found.join(', ')}`.slice(0, 300) });
   const changes = jobFields(d);
-  if (req.file) changes.image = await saveImage(req.file.buffer, 'jobs');
+  const imageFile = req.files?.image?.[0];
+  const logoFile = req.files?.companyLogo?.[0];
+  if (imageFile) changes.image = await saveImage(imageFile.buffer, 'jobs');
   else if (body.removeImage === 'on') changes.image = null;
+  if (logoFile) changes.companyLogo = await saveImage(logoFile.buffer, 'logos');
+  else if (body.removeLogo === 'on') changes.companyLogo = null;
   await post.job.update(changes); // slug is kept so shared links keep working
   await post.update({ text: d.text || null });
   req.flash('success', 'Offre mise à jour.');
