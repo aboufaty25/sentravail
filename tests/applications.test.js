@@ -16,7 +16,7 @@ let rec; let other; let cand; let adm;
 let job; let expiredJob;
 
 async function makeJob(author, data = {}) {
-  const post = await Post.create({ authorId: author.id, type: 'job' });
+  const post = await Post.create({ type: 'advice', title: 'Conseil', authorId: author.id, type: 'job' });
   return Job.create({
     postId: post.id, slug: buildSlug(data.title || 'Comptable', 'Dakar'), title: 'Comptable', companyName: 'Ba SA', location: 'Dakar',
     contractType: 'CDI', sector: 'Comptabilité', description: 'x'.repeat(40), applyEmail: 'jobs@ba.example', deadline: inDays(10), ...data,

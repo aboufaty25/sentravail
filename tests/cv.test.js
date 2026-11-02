@@ -94,7 +94,7 @@ describe('Builder for logged-in users', () => {
 
   test('the saved CV is offered when applying', async () => {
     const recruiter = await createUser({ email: 'rh@ex.com', role: 'recruiter' });
-    const post = await Post.create({ authorId: recruiter.id, type: 'job' });
+    const post = await Post.create({ type: 'advice', title: 'Conseil', authorId: recruiter.id, type: 'job' });
     const job = await Job.create({ postId: post.id, slug: buildSlug('Comptable', 'Dakar'), title: 'Comptable', companyName: 'X', location: 'Dakar', contractType: 'CDI', sector: 'Comptabilité', description: 'x'.repeat(40), applyEmail: 'rh@ex.com' });
     const res = await session.agent.post(`/offres/${job.slug}/postuler`).set('X-CSRF-Token', session.csrf).set('Accept', 'application/json')
       .field('firstName', 'Aïssatou').field('lastName', 'Fall').field('email', 'aissatou@example.com').field('phone', '770000004').field('cvSource', 'profile');
@@ -133,7 +133,7 @@ describe('Validation', () => {
 describe('Guests: create a CV from the apply modal', () => {
   test('the CV built in the session can be used to apply, not by another visitor', async () => {
     const recruiter = await createUser({ email: 'rh2@ex.com', role: 'recruiter' });
-    const post = await Post.create({ authorId: recruiter.id, type: 'job' });
+    const post = await Post.create({ type: 'advice', title: 'Conseil', authorId: recruiter.id, type: 'job' });
     const job = await Job.create({ postId: post.id, slug: buildSlug('Dev', 'Dakar'), title: 'Dev', companyName: 'Y', location: 'Dakar', contractType: 'CDI', sector: 'Informatique & Télécoms', description: 'x'.repeat(40), applyEmail: 'rh2@ex.com' });
 
     const g = await guest();

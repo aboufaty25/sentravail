@@ -65,7 +65,7 @@ async function create(req, res, next) {
   }
 
   const comment = await Comment.create({ postId: post.id, authorId: req.user.id, text: parsed.data.text, parentCommentId: parentId });
-  await notify({ userId: post.authorId, actorId: req.user.id, type: 'comment', postId: post.id, data: { snippet: post.text || post.job?.title || '' } });
+  await notify({ userId: post.authorId, actorId: req.user.id, type: 'comment', postId: post.id, data: { snippet: require('../services/posts').snippet(post) } });
   if (parentId) {
     const parent = await Comment.findByPk(parentId, { attributes: ['authorId'] });
     if (parent && parent.authorId !== post.authorId) {

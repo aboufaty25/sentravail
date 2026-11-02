@@ -16,7 +16,7 @@ async function toggleReaction(post, user, type) {
     try {
       await Reaction.create({ userId: user.id, postId: post.id, type });
       await adjustCounter(Post, post.id, 'likesCount', 1);
-      await notify({ userId: post.authorId, actorId: user.id, type: 'like', postId: post.id, data: { snippet: post.text || post.job?.title || '' } });
+      await notify({ userId: post.authorId, actorId: user.id, type: 'like', postId: post.id, data: { snippet: require('./posts').snippet(post) } });
     } catch (err) {
       if (!(err instanceof UniqueConstraintError)) throw err; // double tap: already counted
     }

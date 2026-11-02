@@ -1,16 +1,7 @@
-<%# Text + photos of a post (shared by postCard and the embedded original of a share). %>
-<% if (p.text) { %>
-  <div class="px-3 sm:px-4 pb-2 text-[15px] leading-relaxed" x-data="{ more: false, clipped: false }"
-    x-init="$nextTick(() => clipped = $refs.t.scrollHeight > $refs.t.clientHeight + 2)">
-    <p x-ref="t" class="whitespace-pre-line break-words" :class="more ? '' : 'line-clamp-6'"><%- richText(p.text) %></p>
-    <button type="button" x-cloak x-show="clipped && !more" @click="more = true" class="font-semibold text-gray-600 hover:underline">Voir plus</button>
-  </div>
-<% } %>
-<% const imgs = p.mediaUrls || []; if (p.type === 'photo' && imgs.length) { %>
-  <a href="/publications/<%= p.id %>" class="grid gap-0.5 bg-gray-100 <%= imgs.length === 1 ? '' : 'grid-cols-2' %>" aria-label="Voir la publication">
-    <% imgs.forEach((url, i) => { %>
-      <img src="<%= imageUrl(url, imgs.length === 1 ? 900 : 500) %>" alt="" loading="lazy" decoding="async"
-        class="w-full object-cover <%= imgs.length === 1 ? 'max-h-[600px]' : imgs.length === 3 && i === 0 ? 'col-span-2 aspect-[2/1]' : 'aspect-square' %>">
-    <% }) %>
+<%# Text (and image) of a share comment or a legacy free post. Typed publications use cards/*. %>
+<% if (p.text) { %><%- include('postText', { text: p.text, cls: 'px-3 sm:px-4 pb-2' }) %><% } %>
+<% const imgs = p.mediaUrls || []; if (imgs.length) { %>
+  <a href="/publications/<%= p.id %>" class="block bg-gray-100" aria-label="Voir la publication">
+    <img src="<%= imageUrl(imgs[0], 900) %>" alt="" loading="lazy" decoding="async" class="max-h-[600px] w-full object-cover">
   </a>
 <% } %>

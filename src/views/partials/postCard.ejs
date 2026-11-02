@@ -6,8 +6,8 @@
     <div class="min-w-0 flex-1 leading-tight">
       <a href="/profil/<%= a.username %>" class="font-semibold hover:underline"><%= a.firstName %> <%= a.lastName %></a>
       <% if (a.isVerified) { %><span class="inline-block align-[-2px] text-brand-600" title="Compte vérifié"><%- icon('check', 'w-4 h-4') %></span><% } %>
-      <% if (post.sharedPostId) { %><span class="text-gray-500"> a partagé <%= post.sharedPost && post.sharedPost.type === 'job' ? 'une offre' : 'une publication' %></span><% } %>
-      <% if (post.type === 'job') { %><span class="text-gray-500"> a publié une offre</span><% } %>
+      <% if (post.type === 'share') { %><span class="text-gray-500"> a partagé <%= post.sharedPost && post.sharedPost.type === 'job' ? 'une offre' : 'une publication' %></span>
+      <% } else if (POST_TYPES[post.type]) { %><span class="text-gray-500"> <%= POST_TYPES[post.type].verb %></span><% } %>
       <% if (m.canFollow) { %><%- include('followButton', { targetId: a.id, following: false, variant: 'link' }) %><% } %>
       <% if (a.headline || a.companyName) { %><p class="truncate text-[13px] text-gray-500"><%= a.headline || a.companyName %></p><% } %>
       <p class="flex items-center gap-1 text-[13px] text-gray-500">
@@ -30,8 +30,7 @@
     </div>
   </header>
 
-  <%- include('postBody', { p: post }) %>
-  <% if (post.type === 'job' && post.job) { %><%- include('jobCard', { p: post }) %><% } %>
+  <% if (post.type === 'share') { %><%- include('postBody', { p: post }) %><% } else { %><%- include('postContent', { p: post }) %><% } %>
 
   <% if (post.sharedPostId) { %>
     <div class="mx-3 sm:mx-4 mb-2 overflow-hidden rounded-lg border border-gray-200">
@@ -43,8 +42,7 @@
             <p class="text-xs text-gray-500"><a href="/publications/<%= o.id %>" class="hover:underline"><%= timeAgo(o.createdAt) %></a></p>
           </div>
         </div>
-        <%- include('postBody', { p: o }) %>
-        <% if (o.type === 'job' && o.job) { %><%- include('jobCard', { p: o, compact: true }) %><% } %>
+        <%- include('postContent', { p: o, compact: true }) %>
       <% } else { %>
         <p class="px-3 py-4 text-sm text-gray-500">Cette publication n'est plus disponible.</p>
       <% } %>

@@ -30,7 +30,7 @@ describe('Registration', () => {
     expect(user.passwordHash).not.toBe('motdepasse1');
 
     const home = await agent.get('/');
-    expect(home.text).toContain('Partagez une actualité ou une offre');
+    expect(home.text).toContain('Quoi de neuf dans votre recherche d');
   });
 
   test('rejects duplicate email and phone', async () => {

@@ -26,7 +26,7 @@ const people = [
   {
     username: 'cabinet-ndiaye', firstName: 'Ousmane', lastName: 'Ndiaye', email: 'ousmane@cabinet-ndiaye.sn', phone: '+221770000003',
     role: 'recruiter', companyName: 'Cabinet Ndiaye & Associés', headline: 'Associé — Cabinet Ndiaye & Associés', city: 'Thiès',
-    sector: 'Comptabilité',
+    sector: 'Comptabilité', isVerified: true,
   },
   {
     username: 'aissatou-fall', firstName: 'Aïssatou', lastName: 'Fall', email: 'candidat@sentravail.com', phone: '+221770000004',
@@ -59,18 +59,30 @@ const people = [
     for (const p of people) users[p.username] = await User.create({ ...p, passwordHash });
 
     const hoursAgo = (h) => new Date(Date.now() - h * 3_600_000);
+    const inDaysAt = (n, hour = 9) => new Date(`${new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 10)}T${String(hour).padStart(2, '0')}:00:00Z`);
+    // Structured publications only (see src/config/postTypes.js).
     const postsData = [
-      { author: 'admin', h: 2, text: "Bienvenue sur SenTravail ! 🇸🇳\n\nLe réseau social de l'emploi au Sénégal : suivez les recruteurs, partagez votre parcours et postulez aux offres en un clic.\n\nRappel : aucun recruteur sérieux ne vous demandera de payer pour obtenir un emploi. Signalez toute annonce suspecte." },
-      { author: 'teranga-digital', h: 5, text: "Nous agrandissons l'équipe de Teranga Digital à Dakar ! 🚀 Développeurs, chargés de clientèle et data analysts : suivez notre page, les offres arrivent cette semaine." },
-      { author: 'aissatou-fall', h: 9, text: "Ravie d'avoir obtenu ma certification en fiscalité OHADA ce week-end 🎓 Merci à tous ceux qui m'ont soutenue pendant ces mois de préparation !" },
-      { author: 'cabinet-ndiaye', h: 20, text: "Conseil du jour pour les candidats : adaptez votre CV à chaque offre. Mettez en avant les 3 compétences demandées dans l'annonce, dès les premières lignes. Un recruteur passe en moyenne moins d'une minute sur un CV." },
-      { author: 'moussa-sarr', h: 30, text: "Premier projet terminé : une application de gestion de stock pour une boutique de Thiès, en Node.js. Les retours sont les bienvenus ! 💻" },
-      { author: 'fatou-sow', h: 50, text: "Question aux professionnels de santé : quelles formations continues recommandez-vous pour une infirmière qui veut se spécialiser en pédiatrie ?" },
-      { author: 'teranga-digital', h: 72, text: "Retour en images sur notre journée portes ouvertes à Diamniadio. Merci aux 200 étudiants venus nous rencontrer !" },
+      { author: 'admin', h: 2, type: 'advice', title: 'Bienvenue sur SenTravail : postulez en toute sécurité',
+        text: "Le réseau social de l'emploi au Sénégal : suivez les recruteurs, présentez-vous et postulez aux offres en un clic.\n\nUn vrai recruteur ne demande jamais d'argent. Frais de dossier, paiement par mobile money, « investissement » : signalez immédiatement l'annonce." },
+      { author: 'teranga-digital', h: 5, type: 'event', title: 'Journée portes ouvertes Teranga Digital', city: 'Diamniadio', eventDate: inDaysAt(10, 9),
+        details: { eventKind: 'portes_ouvertes', place: 'Parc des technologies numériques', hasTime: true },
+        text: "Venez rencontrer nos équipes produit, data et relation client. Entretiens sur place pour nos postes ouverts : apportez votre CV !" },
+      { author: 'aissatou-fall', h: 9, type: 'job_search', title: 'Comptable', city: 'Dakar', details: { experienceYears: 5, availability: 'Immédiatement' },
+        text: "Comptable rigoureuse, certifiée en fiscalité OHADA, 5 ans d'expérience (Sage, SYSCOHADA, paie). Je recherche un CDI à Dakar." },
+      { author: 'cabinet-ndiaye', h: 20, type: 'advice', title: 'Adaptez votre CV à chaque offre',
+        text: "Mettez en avant les 3 compétences demandées dans l'annonce, dès les premières lignes. Un recruteur passe en moyenne moins d'une minute sur un CV : il doit trouver tout de suite ce qu'il cherche." },
+      { author: 'moussa-sarr', h: 30, type: 'job_search', title: 'Développeur web junior', city: 'Thiès', details: { experienceYears: 1, availability: 'Sous 1 mois' },
+        text: "Développeur Node.js et JavaScript, j'ai réalisé une application de gestion de stock pour une boutique de Thiès. Ouvert aux stages et CDD." },
+      { author: 'fatou-sow', h: 50, type: 'hired', title: 'Infirmière en pédiatrie', details: { company: 'Clinique Les Filaos' },
+        text: "Après 6 mois de recherche, je commence lundi ! Merci à tous pour vos conseils 🙏" },
+      { author: 'teranga-digital', h: 72, type: 'event', title: "Salon de l'emploi numérique de Dakar", city: 'Dakar', eventDate: inDaysAt(21, 10),
+        details: { eventKind: 'salon', place: 'CICAD', hasTime: true },
+        text: "Plus de 40 entreprises du numérique recrutent : développeurs, designers, commerciaux, techniciens. Entrée libre." },
     ];
     const created = [];
     for (const d of postsData) {
-      created.push(await Post.create({ authorId: users[d.author].id, type: 'text', text: d.text, createdAt: hoursAgo(d.h), updatedAt: hoursAgo(d.h) }, { silent: true }));
+      const { author, h, ...fields } = d;
+      created.push(await Post.create({ ...fields, authorId: users[author].id, createdAt: hoursAgo(h), updatedAt: hoursAgo(h) }, { silent: true }));
     }
 
     const reactionPlan = [
@@ -85,14 +97,14 @@ const people = [
       await created[i].update({ likesCount: who.length }, { silent: true });
     }
 
-    const c1 = await Comment.create({ postId: created[2].id, authorId: users['cabinet-ndiaye'].id, text: 'Félicitations Aïssatou, bien mérité ! 👏' });
-    await Comment.create({ postId: created[2].id, authorId: users['aissatou-fall'].id, parentCommentId: c1.id, text: 'Merci beaucoup Ousmane, et merci pour vos conseils pendant mon stage !' });
-    await Comment.create({ postId: created[2].id, authorId: users['moussa-sarr'].id, text: 'Bravo ! Tu as utilisé quels supports pour réviser ?' });
+    const c1 = await Comment.create({ postId: created[2].id, authorId: users['cabinet-ndiaye'].id, text: 'Profil intéressant, envoyez-nous votre CV par message 👍' });
+    await Comment.create({ postId: created[2].id, authorId: users['aissatou-fall'].id, parentCommentId: c1.id, text: 'Merci beaucoup Ousmane, je vous envoie mon CV aujourd’hui !' });
+    await Comment.create({ postId: created[2].id, authorId: users['moussa-sarr'].id, text: 'Bonne chance Aïssatou !' });
     await created[2].update({ commentsCount: 3 }, { silent: true });
     await Comment.create({ postId: created[3].id, authorId: users['fatou-sow'].id, text: 'Merci pour ce conseil, je vais revoir mon CV ce soir.' });
     await created[3].update({ commentsCount: 1 }, { silent: true });
 
-    await Post.create({ authorId: users['moussa-sarr'].id, type: 'text', text: 'Très bon conseil, à lire pour tous ceux qui cherchent un emploi 👇', sharedPostId: created[3].id, createdAt: hoursAgo(12), updatedAt: hoursAgo(12) }, { silent: true });
+    await Post.create({ authorId: users['moussa-sarr'].id, type: 'share', text: 'Très bon conseil, à lire pour tous ceux qui cherchent un emploi 👇', sharedPostId: created[3].id, createdAt: hoursAgo(12), updatedAt: hoursAgo(12) }, { silent: true });
     await created[3].update({ sharesCount: 1 }, { silent: true });
 
     const day = (n) => new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 10);
@@ -166,11 +178,11 @@ const people = [
         followingCount: await Follow.count({ where: { followerId: u.id } }),
       });
     }
-    await Post.create({ authorId: users['aissatou-fall'].id, type: 'text', visibility: 'network', text: 'Petit message pour mon réseau : je cherche un poste de comptable à Dakar à partir de janvier. Merci de partager si vous entendez parler d\'une opportunité 🙏', createdAt: hoursAgo(6), updatedAt: hoursAgo(6) }, { silent: true });
+    await Post.create({ authorId: users['aissatou-fall'].id, type: 'hired', visibility: 'network', title: 'Certification en fiscalité OHADA', details: { company: null }, text: 'Petite victoire partagée avec mon réseau : certification obtenue ce week-end 🎓', createdAt: hoursAgo(6), updatedAt: hoursAgo(6) }, { silent: true });
 
     // Reference lists and a few demo reports for the moderation screen
     await refs.seedDefaults();
-    const spam = await Post.create({ authorId: users['moussa-sarr'].id, type: 'text', text: 'Gagnez 500 000 FCFA par semaine depuis chez vous !!! Envoyez 10 000 FCFA de frais d\'inscription par Wave pour recevoir le lien.' });
+    const spam = await Post.create({ authorId: users['moussa-sarr'].id, type: 'event', title: 'Formation rémunérée à domicile', city: 'Dakar', eventDate: inDaysAt(3), details: { eventKind: 'formation', place: 'En ligne', hasTime: false }, text: 'Gagnez 500 000 FCFA par semaine depuis chez vous !!! Envoyez 10 000 FCFA de frais d\'inscription par Wave pour recevoir le lien.' });
     await Report.create({ reporterId: users['aissatou-fall'].id, targetType: 'post', targetId: spam.id, targetOwnerId: users['moussa-sarr'].id, reason: 'payment', details: "Demande de frais d'inscription" });
     await Report.create({ reporterId: users['fatou-sow'].id, targetType: 'post', targetId: spam.id, targetOwnerId: users['moussa-sarr'].id, reason: 'scam' });
 

@@ -1,0 +1,14 @@
+<% const d = p.details || {}; %>
+<div class="px-3 pb-3 sm:px-4">
+  <div class="rounded-xl border-l-4 border-emerald-500 bg-emerald-50/60 p-3">
+    <span class="inline-flex items-center gap-1 rounded-full bg-emerald-600 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white"><%- icon('search', 'w-3 h-3') %> Cherche un emploi</span>
+    <p class="mt-1.5 text-[18px] font-bold leading-snug text-gray-900"><%= p.title %></p>
+    <ul class="mt-1.5 flex flex-wrap gap-1.5 text-[13px]">
+      <li class="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-gray-700 ring-1 ring-emerald-200"><%- icon('pin', 'w-3.5 h-3.5') %> <%= p.city %></li>
+      <li class="rounded-full bg-white px-2 py-0.5 text-gray-700 ring-1 ring-emerald-200"><%= d.experienceYears === 0 ? 'Débutant(e)' : `${d.experienceYears} an${d.experienceYears > 1 ? 's' : ''} d'expérience` %></li>
+      <li class="rounded-full bg-emerald-100 px-2 py-0.5 font-semibold text-emerald-800">Disponible : <%= (d.availability || '').toLowerCase() %></li>
+    </ul>
+    <% if (p.text) { %><%- include('../postText', { text: p.text, cls: 'mt-2 text-gray-800', clamp: 'line-clamp-4' }) %><% } %>
+    <a href="/profil/<%= p.author.username %>" class="btn mt-3 w-full bg-emerald-600 !py-2 text-white hover:bg-emerald-700">Voir le profil</a>
+  </div>
+</div>

@@ -1,6 +1,6 @@
 const { UniqueConstraintError } = require('sequelize');
 const { Post, Reaction, Save, User } = require('../models');
-const { postSchema, shareSchema } = require('../validators/post');
+const { shareSchema } = require('../validators/post');
 const { fieldErrors } = require('../validators/auth');
 const { saveImage } = require('../services/storage');
 const { refreshScore, baseScore } = require('../services/feedRanking');
@@ -37,42 +37,7 @@ async function feed(req, res) {
   res.render('partials/feedItems', { layout: false, posts: list, hasMore, page, since: since.getTime(), startIndex: (page - 1) * env.FEED_PAGE_SIZE });
 }
 
-// ---------- Create / show / delete ----------
-
-function newForm(req, res) {
-  res.render('pages/posts/new', { title: 'Créer une publication', noAds: true, type: req.query.type || 'text', errors: {}, values: {} });
-}
-
-async function create(req, res) {
-  const parsed = postSchema.safeParse(req.body || {});
-  const files = req.files || [];
-  const errors = parsed.success ? {} : fieldErrors(parsed.error);
-  if (parsed.success && !parsed.data.text && !files.length) errors.text = 'Écrivez quelque chose ou ajoutez une photo.';
-  if (Object.keys(errors).length) {
-    if (wantsJson(req)) return res.status(422).json({ errors });
-    return res.status(422).render('pages/posts/new', { title: 'Créer une publication', noAds: true, type: 'text', errors, values: req.body || {} });
-  }
-
-  const mediaUrls = [];
-  for (const file of files) mediaUrls.push(await saveImage(file.buffer, 'posts'));
-
-  const now = new Date();
-  const post = await Post.create({
-    authorId: req.user.id,
-    type: mediaUrls.length ? 'photo' : 'text',
-    text: parsed.data.text || null,
-    mediaUrls,
-    visibility: parsed.data.visibility,
-    status: 'published',
-    score: baseScore({ createdAt: now }),
-  });
-
-  req.flash('success', 'Publication partagée.');
-  // The author sees their fresh post pinned on top of the feed (like Facebook).
-  const redirect = `/?nouveau=${post.id}`;
-  if (wantsJson(req)) return res.status(201).json({ id: post.id, redirect });
-  return res.redirect(redirect);
-}
+// ---------- Show / delete ----------
 
 async function show(req, res, next) {
   const post = await posts.findVisiblePost(req.params.id, req.user);
@@ -83,8 +48,11 @@ async function show(req, res, next) {
   }
   await posts.hydrate([post], req.user);
   const excerpt = (post.text || post.sharedPost?.text || '').replace(/\s+/g, ' ').slice(0, 160);
+  const { TYPES } = require('../config/postTypes');
+  const label = TYPES[post.type]?.label;
   return res.render('pages/posts/show', {
-    title: `${post.author.firstName} ${post.author.lastName}${excerpt ? ` : « ${excerpt.slice(0, 60)}… »` : ''}`,
+    title: post.title ? `${post.title} — ${label}` : `${post.author.firstName} ${post.author.lastName}${excerpt ? ` : « ${excerpt.slice(0, 60)}… »` : ''}`,
+    ...(post.type === 'event' && post.eventDate ? { jsonLd: require('./eventController').eventJsonLd(post) } : {}),
     metaDescription: excerpt || `Publication de ${post.author.firstName} ${post.author.lastName} sur SenTravail.`,
     post,
     ogType: 'article',
@@ -182,7 +150,7 @@ async function share(req, res) {
 
   const post = await Post.create({
     authorId: req.user.id,
-    type: 'text',
+    type: 'share',
     text: parsed.data.text || null,
     visibility: parsed.data.visibility,
     sharedPostId: original.id,
@@ -190,7 +158,7 @@ async function share(req, res) {
   });
   await adjustCounter(Post, original.id, 'sharesCount', 1);
   await refreshScore(original.id);
-  await notify({ userId: original.authorId, actorId: req.user.id, type: 'share', postId: original.id, data: { snippet: original.text || original.job?.title || '' } });
+  await notify({ userId: original.authorId, actorId: req.user.id, type: 'share', postId: original.id, data: { snippet: require('../services/posts').snippet(original) } });
   return res.status(201).json({ id: post.id, message: 'Publication partagée dans votre fil.' });
 }
 
@@ -220,4 +188,4 @@ async function byAuthor(user, viewer, limit = 20, type = null) {
   return posts.hydrate(list, viewer);
 }
 
-module.exports = { loadInteractable, feed, newForm, create, show, destroy, react, toggleSave, share, savedList, byAuthor, notFound };
+module.exports = { loadInteractable, feed, show, destroy, react, toggleSave, share, savedList, byAuthor, notFound };

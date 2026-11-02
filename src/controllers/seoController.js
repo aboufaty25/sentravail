@@ -29,7 +29,8 @@ function robots(req, res) {
 
 // Public, indexable URLs: static pages, active job offers, public profiles.
 async function sitemap(req, res) {
-  const [jobRows, users] = await Promise.all([
+  const startOfToday = new Date(`${new Date().toISOString().slice(0, 10)}T00:00:00Z`);
+  const [jobRows, users, eventRows] = await Promise.all([
     Post.findAll({
       where: { type: 'job', status: 'published', visibility: 'public' },
       include: [
@@ -41,16 +42,24 @@ async function sitemap(req, res) {
       limit: 20000,
     }),
     User.findAll({ where: { isBanned: false }, attributes: ['username', 'updatedAt'], order: [['followersCount', 'DESC']], limit: 20000 }),
+    Post.findAll({
+      where: { type: 'event', status: 'published', visibility: 'public', eventDate: { [Op.gte]: startOfToday } },
+      include: [{ model: User, as: 'author', where: { isBanned: false }, attributes: [], required: true }],
+      attributes: ['id', 'updatedAt'],
+      limit: 5000,
+    }),
   ]);
   const base = env.APP_URL;
   const urls = [
     { loc: `${base}/`, changefreq: 'daily', priority: '1.0' },
     { loc: `${base}/offres`, changefreq: 'hourly', priority: '0.9' },
+    { loc: `${base}/evenements`, changefreq: 'daily', priority: '0.7' },
     ...['a-propos', 'contact', 'confidentialite', 'conditions'].map((p) => ({ loc: `${base}/${p}`, changefreq: 'monthly', priority: '0.3' })),
     ...jobRows.map((p) => {
       const last = new Date(Math.max(new Date(p.updatedAt), new Date(p.job.updatedAt)));
       return { loc: `${base}/offres/${p.job.slug}`, lastmod: last.toISOString().slice(0, 10), changefreq: 'daily', priority: '0.8' };
     }),
+    ...eventRows.map((p) => ({ loc: `${base}/publications/${p.id}`, lastmod: new Date(p.updatedAt).toISOString().slice(0, 10), changefreq: 'weekly', priority: '0.6' })),
     ...users.map((u) => ({ loc: `${base}/profil/${u.username}`, lastmod: new Date(u.updatedAt).toISOString().slice(0, 10), changefreq: 'weekly', priority: '0.4' })),
   ];
   const body = urls

@@ -13,8 +13,8 @@ beforeAll(async () => {
   await resetDb();
   user = await createUser({ email: 'u@ex.com', role: 'recruiter' });
   s = await loginAs(user);
-  for (let i = 0; i < 8; i += 1) await Post.create({ authorId: user.id, text: `Post ${i}` });
-  const post = await Post.create({ authorId: user.id, type: 'job' });
+  for (let i = 0; i < 8; i += 1) await Post.create({ type: 'advice', title: 'Conseil', authorId: user.id, text: `Post ${i}` });
+  const post = await Post.create({ type: 'advice', title: 'Conseil', authorId: user.id, type: 'job' });
   job = await Job.create({ postId: post.id, slug: buildSlug('Chauffeur', 'Dakar'), title: 'Chauffeur', companyName: 'Ba', location: 'Dakar', contractType: 'CDI', sector: 'Logistique & Transport', description: 'x'.repeat(40), applyEmail: 'a@b.sn' });
 });
 afterAll(closeDb);

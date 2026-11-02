@@ -1,0 +1,10 @@
+<% const d = p.details || {}; %>
+<div class="px-3 pb-3 sm:px-4">
+  <div class="overflow-hidden rounded-xl bg-gradient-to-br from-amber-300 via-yellow-200 to-orange-200 p-4 text-center">
+    <p class="text-3xl" aria-hidden="true">🎉</p>
+    <p class="mt-1 text-[13px] font-bold uppercase tracking-wide text-amber-900">Nouveau poste</p>
+    <p class="mt-1 text-[19px] font-extrabold leading-snug text-gray-900"><%= p.title %></p>
+    <% if (d.company) { %><p class="text-[15px] font-semibold text-amber-900">chez <%= d.company %></p><% } %>
+  </div>
+  <% if (p.text) { %><%- include('../postText', { text: p.text, cls: 'mt-2 text-gray-800' }) %><% } %>
+</div>

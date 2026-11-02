@@ -29,6 +29,8 @@ function personalize(score, post, viewer, { followedIds = new Set() } = {}) {
   const job = post.job;
   if (viewer && job && ((viewer.city && job.location === viewer.city) || (viewer.sector && job.sector === viewer.sector))) {
     s *= MATCH_BONUS;
+  } else if (viewer && viewer.city && post.city && ['job_search', 'event'].includes(post.type) && post.city === viewer.city) {
+    s *= MATCH_BONUS;
   }
   return s;
 }

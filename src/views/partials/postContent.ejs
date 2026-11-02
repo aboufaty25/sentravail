@@ -1,0 +1,9 @@
+<%# Body of a publication according to its type. %>
+<% if (p.type === 'job') { %>
+  <% if (p.text) { %><%- include('postText', { text: p.text, cls: 'px-3 sm:px-4 pb-2' }) %><% } %>
+  <% if (p.job) { %><%- include('jobCard', { p, compact: locals.compact }) %><% } %>
+<% } else if (p.type === 'job_search') { %><%- include('cards/jobSearch', { p }) %>
+<% } else if (p.type === 'event') { %><%- include('cards/event', { p }) %>
+<% } else if (p.type === 'hired') { %><%- include('cards/hired', { p }) %>
+<% } else if (p.type === 'advice') { %><%- include('cards/advice', { p }) %>
+<% } else { %><%- include('postBody', { p }) %><% } %>

@@ -10,7 +10,7 @@ const form = (s, url, body = {}) => s.agent.post(url).type('form').send({ _csrf:
 const report = (s, body) => s.agent.post('/signalements').set('X-CSRF-Token', s.csrf).set('Accept', 'application/json').send(body);
 
 async function makeJob(author, extra = {}, postExtra = {}) {
-  const post = await Post.create({ authorId: author.id, type: 'job', ...postExtra });
+  const post = await Post.create({ type: 'advice', title: 'Conseil', authorId: author.id, type: 'job', ...postExtra });
   await Job.create({ postId: post.id, slug: buildSlug(extra.title || 'Offre', 'Dakar'), title: 'Offre', companyName: 'X', location: 'Dakar', contractType: 'CDI', sector: 'Santé', description: 'x'.repeat(40), applyEmail: 'a@b.sn', ...extra });
   return post;
 }
@@ -90,7 +90,7 @@ describe('Featured offers', () => {
 
 describe('Reports', () => {
   test('validation, own content, duplicates', async () => {
-    const p = await Post.create({ authorId: rec.id, text: 'contenu' });
+    const p = await Post.create({ type: 'advice', title: 'Conseil', authorId: rec.id, text: 'contenu' });
     expect((await report(candS, { targetType: 'post', targetId: p.id, reason: 'nope' })).status).toBe(422);
     expect((await report(recS, { targetType: 'post', targetId: p.id, reason: 'spam' })).status).toBe(422); // own
     expect((await report(candS, { targetType: 'post', targetId: 999999, reason: 'spam' })).status).toBe(404);
@@ -100,12 +100,12 @@ describe('Reports', () => {
   });
 
   test('cannot report what you cannot see (network posts of non-followed authors)', async () => {
-    const p = await Post.create({ authorId: rec.id, text: 'réseau', visibility: 'network' });
+    const p = await Post.create({ type: 'advice', title: 'Conseil', authorId: rec.id, text: 'réseau', visibility: 'network' });
     expect((await report(candS, { targetType: 'post', targetId: p.id, reason: 'spam' })).status).toBe(404);
   });
 
   test(`a post is hidden automatically after ${env.REPORT_AUTOHIDE} reports, then restored when dismissed`, async () => {
-    const p = await Post.create({ authorId: rec.id, text: 'Arnaque probable' });
+    const p = await Post.create({ type: 'advice', title: 'Conseil', authorId: rec.id, text: 'Arnaque probable' });
     const reporters = [];
     for (let i = 0; i < env.REPORT_AUTOHIDE; i += 1) reporters.push(await loginAs(await createUser({ email: `r${i}@ex.com` })));
     for (const s of reporters) await report(s, { targetType: 'post', targetId: p.id, reason: 'scam' });
@@ -124,13 +124,13 @@ describe('Reports', () => {
   });
 
   test('remove a reported post or comment', async () => {
-    const p = await Post.create({ authorId: rec.id, text: 'à supprimer', commentsCount: 1 });
+    const p = await Post.create({ type: 'advice', title: 'Conseil', authorId: rec.id, text: 'à supprimer', commentsCount: 1 });
     await report(candS, { targetType: 'post', targetId: p.id, reason: 'inappropriate' });
     await form(adminS, `/admin/signalements/post/${p.id}`, { action: 'remove' });
     expect(await Post.findByPk(p.id)).toBeNull();
     expect((await Report.findOne({ where: { targetId: p.id } })).resolution).toBe('removed');
 
-    const host = await Post.create({ authorId: cand.id, text: 'hôte', commentsCount: 1 });
+    const host = await Post.create({ type: 'advice', title: 'Conseil', authorId: cand.id, text: 'hôte', commentsCount: 1 });
     const c = await Comment.create({ postId: host.id, authorId: rec.id, text: 'insulte' });
     expect((await report(otherS, { targetType: 'comment', targetId: c.id, reason: 'harassment' })).status).toBe(201);
     await form(adminS, `/admin/signalements/comment/${c.id}`, { action: 'remove' });
@@ -141,7 +141,7 @@ describe('Reports', () => {
 
   test('ban the author from a report; admins cannot be banned', async () => {
     const spammer = await createUser({ email: 'spam@ex.com' });
-    const p = await Post.create({ authorId: spammer.id, text: 'spam' });
+    const p = await Post.create({ type: 'advice', title: 'Conseil', authorId: spammer.id, text: 'spam' });
     await report(candS, { targetType: 'post', targetId: p.id, reason: 'spam' });
     await form(adminS, `/admin/signalements/post/${p.id}`, { action: 'ban' });
     await spammer.reload();

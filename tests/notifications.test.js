@@ -31,7 +31,7 @@ afterAll(async () => {
 
 describe('Social notifications', () => {
   let post;
-  beforeAll(async () => { post = await Post.create({ authorId: ana.id, text: 'Ma nouvelle certification' }); });
+  beforeAll(async () => { post = await Post.create({ type: 'advice', title: 'Ma nouvelle certification', authorId: ana.id, text: 'Ma nouvelle certification' }); });
 
   test('reactions notify the author once and group several people', async () => {
     await hx(bobS, `/publications/${post.id}/reaction`, { type: 'like' });

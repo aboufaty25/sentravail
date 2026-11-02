@@ -83,6 +83,17 @@
     socket.on('notification:count', (d) => setBadges(d.unseen));
   });
 
+  // Image inputs marked data-compress: resized/compressed in the browser before upload (≤ 2 MB).
+  document.addEventListener('change', async (e) => {
+    const input = e.target;
+    if (!input.matches || !input.matches('input[type=file][data-compress]') || !input.files[0] || !window.DataTransfer) return;
+    const file = await resizeImage(input.files[0], 1600, 0.82);
+    if (file.size > 2 * 1024 * 1024) { toast("L'image doit faire moins de 2 Mo.", 'error'); input.value = ''; return; }
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    input.files = dt.files;
+  });
+
   document.addEventListener('alpine:init', () => {
     const Alpine = window.Alpine;
 
@@ -134,50 +145,6 @@
         this.$nextTick(() => this.$refs.input?.focus());
       },
       clear() { this.parentId = ''; this.replyTo = ''; },
-    }));
-
-    Alpine.data('composer', () => ({
-      text: document.getElementById('post-text')?.value || '',
-      files: [],
-      previews: [],
-      sending: false,
-      error: '',
-      async add(e) {
-        this.error = '';
-        const picked = [...e.target.files];
-        e.target.value = '';
-        for (const f of picked) {
-          if (this.files.length >= 1) { this.error = 'Une seule image par publication.'; break; }
-          if (!/^image\/(jpeg|png|webp)$/.test(f.type)) { this.error = 'Formats acceptés : JPEG, PNG, WebP.'; continue; }
-          const resized = await resizeImage(f);
-          if (resized.size > 2 * 1024 * 1024) { this.error = "L'image doit faire moins de 2 Mo."; continue; }
-          this.files.push(resized);
-          this.previews.push(URL.createObjectURL(resized));
-        }
-      },
-      remove(i) {
-        URL.revokeObjectURL(this.previews[i]);
-        this.files.splice(i, 1);
-        this.previews.splice(i, 1);
-      },
-      async submit(form) {
-        if (this.sending) return;
-        this.error = '';
-        this.sending = true;
-        const data = new FormData();
-        data.append('text', this.text);
-        data.append('visibility', form.visibility.value);
-        this.files.forEach((f) => data.append('photos', f, f.name));
-        try {
-          const res = await fetch('/publier', { method: 'POST', body: data, headers: { 'X-CSRF-Token': csrf(), Accept: 'application/json' } });
-          const json = await res.json().catch(() => ({}));
-          if (res.ok) { window.location.href = json.redirect || '/'; return; }
-          this.error = json.error || (json.errors && Object.values(json.errors)[0]) || 'Publication impossible. Réessayez.';
-        } catch (_) {
-          this.error = 'Pas de connexion internet. Réessayez.';
-        }
-        this.sending = false;
-      },
     }));
 
     Alpine.data('shareSheet', () => ({

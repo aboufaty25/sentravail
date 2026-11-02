@@ -106,10 +106,10 @@ describe('Visibility', () => {
   let networkPost; let recruiterJob; let approvedJob; let publicPost;
   beforeAll(async () => {
     // ana follows rec; bob follows rec; carl follows nobody
-    networkPost = await Post.create({ authorId: rec.id, text: 'Réservé à mes abonnés', visibility: 'network' });
-    recruiterJob = await Post.create({ authorId: rec.id, type: 'job', text: 'Offre non approuvée', featureStatus: 'pending' });
-    approvedJob = await Post.create({ authorId: rec.id, type: 'job', text: 'Offre approuvée', featureStatus: 'approved' });
-    publicPost = await Post.create({ authorId: carl.id, text: 'Publication publique' });
+    networkPost = await Post.create({ type: 'advice', title: 'Conseil', authorId: rec.id, text: 'Réservé à mes abonnés', visibility: 'network' });
+    recruiterJob = await Post.create({ type: 'advice', title: 'Conseil', authorId: rec.id, type: 'job', text: 'Offre non approuvée', featureStatus: 'pending' });
+    approvedJob = await Post.create({ type: 'advice', title: 'Conseil', authorId: rec.id, type: 'job', text: 'Offre approuvée', featureStatus: 'approved' });
+    publicPost = await Post.create({ type: 'advice', title: 'Conseil', authorId: carl.id, text: 'Publication publique' });
     await refreshRecentScores();
   });
 
@@ -176,7 +176,7 @@ describe('Personalized ranking', () => {
   test('a followed author gets the ×1.5 bonus over an equal post', async () => {
     await Post.destroy({ where: {} });
     const t = new Date(Date.now() - 3600_000);
-    const mk = (authorId, text) => Post.create({ authorId, text, likesCount: 3, createdAt: t, updatedAt: t }, { silent: true });
+    const mk = (authorId, text) => Post.create({ type: 'advice', title: 'Conseil', authorId, text, likesCount: 3, createdAt: t, updatedAt: t }, { silent: true });
     const fromStranger = await mk(carl.id, 'stranger');
     const fromFollowed = await mk(rec.id, 'followed');
     await refreshRecentScores();

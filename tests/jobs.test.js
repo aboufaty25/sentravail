@@ -107,8 +107,8 @@ describe('Publishing jobs', () => {
     expect(await Job.count()).toBe(before);
   });
 
-  test('/publier?type=job redirects to the job form', async () => {
-    const res = await rec.agent.get('/publier?type=job');
+  test('/publier/offre redirects to the job form', async () => {
+    const res = await rec.agent.get('/publier/offre');
     expect(res.headers.location).toBe('/offres/nouvelle');
   });
 });
@@ -204,7 +204,7 @@ describe('Search', () => {
     await Job.destroy({ where: {} });
     await Post.destroy({ where: { type: 'job' } });
     const mk = async (author, data, postExtra = {}) => {
-      const post = await Post.create({ authorId: author.id, type: 'job', ...postExtra });
+      const post = await Post.create({ type: 'advice', title: 'Conseil', authorId: author.id, type: 'job', ...postExtra });
       return Job.create({ ...validJob, ...data, postId: post.id, slug: buildSlug(data.title, data.location || 'Dakar') });
     };
     await mk(recruiter, { title: 'Comptable Dakar', location: 'Dakar', contractType: 'CDI', sector: 'Comptabilité' });

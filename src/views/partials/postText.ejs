@@ -1,0 +1,5 @@
+<%# Clamped text with "Voir plus" (escaped, links made clickable). %>
+<div class="text-[15px] leading-relaxed <%= locals.cls || '' %>" x-data="{ more: false, clipped: false }" x-init="$nextTick(() => clipped = $refs.t.scrollHeight > $refs.t.clientHeight + 2)">
+  <p x-ref="t" class="whitespace-pre-line break-words" :class="more ? '' : '<%= locals.clamp || 'line-clamp-6' %>'"><%- richText(text) %></p>
+  <button type="button" x-cloak x-show="clipped && !more" @click="more = true" class="font-semibold text-gray-600 hover:underline">Voir plus</button>
+</div>

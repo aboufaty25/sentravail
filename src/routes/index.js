@@ -15,6 +15,8 @@ const report = require('../controllers/reportController');
 const admin = require('../controllers/adminController');
 const notification = require('../controllers/notificationController');
 const seo = require('../controllers/seoController');
+const publish = require('../controllers/publishController');
+const events = require('../controllers/eventController');
 const { authLimiter, postLimiter, commentLimiter, actionLimiter, applyLimiter, serverMailLimiter, cvBuildLimiter } = require('../middlewares/rateLimit');
 const { imageUpload, cvUpload, handleUploadErrors } = require('../middlewares/upload');
 
@@ -58,11 +60,9 @@ router.post('/parametres/profil', requireAuth, profile.update);
 
 // Feed & posts
 router.get('/fil', post.feed);
-router.get('/publier', requireAuth, (req, res, next) => {
-  if (req.query.type === 'job') return res.redirect('/offres/nouvelle');
-  return next();
-}, post.newForm);
-router.post('/publier', requireAuth, postLimiter, handleUploadErrors(imageUpload.array('photos', 1)), post.create);
+router.get('/publier', requireAuth, publish.choose);
+router.get('/publier/:type', requireAuth, publish.form);
+router.post('/publier/:type', requireAuth, postLimiter, handleUploadErrors(imageUpload.single('image')), publish.create);
 router.get('/publications/:id', post.show);
 router.post('/publications/:id/supprimer', requireAuth, post.destroy);
 router.post('/publications/:id/reaction', requireAuth, actionLimiter, post.react);
@@ -71,6 +71,7 @@ router.post('/publications/:id/partager', requireAuth, postLimiter, post.share);
 router.get('/enregistrements', requireAuth, post.savedList);
 
 // Jobs (static paths before /offres/:slug)
+router.get('/evenements', events.index);
 router.get('/offres', job.index);
 router.get('/offres-a-la-une', job.sidebarFeatured);
 router.get('/offres/nouvelle', ...recruiterOnly, job.newForm);

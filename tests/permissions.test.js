@@ -41,7 +41,7 @@ describe('Roles', () => {
     expect((await agent.get('/mes-offres')).status).toBe(403);
     expect((await agent.get('/admin')).status).toBe(403);
     const home = await agent.get('/');
-    expect(home.text).not.toContain('/publier?type=job');
+    expect(home.text).not.toContain('href="/offres/nouvelle"');
     expect(home.text).not.toContain('href="/admin"');
   });
 
@@ -49,7 +49,7 @@ describe('Roles', () => {
     const { agent } = await loginAs(recruiter);
     expect((await agent.get('/mes-offres')).status).toBe(200);
     expect((await agent.get('/admin')).status).toBe(403);
-    expect((await agent.get('/')).text).toContain('/publier?type=job');
+    expect((await agent.get('/')).text).toContain('href="/offres/nouvelle"');
   });
 
   test('admin: everything', async () => {

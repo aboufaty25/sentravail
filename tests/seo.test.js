@@ -12,7 +12,7 @@ beforeAll(async () => {
   rec = await createUser({ username: 'rama-ndiaye', email: 'rec@ex.com', role: 'recruiter' });
   await createUser({ username: 'banni', email: 'b@ex.com', isBanned: true });
   const mk = async (title, deadline, postExtra = {}) => {
-    const post = await Post.create({ authorId: rec.id, type: 'job', ...postExtra });
+    const post = await Post.create({ type: 'advice', title: 'Conseil', authorId: rec.id, type: 'job', ...postExtra });
     return Job.create({ postId: post.id, slug: buildSlug(title, 'Dakar'), title, companyName: 'Atlantique', companyLogo: '/uploads/logos/2026/01/logo.png', location: 'Dakar', contractType: 'CDI', sector: 'Santé', description: 'x'.repeat(40), applyEmail: 'a@b.sn', deadline });
   };
   activeJob = await mk('Infirmier', inDays(10));

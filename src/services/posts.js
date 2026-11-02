@@ -4,6 +4,7 @@ const { followedIds, followingAmong, isFollowing } = require('./follows');
 const { personalize } = require('./feedRanking');
 const env = require('../config/env');
 const { REACTIONS } = require('../config/constants');
+const { FEED_TYPES } = require('../config/postTypes');
 
 const AUTHOR_ATTRS = ['id', 'username', 'firstName', 'lastName', 'role', 'avatarUrl', 'headline', 'companyName', 'isVerified', 'isBanned'];
 
@@ -29,7 +30,9 @@ function postInclude() {
 // non-approved recruiter offers) can be opened by anyone with the link.
 function canView(post, viewer, { follows = false } = {}) {
   if (!post || !post.author || post.author.isBanned) return false;
-  if (viewer && (viewer.id === post.authorId || viewer.role === 'admin')) return true;
+  if (viewer?.role === 'admin') return true;
+  if (!FEED_TYPES.includes(post.type)) return false; // legacy free posts are hidden
+  if (viewer && viewer.id === post.authorId) return true;
   if (post.status !== 'published') return false;
   if (post.visibility === 'network') return follows;
   return true;
@@ -50,6 +53,7 @@ function broadcastWhere() {
   return {
     status: 'published',
     visibility: 'public',
+    type: { [Op.in]: FEED_TYPES },
     [Op.or]: [{ type: { [Op.ne]: 'job' } }, { featureStatus: 'approved' }, { score: { [Op.gte]: env.VIRAL_THRESHOLD } }],
   };
 }
@@ -57,23 +61,23 @@ function broadcastWhere() {
 // Feed distribution for a viewer (followed = Set of followed author ids).
 function feedWhere(viewer, followed = new Set()) {
   if (!viewer) return broadcastWhere();
-  if (viewer.role === 'admin') return { [Op.or]: [{ status: 'published' }, { authorId: viewer.id }] };
+  if (viewer.role === 'admin') return { type: { [Op.in]: FEED_TYPES }, [Op.or]: [{ status: 'published' }, { authorId: viewer.id }] };
   const or = [{ authorId: viewer.id }, broadcastWhere()];
   if (followed.size) or.push({ status: 'published', authorId: { [Op.in]: [...followed] } });
-  return { [Op.or]: or };
+  return { type: { [Op.in]: FEED_TYPES }, [Op.or]: or };
 }
 
 // Posts of one author as seen by a viewer (profile page).
 function authorPostsWhere(authorId, viewer, follows) {
-  if (viewer && (viewer.id === authorId || viewer.role === 'admin')) return { authorId };
-  return { authorId, status: 'published', ...(follows ? {} : { visibility: 'public' }) };
+  if (viewer && (viewer.id === authorId || viewer.role === 'admin')) return { authorId, type: { [Op.in]: FEED_TYPES } };
+  return { authorId, type: { [Op.in]: FEED_TYPES }, status: 'published', ...(follows ? {} : { visibility: 'public' }) };
 }
 
 // Kept for callers that only need the published/own rule.
 function visibleWhere(viewer) {
   const or = [{ status: 'published', visibility: 'public' }];
   if (viewer) or.push({ authorId: viewer.id });
-  return { [Op.or]: or };
+  return { type: { [Op.in]: FEED_TYPES }, [Op.or]: or };
 }
 
 // Attaches per-viewer data used by the card: top reactions, my reaction, saved flag.
@@ -163,4 +167,9 @@ async function findVisiblePost(id, viewer) {
   return (await canViewAsync(post, viewer)) ? post : null;
 }
 
-module.exports = { REACTIONS, postInclude, AUTHOR_ATTRS, canView, canViewAsync, canDelete, visibleWhere, feedWhere, broadcastWhere, authorPostsWhere, hydrate, feedPage, findVisiblePost };
+// Short label of a publication for notifications and emails.
+function snippet(post) {
+  return post?.title || post?.job?.title || post?.text || '';
+}
+
+module.exports = { snippet, REACTIONS, postInclude, AUTHOR_ATTRS, canView, canViewAsync, canDelete, visibleWhere, feedWhere, broadcastWhere, authorPostsWhere, hydrate, feedPage, findVisiblePost };

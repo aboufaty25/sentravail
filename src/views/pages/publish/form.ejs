@@ -1,0 +1,75 @@
+<% const v = values; const err = errors; const sel = (name, label, options, placeholder) => ({ name, label, options, placeholder }); %>
+<div class="card rounded-lg px-4 py-5 sm:px-6">
+  <div class="mb-4 flex items-center gap-2">
+    <a href="/publier" class="icon-btn !bg-transparent" aria-label="Retour"><%- icon('arrowLeft', 'w-5 h-5') %></a>
+    <span class="flex h-10 w-10 items-center justify-center rounded-full <%= type.color %>"><%- icon(type.icon, 'w-5 h-5') %></span>
+    <h1 class="text-xl font-semibold"><%= type.label %></h1>
+  </div>
+  <% if (Object.keys(err).length) { %><p class="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700" role="alert"><%= err._form || 'Corrigez les champs indiqués en rouge.' %></p><% } %>
+
+  <form method="post" action="/publier/<%= type.slug %>?_csrf=<%= csrfToken %>" enctype="multipart/form-data" class="space-y-4" novalidate>
+    <%
+      const selectField = (name, label, options, current) => `
+        <div>
+          <label for="f-${name}" class="label">${label}</label>
+          <select id="f-${name}" name="${name}" class="input ${err[name] ? 'input-error' : ''}" required>
+            <option value="">— Choisir —</option>
+            ${options.map(([val, text]) => `<option value="${escapeHtml(val)}" ${String(current) === String(val) ? 'selected' : ''}>${escapeHtml(text)}</option>`).join('')}
+          </select>
+          ${err[name] ? `<p class="field-error">${escapeHtml(err[name])}</p>` : ''}
+        </div>`;
+      const textArea = (name, label, rows, max, placeholder) => `
+        <div x-data="{ n: ${(v[name] || '').length} }">
+          <label for="f-${name}" class="label">${label}</label>
+          <textarea id="f-${name}" name="${name}" rows="${rows}" maxlength="${max}" class="input ${err[name] ? 'input-error' : ''}" placeholder="${escapeHtml(placeholder)}" @input="n = $el.value.length">${escapeHtml(v[name] || '')}</textarea>
+          <div class="mt-1 flex justify-between text-xs"><span class="field-error !mt-0">${err[name] ? escapeHtml(err[name]) : ''}</span><span class="text-gray-400"><span x-text="n"></span>/${max}</span></div>
+        </div>`;
+      const cities = CITIES.map(c => [c, c]);
+    %>
+
+    <% if (type.key === 'job_search') { %>
+      <%- include('../../partials/field', { name: 'title', label: 'Métier recherché *', placeholder: 'Ex. Comptable, Chauffeur, Développeur web' }) %>
+      <div class="grid gap-4 sm:grid-cols-2">
+        <%- selectField('city', 'Ville *', cities, v.city) %>
+        <%- include('../../partials/field', { name: 'experienceYears', type: 'number', label: "Années d'expérience *", inputmode: 'numeric', placeholder: '0' }) %>
+      </div>
+      <%- selectField('availability', 'Disponibilité *', AVAILABILITIES.map(a => [a, a]), v.availability) %>
+      <%- textArea('text', 'Courte présentation *', 5, type.maxText, 'Vos compétences, diplômes et ce que vous recherchez.') %>
+    <% } else if (type.key === 'event') { %>
+      <%- selectField('eventKind', "Type d'événement *", Object.entries(EVENT_KINDS), v.eventKind) %>
+      <%- include('../../partials/field', { name: 'title', label: 'Titre *', placeholder: 'Ex. Salon de l’emploi de Dakar 2026' }) %>
+      <div class="grid grid-cols-2 gap-4">
+        <%- include('../../partials/field', { name: 'eventDay', type: 'date', label: 'Date *' }) %>
+        <%- include('../../partials/field', { name: 'eventTime', type: 'time', label: 'Heure' }) %>
+      </div>
+      <div class="grid gap-4 sm:grid-cols-2">
+        <%- selectField('city', 'Ville *', cities, v.city) %>
+        <%- include('../../partials/field', { name: 'place', label: 'Lieu précis *', placeholder: 'Ex. CICAD, Diamniadio' }) %>
+      </div>
+      <%- textArea('text', 'Description *', 6, type.maxText, 'Programme, public visé, inscription…') %>
+      <div>
+        <label for="f-image" class="label">Affiche (facultatif, 2 Mo max.)</label>
+        <input id="f-image" name="image" type="file" accept="image/jpeg,image/png,image/webp" data-compress class="block w-full text-sm text-gray-600 file:mr-3 file:rounded-md file:border-0 file:bg-gray-200 file:px-3 file:py-2.5 file:font-semibold">
+        <% if (err.image) { %><p class="field-error"><%= err.image %></p><% } %>
+      </div>
+    <% } else if (type.key === 'hired') { %>
+      <%- include('../../partials/field', { name: 'title', label: 'Poste obtenu *', placeholder: 'Ex. Assistante comptable' }) %>
+      <%- include('../../partials/field', { name: 'company', label: 'Entreprise (facultatif)', autocomplete: 'organization' }) %>
+      <%- textArea('text', 'Petit message (facultatif)', 3, type.maxText, 'Merci à tous ceux qui m’ont soutenu(e)…') %>
+    <% } else if (type.key === 'advice') { %>
+      <%- include('../../partials/field', { name: 'title', label: 'Titre du conseil *', placeholder: 'Ex. 3 erreurs à éviter dans votre CV' }) %>
+      <%- textArea('text', 'Votre conseil *', 8, type.maxText, 'Partagez votre expérience de manière concrète.') %>
+    <% } %>
+
+    <label class="flex items-center gap-2 text-sm"><span class="text-gray-600">Visibilité :</span>
+      <select name="visibility" class="rounded-md border border-gray-300 bg-white px-2 py-1">
+        <option value="public" <%= v.visibility !== 'network' ? 'selected' : '' %>>🌍 Public</option>
+        <option value="network" <%= v.visibility === 'network' ? 'selected' : '' %>>👥 Mon réseau</option>
+      </select></label>
+
+    <div class="flex justify-end gap-2 pt-2">
+      <a href="/" class="btn-light">Annuler</a>
+      <button type="submit" class="btn-primary">Publier</button>
+    </div>
+  </form>
+</div>

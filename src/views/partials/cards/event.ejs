@@ -1,0 +1,26 @@
+<% const d = p.details || {}; const date = p.eventDate ? new Date(p.eventDate) : null; const past = date && date.getTime() < Date.now() - 86_400_000; %>
+<div class="px-3 pb-3 sm:px-4">
+  <div class="overflow-hidden rounded-xl ring-1 ring-orange-200">
+    <% if ((p.mediaUrls || [])[0]) { %>
+      <a href="/publications/<%= p.id %>" class="block bg-gray-100"><img src="<%= imageUrl(p.mediaUrls[0], 900) %>" alt="Affiche : <%= p.title %>" loading="lazy" decoding="async" class="max-h-[420px] w-full object-cover"></a>
+    <% } %>
+    <div class="flex gap-3 bg-orange-50/70 p-3">
+      <% if (date) { %>
+        <div class="flex w-14 shrink-0 flex-col items-center justify-center rounded-lg bg-white py-1.5 text-center shadow-sm ring-1 ring-orange-200" aria-hidden="true">
+          <span class="text-[11px] font-bold uppercase text-orange-600"><%= date.toLocaleDateString('fr-FR', { month: 'short', timeZone: 'UTC' }).replace('.', '') %></span>
+          <span class="text-2xl font-extrabold leading-none text-gray-900"><%= date.getUTCDate() %></span>
+        </div>
+      <% } %>
+      <div class="min-w-0 flex-1">
+        <span class="rounded-full bg-orange-600 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white"><%= EVENT_KINDS[d.eventKind] || 'Événement' %></span>
+        <% if (past) { %><span class="ml-1 rounded-full bg-gray-200 px-2 py-0.5 text-[11px] font-bold uppercase text-gray-600">Terminé</span><% } %>
+        <a href="/publications/<%= p.id %>" class="mt-1 block text-[17px] font-bold leading-snug text-gray-900 hover:underline"><%= p.title %></a>
+        <p class="mt-0.5 text-[13px] text-gray-700">
+          <% if (date) { %><%= date.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }) %><%= d.hasTime ? ` à ${date.toISOString().slice(11, 16).replace(':', 'h')}` : '' %><% } %>
+        </p>
+        <p class="inline-flex items-center gap-1 text-[13px] text-gray-600"><%- icon('pin', 'w-3.5 h-3.5') %> <%= d.place %>, <%= p.city %></p>
+      </div>
+    </div>
+    <% if (p.text) { %><%- include('../postText', { text: p.text, cls: 'px-3 pb-3 pt-2 text-gray-800', clamp: 'line-clamp-4' }) %><% } %>
+  </div>
+</div>

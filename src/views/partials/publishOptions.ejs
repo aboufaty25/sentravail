@@ -1,0 +1,18 @@
+<ul class="space-y-2">
+  <% options.forEach(o => { %>
+    <li>
+      <% if (o.blocked) { %>
+        <div class="flex items-center gap-3 rounded-xl border border-gray-200 p-3 opacity-60" aria-disabled="true">
+          <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full <%= o.color %>"><%- icon(o.icon, 'w-6 h-6') %></span>
+          <span class="min-w-0"><span class="block font-semibold"><%= o.label %></span><span class="block text-sm text-gray-500"><%= o.blocked %></span></span>
+        </div>
+      <% } else { %>
+        <a href="<%= o.href %>" class="flex items-center gap-3 rounded-xl border border-gray-200 p-3 hover:border-brand-500 hover:bg-brand-50">
+          <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full <%= o.color %>"><%- icon(o.icon, 'w-6 h-6') %></span>
+          <span class="min-w-0 flex-1"><span class="block font-semibold"><%= o.label %></span><span class="block text-sm text-gray-500"><%= o.description %></span></span>
+          <span class="text-gray-400"><%- icon('chevronRight', 'w-5 h-5') %></span>
+        </a>
+      <% } %>
+    </li>
+  <% }) %>
+</ul>

@@ -131,4 +131,12 @@ function absoluteUrl(url) {
   return /^https?:\/\//.test(url) ? url : `${require('../config/env').APP_URL}${url}`;
 }
 
-module.exports = { absoluteUrl, REPORT_REASONS, queryString, formatDate, daysLeft, icon, avatar, roleLabel, timeAgo, formatCount, escapeHtml, richText, imageUrl, reactionSummary, REACTIONS };
+// Publication types offered to a user in "Quoi de neuf ?" (blocked ones carry the reason).
+function publishOptions(user) {
+  const { TYPES, cannotCreate } = require('../config/postTypes');
+  return Object.entries(TYPES).map(([key, t]) => ({ key, ...t, href: key === 'job' ? '/offres/nouvelle' : `/publier/${t.slug}`, blocked: cannotCreate(key, user) }));
+}
+
+const { TYPES: POST_TYPES, EVENT_KINDS } = require('../config/postTypes');
+
+module.exports = { POST_TYPES, EVENT_KINDS, publishOptions, absoluteUrl, REPORT_REASONS, queryString, formatDate, daysLeft, icon, avatar, roleLabel, timeAgo, formatCount, escapeHtml, richText, imageUrl, reactionSummary, REACTIONS };
