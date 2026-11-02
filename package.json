@@ -17,7 +17,8 @@
     "seed": "node scripts/seed.js",
     "test": "cross-env NODE_ENV=test jest --runInBand",
     "scores": "node scripts/refreshScores.js",
-    "make-admin": "node scripts/makeAdmin.js"
+    "make-admin": "node scripts/makeAdmin.js",
+    "set-password": "node scripts/setPassword.js"
   },
   "jest": {
     "testEnvironment": "node",
