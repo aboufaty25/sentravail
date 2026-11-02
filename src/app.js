@@ -77,7 +77,7 @@ app.get('/sw.js', (req, res) => {
   res.sendFile(path.join(root, 'public/sw.js'));
 });
 // Web app manifest: icons come from the admin branding settings.
-app.get('/manifest.webmanifest', (req, res) => {
+app.get('/manifest.webmanifest', branding.refresh, (req, res) => {
   res.type('application/manifest+json').set('Cache-Control', 'no-cache').send(JSON.stringify(branding.manifest()));
 });
 app.use(express.static(path.join(root, 'public'), staticOpts));
@@ -100,6 +100,7 @@ app.use(sessionMiddleware());
 app.use(flash);
 app.use(csrfProtection);
 app.use(loadUser);
+app.use(branding.refresh);
 app.use((req, res, next) => {
   Object.assign(res.locals, viewHelpers, {
     appUrl: env.APP_URL,

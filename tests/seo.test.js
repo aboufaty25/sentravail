@@ -43,10 +43,11 @@ describe('robots.txt and sitemap.xml', () => {
 });
 
 describe('Open Graph and indexing', () => {
-  test('job page: canonical, og tags with the company logo, JobPosting', async () => {
+  test('job page: canonical, og tags (default share image without an offer image), JobPosting', async () => {
     const res = await request(app).get(`/offres/${activeJob.slug}`);
     expect(res.text).toContain(`<link rel="canonical" href="http://localhost:3000/offres/${activeJob.slug}">`);
-    expect(res.text).toContain('<meta property="og:image" content="http://localhost:3000/uploads/logos/2026/01/logo.png">');
+    expect(res.text).toContain('<meta property="og:image" content="http://localhost:3000/icons/og-default.jpg">');
+    expect(res.text).toContain('<meta name="twitter:card" content="summary_large_image">');
     expect(res.text).toContain('<meta property="og:locale" content="fr_FR">');
     expect(res.text).not.toContain('noindex');
   });

@@ -76,6 +76,19 @@ test('default share image is used for pages without their own image', async () =
   expect(home.text).toContain('<meta name="twitter:card" content="summary_large_image">');
 });
 
+test('a change made by another server process is picked up within 30 seconds', async () => {
+  const { SiteSetting } = require('../src/models');
+  await SiteSetting.upsert({ key: 'shareImage', value: '/uploads/branding/other-process.jpg' });
+  expect((await request(app).get('/')).text).not.toContain('other-process.jpg'); // cached copy
+  const realNow = Date.now;
+  Date.now = () => realNow() + 31_000;
+  try {
+    expect((await request(app).get('/')).text).toContain('<meta property="og:image" content="http://localhost:3000/uploads/branding/other-process.jpg">');
+  } finally {
+    Date.now = realNow;
+  }
+});
+
 test('missing file and unknown asset', async () => {
   expect((await upload(adm, 'logo', null, null, { note: '' })).status).toBe(422);
   expect((await upload(adm, 'favicon')).status).toBe(404);

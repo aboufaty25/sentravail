@@ -157,10 +157,10 @@ async function show(req, res, next) {
   });
 }
 
-// Link preview image (Facebook, WhatsApp…): the offer image, else the company logo.
+// Link preview image (Facebook, WhatsApp…): the offer image, else the site's default share
+// image (large preview; a small company logo makes a poor preview).
 function jobOgImage(j) {
   if (j.image) return { ogImage: absoluteUrl(imageUrl(j.image, 1200)), ogImageAlt: j.title, ogLargeImage: true };
-  if (j.companyLogo) return { ogImage: absoluteUrl(imageUrl(j.companyLogo, 600)), ogImageAlt: `Logo ${j.companyName}` };
   return {};
 }
 

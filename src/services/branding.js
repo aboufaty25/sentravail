@@ -13,11 +13,25 @@ const DEFAULTS = Object.freeze({
 const KEYS = Object.keys(DEFAULTS);
 
 const custom = {}; // key -> uploaded URL
+// The host may run several Node processes: each one re-reads the settings at most every
+// REFRESH_MS, so a change made through one process reaches all of them quickly.
+const REFRESH_MS = 30 * 1000;
+let loadedAt = 0;
 
 async function load() {
   const rows = await SiteSetting.findAll({ where: { key: KEYS }, raw: true });
   for (const k of KEYS) delete custom[k];
   for (const r of rows) if (r.value) custom[r.key] = r.value;
+  loadedAt = Date.now();
+}
+
+// Express middleware: keeps the in-memory copy fresh (one small query per process every 30 s).
+async function refresh(req, res, next) {
+  if (Date.now() - loadedAt > REFRESH_MS) {
+    loadedAt = Date.now(); // avoid a burst of parallel reloads
+    await load().catch(() => {});
+  }
+  next();
 }
 
 function absolute(url) {
@@ -84,4 +98,4 @@ function manifest() {
   };
 }
 
-module.exports = { DEFAULTS, load, current, set, manifest };
+module.exports = { DEFAULTS, load, refresh, current, set, manifest };
