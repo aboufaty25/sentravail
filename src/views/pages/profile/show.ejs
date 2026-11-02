@@ -36,7 +36,7 @@
         <% } %>
       </div>
     </div>
-    <% const tabsP = [['publications', 'Publications'], ['a-propos', 'À propos'], ['reels', 'Réels']].concat(p.role !== 'candidate' ? [['offres', 'Offres']] : []); %>
+    <% const tabsP = [['publications', 'Publications'], ['a-propos', 'À propos']].concat(p.role !== 'candidate' ? [['offres', 'Offres']] : []); %>
     <nav class="flex border-t border-gray-200 px-2" aria-label="Sections du profil">
       <% tabsP.forEach(([key, label]) => { %>
         <a href="?onglet=<%= key %>" class="relative px-3 py-3 text-[15px] font-semibold <%= tab === key ? 'text-brand-600 after:absolute after:inset-x-2 after:bottom-0 after:h-[3px] after:rounded-t after:bg-brand-600' : 'text-gray-600 hover:bg-gray-100 rounded-md' %>"><%= label %></a>
@@ -72,22 +72,11 @@
         </ul>
       <% } %>
     </section>
-  <% } else if (tab === 'reels' && posts.length) { %>
-    <section class="card p-1">
-      <ul class="grid grid-cols-3 gap-1">
-        <% posts.forEach(r => { %>
-          <li><a href="/reels?r=<%= r.id %>" class="relative block aspect-[9/16] overflow-hidden bg-gray-900">
-            <% if (r.thumbnailUrl) { %><img src="<%= imageUrl(r.thumbnailUrl, 300) %>" alt="" loading="lazy" class="h-full w-full object-cover"><% } %>
-            <span class="absolute bottom-1 left-1 inline-flex items-center gap-0.5 text-xs font-semibold text-white drop-shadow"><%- icon('play', 'w-3.5 h-3.5') %> <%= formatCount(r.viewsCount) %></span>
-          </a></li>
-        <% }) %>
-      </ul>
-    </section>
   <% } else if ((tab === 'publications' || tab === 'offres') && posts.length) { %>
     <% posts.forEach(post => { %><%- include('../../partials/postCard', { post }) %><% }) %>
   <% } else { %>
     <section class="card px-4 py-10 text-center text-gray-500">
-      <p><%= tab === 'reels' ? 'Aucun réel pour le moment.' : tab === 'offres' ? 'Aucune offre publiée pour le moment.' : 'Aucune publication pour le moment.' %></p>
+      <p><%= tab === 'offres' ? 'Aucune offre publiée pour le moment.' : 'Aucune publication pour le moment.' %></p>
     </section>
   <% } %>
 </div>

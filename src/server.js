@@ -21,24 +21,8 @@ async function ensureUploadDir() {
   }
 }
 
-// Removes upload leftovers (interrupted video uploads) older than one hour.
-async function cleanUploadTmp() {
-  try {
-    const path = require('path');
-    const files = await fs.readdir(env.uploadTmpDir);
-    const limit = Date.now() - 3600_000;
-    for (const f of files) {
-      const full = path.join(env.uploadTmpDir, f);
-      const st = await fs.stat(full).catch(() => null);
-      if (st && st.mtimeMs < limit) await fs.unlink(full).catch(() => {});
-    }
-  } catch (_) { /* folder not created yet */ }
-}
-
 async function start() {
   await ensureUploadDir();
-  await cleanUploadTmp();
-  setInterval(cleanUploadTmp, 3600_000).unref();
   await sequelize.authenticate();
   // Create missing tables on boot (no destructive changes), then apply migrations.
   await sequelize.sync();

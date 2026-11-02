@@ -4,7 +4,7 @@
   <%- tile('Utilisateurs', formatCount(stats.users), `+${stats.newUsers} cette semaine · ${stats.bannedUsers} suspendu(s)`, '/admin/utilisateurs') %>
   <%- tile('Offres actives', formatCount(stats.jobsActive), `${stats.featuredNow} à la une`, '/offres') %>
   <%- tile('Candidatures envoyées', formatCount(stats.applications), `+${stats.applications7} cette semaine`, '/admin') %>
-  <%- tile('Publications', formatCount(stats.postsCount), 'textes, photos et réels', '/') %>
+  <%- tile('Publications', formatCount(stats.postsCount), 'hors offres', '/') %>
   <%- tile('Signalements à traiter', stats.openReports, 'contenus signalés', '/admin/signalements', stats.openReports > 0) %>
   <%- tile('Demandes de mise à la une', stats.pendingFeature, 'en attente de décision', '/admin/offres', stats.pendingFeature > 0) %>
   <%- tile('Candidats', formatCount(stats.roles.candidate || 0), '', '/admin/utilisateurs?role=candidate') %>

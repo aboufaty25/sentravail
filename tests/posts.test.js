@@ -75,15 +75,19 @@ describe('Creating posts', () => {
     expect(res.status).toBe(422);
   });
 
-  test('rejects non-image types and more than 4 photos', async () => {
+  test('rejects non-image types, more than one image and images over 2 MB', async () => {
     const pdf = await aliceSession.agent.post('/publier').set('X-CSRF-Token', aliceSession.csrf).set('Accept', 'application/json')
       .attach('photos', Buffer.from('%PDF-1.4'), { filename: 'cv.pdf', contentType: 'application/pdf' });
     expect(pdf.status).toBe(422);
     let req = aliceSession.agent.post('/publier').set('X-CSRF-Token', aliceSession.csrf).set('Accept', 'application/json');
-    for (let i = 0; i < 5; i++) req = req.attach('photos', PNG, { filename: `${i}.png`, contentType: 'image/png' });
+    for (let i = 0; i < 2; i++) req = req.attach('photos', PNG, { filename: `${i}.png`, contentType: 'image/png' });
     const many = await req;
     expect(many.status).toBe(422);
-    expect(many.body.error).toMatch(/4 photos maximum/);
+    expect(many.body.error).toMatch(/Une seule image/);
+    const big = await aliceSession.agent.post('/publier').set('X-CSRF-Token', aliceSession.csrf).set('Accept', 'application/json')
+      .attach('photos', Buffer.concat([PNG, Buffer.alloc(2 * 1024 * 1024)]), { filename: 'big.png', contentType: 'image/png' });
+    expect(big.status).toBe(422);
+    expect(big.body.error).toMatch(/2 Mo/);
   });
 
   test('requires CSRF on multipart', async () => {

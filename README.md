@@ -2,7 +2,7 @@
 
 Le réseau social de l'emploi au Sénégal — https://sentravail.com
 
-Fil d'actualité, offres d'emploi, candidatures en un clic, créateur de CV, réels de 30 secondes, abonnements, notifications en temps réel — une application web mobile d'abord, installable (PWA), légère en 3G et financée par AdSense.
+Fil d'actualité, offres d'emploi, candidatures en un clic, créateur de CV, abonnements, notifications en temps réel — une application web mobile d'abord, installable (PWA), légère en 3G et financée par AdSense.
 
 **Stack** : Node.js 20+ · Express 5 · EJS + htmx + Alpine.js · Tailwind CSS · MySQL/MariaDB (Sequelize) · Socket.io · PDFKit · Nodemailer
 
@@ -48,7 +48,6 @@ Comptes de démo (mot de passe `Sentravail2026!`) :
 | Candidatures | modal pré-rempli, invités acceptés, CV importé ou créé, `mailto:` avec lien de CV signé, confirmation, envoi de secours par le serveur, suivi des deux côtés |
 | CV | créateur en 7 étapes, aperçu en direct, 2 modèles, export PDF |
 | Réseau | abonnements, suggestions, visibilité « Mon réseau », viralité, fil personnalisé, recherche de personnes et entreprises |
-| Réels | vidéos de 30 s stockées sur le serveur, durée vérifiée côté client et serveur, onglet plein écran |
 | Administration | tableau de bord, approbation des mises à la une, signalements et modération, utilisateurs, villes et secteurs |
 | Notifications | temps réel (Socket.io, repli HTTP), regroupement, page dédiée, emails importants désactivables |
 | PWA / SEO / AdSense | installable, hors-ligne, sitemap/robots/Open Graph, publicités après consentement uniquement, `ads.txt` généré |
@@ -60,11 +59,11 @@ src/
   app.js, server.js          Express, sécurité, Socket.io, tâches périodiques
   config/                    env (validé par zod), db, session, mailer, socket, migrations
   models/                    User, Post, Job, Application, Reaction, Comment, Follow, Notification, Report…
-  controllers/               une responsabilité par fichier (posts, jobs, applications, cv, reels, admin…)
-  services/                  feedRanking, posts, jobs, follows, notifications, cvPdf, cvStorage, video, storage, mail
+  controllers/               une responsabilité par fichier (posts, jobs, applications, cv, admin…)
+  services/                  feedRanking, posts, jobs, follows, notifications, cvPdf, cvStorage, storage, mail
   middlewares/               auth, roles, csrf, upload, rateLimit, errors
   migrations/                migrations idempotentes appliquées au démarrage
-  views/                     layouts, partials (postCard, jobCard, reelSlides, applyModal, adSlot…), pages
+  views/                     layouts, partials (postCard, jobCard, applyModal, adSlot…), pages
 public/                      css, js (app.js, ads.js), icons, manifest, sw.js, offline.html
 scripts/                     seed, makeAdmin, refreshScores, dbSync
 deploy/                      PM2 et Nginx (VPS uniquement)
@@ -78,4 +77,4 @@ Contrôles de rôle et de propriété côté serveur sur chaque action, CSRF (se
 
 ## Feuille de route
 
-Toutes les phases du cahier des charges sont livrées : socle, fil, offres, candidature, créateur de CV, réseau, réels, administration, notifications, PWA/SEO/AdSense, production.
+Toutes les phases du cahier des charges sont livrées : socle, fil, offres, candidature, créateur de CV, réseau, administration, notifications, PWA/SEO/AdSense, production.

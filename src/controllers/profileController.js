@@ -20,7 +20,6 @@ async function show(req, res, next) {
   let posts = [];
   if (tab === 'publications') posts = await byAuthor(profileUser, req.user);
   else if (tab === 'offres') posts = await byRecruiter(profileUser, req.user);
-  else if (tab === 'reels') posts = await byAuthor(profileUser, req.user, 30, 'reel');
   return res.render('pages/profile/show', {
     title: `${profileUser.displayName}${profileUser.headline ? ` — ${profileUser.headline}` : ''}`,
     metaDescription: profileUser.bio ? profileUser.bio.slice(0, 160) : `Profil de ${profileUser.displayName} sur SenTravail.`,

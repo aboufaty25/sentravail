@@ -5,7 +5,7 @@ const env = require('../config/env');
 const posts = require('../services/posts');
 const refs = require('../services/refs');
 const jobsService = require('../services/jobs');
-const { removeLocalMedia } = require('../services/video');
+const { removeLocalMedia } = require('../services/storage');
 const { adjustCounter } = require('../utils/counters');
 const { refreshScore } = require('../services/feedRanking');
 const { ROLE_LABELS } = require('../config/constants');
@@ -199,7 +199,7 @@ async function reportAction(req, res) {
       if (post) {
         if (post.sharedPostId) await adjustCounter(Post, post.sharedPostId, 'sharesCount', -1);
         await post.destroy();
-        await removeLocalMedia([...(post.mediaUrls || []), post.videoUrl, post.thumbnailUrl]);
+        await removeLocalMedia(post.mediaUrls || []);
       }
     } else if (type === 'comment') {
       const comment = await Comment.findByPk(targetId);

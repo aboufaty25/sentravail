@@ -12,7 +12,6 @@
       <div class="flex-1">
         <p x-cloak x-show="parentId" class="mb-1 text-xs text-gray-500">Réponse à <span class="font-semibold" x-text="replyTo"></span> · <button type="button" class="hover:underline" @click="clear()">Annuler</button></p>
         <input type="hidden" name="parentCommentId" :value="parentId">
-        <% if (locals.ctx === 'reel') { %><input type="hidden" name="ctx" value="reel"><% } %>
         <div class="flex items-end rounded-2xl bg-gray-100 pr-1">
           <textarea name="text" rows="1" maxlength="2000" required data-comment-input x-ref="input"
             class="max-h-32 flex-1 resize-none bg-transparent px-3 py-2 text-[15px] focus:outline-none" placeholder="Écrire un commentaire…"

@@ -2,7 +2,7 @@ const { DataTypes, Model } = require('sequelize');
 const sequelize = require('../config/db');
 const jsonColumn = require('../utils/jsonColumn');
 
-const POST_TYPES = ['text', 'photo', 'reel', 'job'];
+const POST_TYPES = ['text', 'photo', 'job'];
 const VISIBILITIES = ['network', 'public'];
 const STATUSES = ['published', 'pending_approval', 'rejected'];
 // "À la une" request workflow, independent from visibility: a recruiter's job stays
@@ -18,8 +18,6 @@ Post.init(
     type: { type: DataTypes.ENUM(...POST_TYPES), allowNull: false, defaultValue: 'text' },
     text: { type: DataTypes.TEXT },
     mediaUrls: jsonColumn('mediaUrls'),
-    videoUrl: { type: DataTypes.STRING(500) },
-    thumbnailUrl: { type: DataTypes.STRING(500) },
     visibility: { type: DataTypes.ENUM(...VISIBILITIES), allowNull: false, defaultValue: 'public' },
     status: { type: DataTypes.ENUM(...STATUSES), allowNull: false, defaultValue: 'published' },
     isFeatured: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },

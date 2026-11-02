@@ -83,36 +83,6 @@
     socket.on('notification:count', (d) => setBadges(d.unseen));
   });
 
-  // ---------- Videos ----------
-  // Slow or data-saving connections: no autoplay in the feed (tap to open the reel).
-  function slowConnection() {
-    const c = navigator.connection;
-    return !!(c && (c.saveData || /(^|-)2g$|3g/.test(c.effectiveType || '')));
-  }
-
-  // Feed reels: load the video only when visible, play muted, pause when scrolled away.
-  const feedObserver = 'IntersectionObserver' in window
-    ? new IntersectionObserver((entries) => {
-      entries.forEach(({ target: v, isIntersecting, intersectionRatio }) => {
-        if (isIntersecting && intersectionRatio >= 0.6 && !slowConnection()) {
-          if (!v.src) v.src = v.dataset.src;
-          v.play().catch(() => {});
-        } else if (!v.paused) {
-          v.pause();
-        }
-      });
-    }, { threshold: [0, 0.6] })
-    : null;
-  function watchFeedVideos(root) {
-    if (!feedObserver) return;
-    root.querySelectorAll('video[data-feed-video]:not([data-watched])').forEach((v) => {
-      v.dataset.watched = '1';
-      feedObserver.observe(v);
-    });
-  }
-  document.addEventListener('DOMContentLoaded', () => watchFeedVideos(document));
-  document.addEventListener('htmx:afterSettle', (e) => watchFeedVideos(e.target));
-
   document.addEventListener('alpine:init', () => {
     const Alpine = window.Alpine;
 
@@ -177,10 +147,10 @@
         const picked = [...e.target.files];
         e.target.value = '';
         for (const f of picked) {
-          if (this.files.length >= 4) { this.error = '4 photos maximum par publication.'; break; }
+          if (this.files.length >= 1) { this.error = 'Une seule image par publication.'; break; }
           if (!/^image\/(jpeg|png|webp)$/.test(f.type)) { this.error = 'Formats acceptés : JPEG, PNG, WebP.'; continue; }
           const resized = await resizeImage(f);
-          if (resized.size > 5 * 1024 * 1024) { this.error = 'Chaque photo doit faire moins de 5 Mo.'; continue; }
+          if (resized.size > 2 * 1024 * 1024) { this.error = "L'image doit faire moins de 2 Mo."; continue; }
           this.files.push(resized);
           this.previews.push(URL.createObjectURL(resized));
         }
@@ -454,135 +424,6 @@
         },
       };
     });
-
-    // Reel composer: client-side checks (type, size, duration) + thumbnail, upload with progress.
-    Alpine.data('reelComposer', (maxSeconds) => ({
-      file: null, previewUrl: '', duration: 0, thumb: null, text: '', visibility: 'public',
-      checking: false, sending: false, progress: 0, error: '',
-      reset() {
-        if (this.previewUrl) URL.revokeObjectURL(this.previewUrl);
-        Object.assign(this, { file: null, previewUrl: '', duration: 0, thumb: null, error: '' });
-      },
-      async pick(e) {
-        const file = e.target.files[0];
-        e.target.value = '';
-        if (!file) return;
-        this.reset();
-        if (!/^video\//.test(file.type)) { this.error = 'Choisissez une vidéo (MP4 ou MOV).'; return; }
-        if (file.size > 40 * 1024 * 1024) { this.error = 'La vidéo doit faire moins de 40 Mo. Filmez en 720p ou raccourcissez-la.'; return; }
-        this.checking = true;
-        const url = URL.createObjectURL(file);
-        try {
-          const { duration, thumb } = await this.inspect(url);
-          if (duration > maxSeconds + 0.9) {
-            this.error = `Votre vidéo dure ${Math.round(duration)} secondes. Les réels sont limités à ${maxSeconds} secondes : coupez-la dans la galerie de votre téléphone.`;
-            URL.revokeObjectURL(url);
-            return;
-          }
-          Object.assign(this, { file, previewUrl: url, duration, thumb });
-        } catch (_) {
-          this.error = 'Impossible de lire cette vidéo. Essayez une vidéo MP4 filmée avec votre téléphone.';
-          URL.revokeObjectURL(url);
-        } finally {
-          this.checking = false;
-        }
-      },
-      // Reads the duration and captures a frame as JPEG thumbnail.
-      inspect(url) {
-        return new Promise((resolve, reject) => {
-          const v = document.createElement('video');
-          v.muted = true; v.playsInline = true; v.preload = 'auto'; v.src = url;
-          const timer = setTimeout(() => reject(new Error('timeout')), 15000);
-          v.onerror = () => { clearTimeout(timer); reject(new Error('unreadable')); };
-          v.onloadedmetadata = () => { v.currentTime = Math.min(1, (v.duration || 1) / 2); };
-          v.onseeked = () => {
-            clearTimeout(timer);
-            let thumb = null;
-            try {
-              const scale = Math.min(1, 720 / Math.max(v.videoWidth, v.videoHeight));
-              const c = document.createElement('canvas');
-              c.width = Math.round(v.videoWidth * scale); c.height = Math.round(v.videoHeight * scale);
-              c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
-              thumb = c;
-            } catch (_) { thumb = null; }
-            const done = (blob) => resolve({ duration: v.duration, thumb: blob });
-            if (thumb && thumb.toBlob) thumb.toBlob((b) => done(b), 'image/jpeg', 0.8); else done(null);
-          };
-        });
-      },
-      submit() {
-        if (!this.file || this.sending) return;
-        this.error = ''; this.sending = true; this.progress = 0;
-        const data = new FormData();
-        data.append('text', this.text);
-        data.append('visibility', this.visibility);
-        data.append('video', this.file, this.file.name);
-        if (this.thumb) data.append('thumbnail', this.thumb, 'thumb.jpg');
-        const xhr = new XMLHttpRequest();
-        xhr.open('POST', '/reels');
-        xhr.setRequestHeader('X-CSRF-Token', csrf());
-        xhr.setRequestHeader('Accept', 'application/json');
-        xhr.upload.onprogress = (e) => { if (e.lengthComputable) this.progress = Math.round((e.loaded / e.total) * 100); };
-        xhr.onload = () => {
-          let json = {};
-          try { json = JSON.parse(xhr.responseText); } catch (_) { /* not JSON */ }
-          if (xhr.status >= 200 && xhr.status < 300) { window.location.href = json.redirect || '/reels'; return; }
-          this.error = json.error || 'Publication impossible. Réessayez.';
-          this.sending = false;
-        };
-        xhr.onerror = () => { this.error = 'Connexion interrompue. Réessayez.'; this.sending = false; };
-        xhr.send(data);
-      },
-    }));
-
-    // Full-screen reels: play the visible one, preload the next, pause the others.
-    Alpine.data('reelsViewer', () => ({
-      muted: true,
-      commentsFor: null,
-      observer: null,
-      init() {
-        this.observer = new IntersectionObserver((entries) => {
-          entries.forEach(({ target, isIntersecting }) => {
-            const v = target.querySelector('video');
-            if (isIntersecting) {
-              clearTimeout(target._viewTimer);
-              target._viewTimer = setTimeout(() => {
-                fetch(`/reels/${target.dataset.reel}/vue`, { method: 'POST', headers: { 'X-CSRF-Token': csrf() } }).catch(() => {});
-              }, 2000);
-              if (!v.src) v.src = v.dataset.src;
-              v.muted = this.muted;
-              v.play().then(() => this.setPaused(target, false)).catch(() => this.setPaused(target, true));
-              const next = target.nextElementSibling?.querySelector?.('video');
-              if (next && !next.src && !slowConnection()) { next.preload = 'metadata'; next.src = next.dataset.src; }
-            } else {
-              clearTimeout(target._viewTimer);
-              v.pause();
-            }
-          });
-        }, { root: this.$refs.scroller, threshold: 0.7 });
-        this.observeAll();
-        document.addEventListener('htmx:afterSettle', () => this.observeAll());
-      },
-      observeAll() {
-        this.$root.querySelectorAll('section.reel:not([data-watched])').forEach((s) => { s.dataset.watched = '1'; this.observer.observe(s); });
-      },
-      setPaused(section, paused) { const o = section.querySelector('[data-paused]'); if (o) o.classList.toggle('hidden', !paused); },
-      togglePlay(v) {
-        if (v.paused) { v.play().catch(() => {}); this.setPaused(v.closest('section'), false); }
-        else { v.pause(); this.setPaused(v.closest('section'), true); }
-      },
-      toggleMute() {
-        this.muted = !this.muted;
-        this.$root.querySelectorAll('video').forEach((v) => { v.muted = this.muted; });
-      },
-      openComments(id) {
-        this.commentsFor = id;
-        const body = document.getElementById('reel-comments-body');
-        body.innerHTML = '<p class="p-4 text-sm text-gray-500">Chargement…</p>';
-        window.htmx.ajax('GET', `/publications/${id}/commentaires?ctx=reel`, { target: '#reel-comments-body', swap: 'innerHTML' });
-      },
-      closeComments() { this.commentsFor = null; },
-    }));
 
     Alpine.data('reportSheet', () => ({
       open: false, target: null, reason: '', details: '', error: '', sending: false,

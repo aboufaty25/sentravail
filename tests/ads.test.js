@@ -52,7 +52,7 @@ test('ad placements: feed after every 6 posts, right column, bottom of a job pag
   expect(jobPage.text).toContain('data-ad-slot="3333333333"');
 });
 
-test.each(['/connexion', '/inscription', '/mot-de-passe-oublie', '/offres/nouvelle', '/publier', '/cv/creer', '/reels/nouveau', '/admin', '/notifications', '/menu', '/mes-offres'])(
+test.each(['/connexion', '/inscription', '/mot-de-passe-oublie', '/offres/nouvelle', '/publier', '/cv/creer', '/admin', '/notifications', '/menu', '/mes-offres'])(
   'no ads on %s',
   async (url) => {
     const res = await s.agent.get(url);

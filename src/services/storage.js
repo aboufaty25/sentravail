@@ -49,4 +49,14 @@ async function saveImage(buffer, folder = 'posts') {
   return env.cloudinaryEnabled ? uploadToCloudinary(buffer, folder) : saveLocally(buffer, ext, folder);
 }
 
-module.exports = { saveImage, detectImageType };
+// Best-effort removal of files we stored locally (never throws).
+async function removeLocalMedia(urls) {
+  for (const url of (urls || []).filter(Boolean)) {
+    if (!url.startsWith('/uploads/')) continue;
+    const rel = url.slice('/uploads/'.length);
+    if (rel.includes('..')) continue;
+    await fs.unlink(path.join(env.uploadDir, rel)).catch(() => {});
+  }
+}
+
+module.exports = { saveImage, detectImageType, removeLocalMedia };

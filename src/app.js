@@ -52,7 +52,7 @@ app.use(
         scriptSrc: ["'self'", "'unsafe-eval'", ...ADS.script],
         styleSrc: ["'self'", "'unsafe-inline'"],
         imgSrc: ["'self'", 'data:', 'blob:', 'https://res.cloudinary.com', ...ADS.img],
-        mediaSrc: ["'self'", 'blob:', 'https://res.cloudinary.com'],
+        mediaSrc: ["'self'"],
         connectSrc: ["'self'", env.APP_URL.replace(/^http/, 'ws'), ...ADS.connect], // Socket.io + ads
         frameSrc: ["'self'", ...ADS.frame],
         formAction: ["'self'"],
@@ -112,7 +112,7 @@ app.use((req, res, next) => {
     consent: req.cookies?.st_consent || (req.get('cookie') || '').match(/(?:^|;\s*)st_consent=(granted|denied)/)?.[1] || null,
     ogImage: `${env.APP_URL}/icons/og-default.jpg`,
     // Private or personal pages are never indexed.
-    noindex: /^\/(admin|parametres|mes-|cv|candidatures|notifications|enregistrements|publier|menu|recherche|reinitialiser|mot-de-passe-oublie|reels\/nouveau|offres\/nouvelle|offres\/[^/]+\/modifier)/.test(req.path),
+    noindex: /^\/(admin|parametres|mes-|cv|candidatures|notifications|enregistrements|publier|menu|recherche|reinitialiser|mot-de-passe-oublie|offres\/nouvelle|offres\/[^/]+\/modifier)/.test(req.path),
   });
   next();
 });

@@ -8,11 +8,6 @@
       </button>
     </div>
 
-    <% if (type === 'reel' || type === 'job') { %>
-      <p class="mx-3 mt-3 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">
-        <%= type === 'reel' ? 'La publication de réels arrive bientôt.' : "La publication d'offres d'emploi arrive bientôt." %> En attendant, vous pouvez publier un texte ou des photos.
-      </p>
-    <% } %>
 
     <div class="flex items-center gap-2 px-3 pt-3">
       <%- avatar(currentUser, 'w-10 h-10') %>
@@ -49,10 +44,10 @@
 
     <div class="m-3 flex items-center justify-between rounded-lg border border-gray-300 px-3 py-2">
       <span class="text-[15px] font-semibold">Ajouter à votre publication</span>
-      <label class="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full text-green-600 hover:bg-gray-100" title="Photos (4 max.)">
+      <label class="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full text-green-600 hover:bg-gray-100" title="Une image (2 Mo max.)">
         <%- icon('photo', 'w-7 h-7') %>
         <span class="sr-only">Ajouter des photos</span>
-        <input type="file" accept="image/jpeg,image/png,image/webp" multiple class="sr-only" @change="add($event)" <%= type === 'photo' ? 'x-init="$nextTick(() => $el.click())"' : '' %>>
+        <input type="file" accept="image/jpeg,image/png,image/webp" class="sr-only" @change="add($event)" <%= type === 'photo' ? 'x-init="$nextTick(() => $el.click())"' : '' %>>
       </label>
     </div>
   </form>

@@ -18,7 +18,6 @@
   ],
   "shortcuts": [
     { "name": "Offres d'emploi", "url": "/offres", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
-    { "name": "Réels", "url": "/reels", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
     { "name": "Mes candidatures", "url": "/mes-candidatures", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] }
   ]
 }

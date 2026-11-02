@@ -46,7 +46,6 @@ async function sitemap(req, res) {
   const urls = [
     { loc: `${base}/`, changefreq: 'daily', priority: '1.0' },
     { loc: `${base}/offres`, changefreq: 'hourly', priority: '0.9' },
-    { loc: `${base}/reels`, changefreq: 'daily', priority: '0.5' },
     ...['a-propos', 'contact', 'confidentialite', 'conditions'].map((p) => ({ loc: `${base}/${p}`, changefreq: 'monthly', priority: '0.3' })),
     ...jobRows.map((p) => {
       const last = new Date(Math.max(new Date(p.updatedAt), new Date(p.job.updatedAt)));

@@ -11,7 +11,7 @@ const { adjustCounter } = require('../utils/counters');
 const { toggleReaction } = require('../services/reactions');
 const { notify } = require('../services/notifications');
 const { absoluteUrl, imageUrl } = require('../utils/viewHelpers');
-const { removeLocalMedia } = require('../services/video');
+const { removeLocalMedia } = require('../services/storage');
 
 function notFound() {
   const err = new Error("Cette publication n'existe pas ou n'est plus disponible.");
@@ -90,7 +90,7 @@ async function show(req, res, next) {
     ogType: 'article',
     canonical: `${env.APP_URL}/publications/${post.id}`,
     ...(() => {
-      const img = post.mediaUrls?.[0] || post.thumbnailUrl || post.sharedPost?.mediaUrls?.[0];
+      const img = post.mediaUrls?.[0] || post.sharedPost?.mediaUrls?.[0];
       return img ? { ogImage: absoluteUrl(imageUrl(img, 1200)) } : {};
     })(),
   });
@@ -110,8 +110,8 @@ async function destroy(req, res, next) {
     await refreshScore(post.sharedPostId);
   }
   await post.destroy();
-  // Files stored on our disk (photos, reel video + thumbnail) are removed too.
-  await removeLocalMedia([...(post.mediaUrls || []), post.videoUrl, post.thumbnailUrl]);
+  // Images stored on our disk are removed too.
+  await removeLocalMedia(post.mediaUrls || []);
   if (req.get('HX-Request')) {
     res.set('HX-Trigger', JSON.stringify({ toast: { message: 'Publication supprimée.' } }));
     if (req.get('HX-Current-URL')?.includes(`/publications/${post.id}`)) res.set('HX-Redirect', '/');

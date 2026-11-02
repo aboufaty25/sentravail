@@ -61,7 +61,7 @@ hPanel → **Sites web → Node.js** (ou « Ajouter un site → Application Node
 | `ADSENSE_SLOT_FEED` / `_SIDEBAR` / `_JOB` | identifiants des 3 blocs d'annonces | non |
 | `UPLOAD_DIR` | vide = `~/sentravail-uploads` | non |
 | `CV_DIR` | vide = `~/sentravail-private/cvs` | non |
-| `CLOUDINARY_*` | vide = images et vidéos stockées sur Hostinger | non |
+| `CLOUDINARY_*` | vide = images stockées sur Hostinger | non |
 | `FEATURED_DAYS`, `VIRAL_THRESHOLD`, `REPORT_AUTOHIDE`, `FEED_PAGE_SIZE`, `CV_LINK_DAYS` | réglages (valeurs par défaut correctes) | non |
 
 Ne définissez pas `PORT` : Hostinger le fournit. L'application refuse de démarrer en production si `SESSION_SECRET` est trop court.
@@ -84,7 +84,7 @@ Les données de démonstration (`npm run seed`) **ne doivent pas** être utilis�
 
 | Dossier | Contenu | Public ? |
 |---|---|---|
-| `~/sentravail-uploads` | photos, logos, réels, miniatures, photos de CV | oui (adresses aléatoires) |
+| `~/sentravail-uploads` | logos, affiches, photos de CV | oui (adresses aléatoires) |
 | `~/sentravail-private/cvs` | CV importés et générés | **non**, uniquement par lien signé |
 
 Ils sont **en dehors** du dossier de l'application : un redéploiement depuis GitHub ne les efface pas.
@@ -134,7 +134,6 @@ Activez aussi les **sauvegardes automatiques** de hPanel, et téléchargez de te
 | « Jeton de sécurité invalide » | page restée ouverte très longtemps, ou cookies bloqués | recharger la page |
 | Les photos disparaissent après un redéploiement | `UPLOAD_DIR` pointe dans le dossier de l'application | laisser `UPLOAD_DIR` vide (§7) |
 | « Upload folder … is not writable » | droits du dossier | définir `UPLOAD_DIR` vers un dossier de votre espace personnel |
-| Envoi de réel en échec au-delà de quelques Mo | limite de taille d'envoi de l'hébergement | demander au support la limite ; les réels vont jusqu'à 40 Mo |
 | Les emails ne partent pas | SMTP non configuré ou mot de passe faux | vérifier `SMTP_*` ; en attendant, les emails sont écrits dans les logs |
 | Notifications avec quelques secondes de retard | WebSockets bloqués par l'hébergeur | normal : repli automatique en HTTP, rien à faire |
 

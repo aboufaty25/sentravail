@@ -3,8 +3,8 @@
  * - Images: cache-first with a size cap.
  * - Pages: always from the network (never cached: they contain personal data),
  *   with an offline page when the network is unavailable.
- * - Never cached: POST requests, Socket.io, CV downloads, videos, admin. */
-const VERSION = 'v1';
+ * - Never cached: POST requests, Socket.io, CV downloads, admin. */
+const VERSION = 'v2';
 const STATIC_CACHE = `st-static-${VERSION}`;
 const IMAGE_CACHE = `st-images-${VERSION}`;
 const MAX_IMAGES = 150;
@@ -64,7 +64,6 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return; // ads, Cloudinary… handled by the browser
   if (/^\/(socket\.io|cv\/telecharger|admin|notifications)/.test(url.pathname)) return;
-  if (request.headers.get('range') || url.pathname.startsWith('/uploads/reels/')) return; // videos stream directly
 
   if (request.mode === 'navigate') {
     event.respondWith(fetch(request).catch(() => caches.match('/offline.html')));
