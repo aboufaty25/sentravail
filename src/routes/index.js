@@ -26,6 +26,16 @@ const router = express.Router();
 
 router.get('/', pages.home);
 
+// Health check (uptime monitoring): app + database
+router.get('/sante', async (req, res) => {
+  try {
+    await require('../models').sequelize.query('SELECT 1');
+    res.set('Cache-Control', 'no-store').json({ status: 'ok', uptime: Math.round(process.uptime()) });
+  } catch (_) {
+    res.status(503).json({ status: 'error', database: 'unreachable' });
+  }
+});
+
 // SEO & AdSense files
 router.get('/robots.txt', seo.robots);
 router.get('/sitemap.xml', seo.sitemap);

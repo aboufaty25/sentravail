@@ -25,10 +25,10 @@
 <meta name="apple-mobile-web-app-title" content="SenTravail">
 <link rel="stylesheet" href="/css/app.css?v=<%= assetVersion %>">
 <meta name="csrf-token" content="<%= csrfToken %>">
-<script src="/vendor/htmx/htmx.min.js" defer></script>
+<script src="/vendor/htmx/htmx.min.js?v=<%= assetVersion %>" defer></script>
 <% if (locals.currentUser) { %><script src="/socket.io/socket.io.min.js" defer></script><% } %>
 <%# app.js must run before Alpine so its components are registered on alpine:init %>
 <script src="/js/app.js?v=<%= assetVersion %>" defer></script>
-<script src="/vendor/alpine/cdn.min.js" defer></script>
+<script src="/vendor/alpine/cdn.min.js?v=<%= assetVersion %>" defer></script>
 <%# AdSense loads only after consent (public/js/ads.js), never on ad-free pages %>
 <% if (adsEnabled && !noAds) { %><script src="/js/ads.js?v=<%= assetVersion %>" data-client="<%= adsClient %>" defer></script><% } %>

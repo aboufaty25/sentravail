@@ -26,21 +26,6 @@ function menu(req, res) {
   res.render('pages/menu', { title: 'Menu', activeTab: 'menu', noAds: true });
 }
 
-// Tabs whose features arrive in later phases.
-const UPCOMING = {
-  reels: { title: 'Réels', icon: 'play', text: 'Les vidéos de 30 secondes des candidats et recruteurs arrivent bientôt.' },
-  jobs: { title: 'Offres', icon: 'briefcase', text: "Les offres d'emploi et la recherche par ville, secteur et contrat arrivent bientôt." },
-  network: { title: 'Réseau', icon: 'users', text: "Les suggestions d'abonnements arrivent bientôt." },
-  notifications: { title: 'Notifications', icon: 'bell', text: 'Vos notifications en temps réel arrivent bientôt.' },
-  search: { title: 'Recherche', icon: 'search', text: 'La recherche de personnes, entreprises et offres arrive bientôt.' },
-  publish: { title: 'Publier', icon: 'pencil', text: 'La publication de textes, photos, réels et offres arrive bientôt.' },
-  cv: { title: 'Mon CV', icon: 'document', text: 'Le créateur de CV avec export PDF arrive bientôt.' },
-  applications: { title: 'Mes candidatures', icon: 'inbox', text: 'Le suivi de vos candidatures arrive bientôt.' },
-  saved: { title: 'Enregistrements', icon: 'bookmark', text: 'Vos offres et publications enregistrées arriveront ici.' },
-  myJobs: { title: 'Mes offres', icon: 'briefcase', text: 'La gestion de vos offres et des candidatures reçues arrive bientôt.' },
-  admin: { title: 'Administration', icon: 'shield', text: "Le tableau de bord d'administration arrive bientôt." },
-};
-
 const STATIC_PAGES = {
   about: 'À propos',
   contact: 'Contact',
@@ -52,10 +37,4 @@ function staticPage(key) {
   return (req, res) => res.render(`pages/static/${key}`, { title: STATIC_PAGES[key] });
 }
 
-function upcoming(key) {
-  const { icon: icon_, ...rest } = UPCOMING[key];
-  const tab = ['reels', 'jobs', 'network', 'notifications'].includes(key) ? key : null;
-  return (req, res) => res.render('pages/upcoming', { ...rest, icon_, activeTab: tab });
-}
-
-module.exports = { home, menu, upcoming, staticPage };
+module.exports = { home, menu, staticPage };

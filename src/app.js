@@ -30,7 +30,7 @@ const assetVersion = (() => {
   const fs = require('fs');
   const crypto = require('crypto');
   const hash = crypto.createHash('sha1');
-  for (const f of ['public/css/app.css', 'public/js/app.js', 'public/js/ads.js']) {
+  for (const f of ['public/css/app.css', 'public/js/app.js', 'public/js/ads.js', 'node_modules/htmx.org/package.json', 'node_modules/alpinejs/package.json']) {
     try { hash.update(fs.readFileSync(path.join(root, f))); } catch (_) { /* not built yet */ }
   }
   return hash.digest('hex').slice(0, 10);
@@ -76,13 +76,19 @@ app.get('/sw.js', (req, res) => {
   res.sendFile(path.join(root, 'public/sw.js'));
 });
 app.use(express.static(path.join(root, 'public'), staticOpts));
-if (!env.uploadDir.startsWith(path.join(root, 'public'))) {
-  app.use('/uploads', express.static(env.uploadDir, staticOpts));
-}
+// Uploaded files have random, never-reused names: cache them for a long time.
+const uploadOpts = { maxAge: env.isProd ? '30d' : 0, immutable: env.isProd };
+app.use('/uploads', express.static(env.uploadDir, uploadOpts));
 app.use('/vendor/htmx', express.static(path.join(root, 'node_modules/htmx.org/dist'), staticOpts));
 app.use('/vendor/alpine', express.static(path.join(root, 'node_modules/alpinejs/dist'), staticOpts));
 
 app.use(globalLimiter);
+// Dynamic pages: never stored by shared caches/CDN (they contain personal data);
+// "no-cache" (not "no-store") keeps the browser's instant back/forward navigation.
+app.use((req, res, next) => {
+  res.set('Cache-Control', 'private, no-cache');
+  next();
+});
 app.use(express.urlencoded({ extended: false, limit: '100kb' }));
 app.use(express.json({ limit: '200kb' }));
 app.use(sessionMiddleware());

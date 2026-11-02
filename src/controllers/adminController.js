@@ -279,8 +279,12 @@ async function userAction(req, res) {
   } else {
     throw fail(422, 'Action inconnue.');
   }
-  const back = req.get('Referer');
-  return res.redirect(back && back.startsWith(env.APP_URL) ? back : '/admin/utilisateurs');
+  let back = '/admin/utilisateurs';
+  try {
+    const ref = new URL(req.get('Referer') || '');
+    if (ref.origin === new URL(env.APP_URL).origin && ref.pathname.startsWith('/admin/')) back = ref.pathname + ref.search;
+  } catch (_) { /* no or invalid referer */ }
+  return res.redirect(back);
 }
 
 // ---------- Cities & sectors ----------

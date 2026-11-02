@@ -11,6 +11,8 @@ const { isEmailLike, normalizePhone } = require('../utils/text');
 const BCRYPT_ROUNDS = env.isTest ? 4 : 12;
 const RESET_TTL_MS = 60 * 60 * 1000;
 const hashToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
+// Compared against when the account does not exist, so both paths take the same time.
+const DUMMY_HASH = bcrypt.hashSync('timing-equalizer', BCRYPT_ROUNDS);
 
 // Prevents session fixation: new session id on every login.
 function startSession(req, user) {
@@ -86,13 +88,13 @@ async function login(req, res) {
   if (isEmailLike(identifier)) where = { email: identifier.toLowerCase() };
   else {
     const phone = normalizePhone(identifier);
-    if (!phone) return render(401, { _form: 'Identifiants incorrects.' });
-    where = { phone };
+    where = phone ? { phone } : null;
   }
 
-  const user = await User.findOne({ where });
-  // Same message whether the account exists or not.
-  if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
+  const user = where ? await User.findOne({ where }) : null;
+  // Same message and same work whether the account exists or not.
+  const valid = await bcrypt.compare(password, user ? user.passwordHash : DUMMY_HASH);
+  if (!user || !valid) {
     return render(401, { _form: 'Identifiants incorrects.' });
   }
   if (user.isBanned) return render(403, { _form: 'Ce compte a été suspendu. Contactez le support.' });

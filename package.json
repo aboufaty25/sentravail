@@ -16,7 +16,8 @@
     "db:sync": "node scripts/dbSync.js",
     "seed": "node scripts/seed.js",
     "test": "cross-env NODE_ENV=test jest --runInBand",
-    "scores": "node scripts/refreshScores.js"
+    "scores": "node scripts/refreshScores.js",
+    "make-admin": "node scripts/makeAdmin.js"
   },
   "jest": {
     "testEnvironment": "node",
@@ -57,5 +58,11 @@
     "nodemon": "^3.1.14",
     "socket.io-client": "^4.8.4",
     "supertest": "^7.3.1"
+  },
+  "overrides": {
+    "express-mysql-session": {
+      "mysql2": "$mysql2"
+    },
+    "uuid": "^11.1.1"
   }
 }

@@ -43,6 +43,10 @@ if (!parsed.success) {
 }
 
 const env = parsed.data;
+if (env.NODE_ENV === 'production' && (env.SESSION_SECRET.length < 32 || /change-me/.test(env.SESSION_SECRET))) {
+  console.error('SESSION_SECRET must be a random string of at least 32 characters in production (openssl rand -hex 32).');
+  process.exit(1);
+}
 env.isProd = env.NODE_ENV === 'production';
 env.isTest = env.NODE_ENV === 'test';
 if (env.isTest) env.DB_NAME = env.DB_NAME_TEST;
