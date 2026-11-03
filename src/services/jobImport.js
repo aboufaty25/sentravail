@@ -57,9 +57,31 @@ async function importJobs(list, author) {
   return report;
 }
 
+// Career advice posts ("Conseil carrière"): title + text (max 2000 characters).
+async function importAdvice(list, author) {
+  const report = { created: [], skipped: [] };
+  for (const raw of list) {
+    const title = String(raw.title || '').trim().slice(0, 160);
+    const text = String(raw.text || '').trim();
+    if (title.length < 3 || text.length < 20 || text.length > 2000) {
+      report.skipped.push(`${title || 'Conseil'} (titre ou texte invalide)`);
+      continue;
+    }
+    if (await Post.findOne({ where: { type: 'advice', title } })) {
+      report.skipped.push(`${title} (déjà publié)`);
+      continue;
+    }
+    await Post.create({ authorId: author.id, type: 'advice', title, text, visibility: 'public', status: 'published', score: baseScore({ createdAt: new Date() }) });
+    report.created.push(`Conseil : ${title}`);
+  }
+  return report;
+}
+
 async function importFile(file, author) {
   const data = JSON.parse(fs.readFileSync(file, 'utf8'));
-  return importJobs(data.jobs || [], author);
+  const jobsReport = await importJobs(data.jobs || [], author);
+  const adviceReport = await importAdvice(data.advice || [], author);
+  return { created: [...jobsReport.created, ...adviceReport.created], skipped: [...jobsReport.skipped, ...adviceReport.skipped] };
 }
 
 // At startup: imports the files of data/imports not imported yet.
@@ -76,9 +98,9 @@ async function importPending() {
     }
     const report = await importFile(path.join(IMPORT_DIR, name), author);
     await SiteSetting.upsert({ key, value: JSON.stringify({ at: new Date(), by: author.email, created: report.created.length }) });
-    console.log(`[import] ${name}: ${report.created.length} offer(s) published as ${author.email}, ${report.skipped.length} skipped.`);
+    console.log(`[import] ${name}: ${report.created.length} item(s) published as ${author.email}, ${report.skipped.length} skipped.`);
     for (const s of report.skipped) console.log(`[import]   skipped: ${s}`);
   }
 }
 
-module.exports = { IMPORT_DIR, findAdmin, importJobs, importFile, importPending };
+module.exports = { IMPORT_DIR, findAdmin, importJobs, importAdvice, importFile, importPending };

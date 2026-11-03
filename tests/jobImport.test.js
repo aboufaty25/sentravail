@@ -22,6 +22,32 @@ test('the prepared offers file is valid (all fields accepted by the job form rul
   }
 });
 
+test('the 3 November file: 4 valid offers and one career advice post (max 2000 characters)', async () => {
+  const data = JSON.parse(fs.readFileSync(path.join(IMPORT_DIR, '2026-11-03-offres.json'), 'utf8'));
+  expect(data.jobs).toHaveLength(4);
+  for (const j of data.jobs) {
+    const parsed = jobSchema.safeParse({ ...j, deadline: '' });
+    if (!parsed.success) throw new Error(`${j.title}: ${parsed.error.issues[0].message}`);
+  }
+  expect(data.advice).toHaveLength(1);
+  expect(data.advice[0].text.length).toBeLessThanOrEqual(2000);
+  expect(data.advice[0].text).toContain("Un vrai recruteur ne demande jamais d'argent");
+});
+
+test('career advice posts are imported once, public, under the admin', async () => {
+  const admin = await createUser({ role: 'admin', email: 'conseil@ex.com' });
+  const file = path.join(os.tmpdir(), `conseils-${Date.now()}.json`);
+  fs.writeFileSync(file, JSON.stringify({ advice: [{ title: 'Travailler en Italie', text: 'Explications détaillées du programme officiel.' }] }));
+  const report = await importFile(file, admin);
+  expect(report.created).toEqual(['Conseil : Travailler en Italie']);
+  const post = await Post.findOne({ where: { type: 'advice', title: 'Travailler en Italie' } });
+  expect(post.status).toBe('published');
+  expect(post.authorId).toBe(admin.id);
+  expect((await request(app).get(`/publications/${post.id}`)).status).toBe(200);
+  expect((await importFile(file, admin)).created).toHaveLength(0);
+  fs.unlinkSync(file);
+});
+
 test('import publishes once under the admin, visible to everyone, skips duplicates and closed offers', async () => {
   const admin = await createUser({ role: 'admin', email: 'boss@ex.com' });
   const file = path.join(os.tmpdir(), `offres-${Date.now()}.json`);
@@ -53,6 +79,7 @@ test('startup import runs once per file and waits for an admin account', async (
   const count = await Job.count();
   expect(count).toBeGreaterThan(0); // future offers of the real file (closed ones are skipped)
   expect(await SiteSetting.findByPk('import:2026-11-02-offres.json')).not.toBeNull();
+  expect(await SiteSetting.findByPk('import:2026-11-03-offres.json')).not.toBeNull();
   await importPending();
   expect(await Job.count()).toBe(count);
 });
