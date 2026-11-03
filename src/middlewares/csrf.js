@@ -36,6 +36,8 @@ function csrfProtection(req, res, next) {
   res.locals.csrfToken = expected;
 
   if (SAFE_METHODS.has(req.method)) return next();
+  // Apple posts the sign-in result from appleid.apple.com: protected by the signed state instead.
+  if (req.path === '/auth/apple/callback') return next();
 
   const multipartToken = req.is('multipart/form-data') ? req.query._csrf : undefined;
   const sent = (req.body && req.body._csrf) || req.get('x-csrf-token') || multipartToken;

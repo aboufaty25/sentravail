@@ -1,5 +1,6 @@
 <div class="card rounded-lg p-4 sm:p-6">
   <h1 class="mb-4 text-center text-xl font-semibold">Connexion à SenTravail</h1>
+  <%- include('../../partials/oauthButtons', { verb: 'Continuer', retour: locals.values && values.retour }) %>
   <% if (errors._form) { %><div class="mb-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700" role="alert"><%= errors._form %></div><% } %>
   <form method="post" action="/connexion" class="space-y-3" novalidate>
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">

@@ -23,7 +23,7 @@ class User extends Model {
 
   // Fields that are safe to expose in views and JSON.
   toPublicJSON() {
-    const { passwordHash, resetTokenHash, resetTokenExpires, email, phone, ...rest } = this.get({ plain: true });
+    const { passwordHash, resetTokenHash, resetTokenExpires, email, phone, googleId, appleId, ...rest } = this.get({ plain: true });
     return rest;
   }
 }
@@ -36,7 +36,9 @@ User.init(
     lastName: { type: DataTypes.STRING(60), allowNull: false },
     email: { type: DataTypes.STRING(190), allowNull: false, unique: true },
     phone: { type: DataTypes.STRING(20), allowNull: true, unique: true },
-    passwordHash: { type: DataTypes.STRING(100), allowNull: false },
+    passwordHash: { type: DataTypes.STRING(100), allowNull: false }, // random for Google/Apple-only accounts
+    googleId: { type: DataTypes.STRING(64), allowNull: true, unique: true },
+    appleId: { type: DataTypes.STRING(64), allowNull: true, unique: true },
     role: { type: DataTypes.ENUM(...ROLES), allowNull: false, defaultValue: 'candidate' },
     avatarUrl: { type: DataTypes.STRING(500) },
     coverUrl: { type: DataTypes.STRING(500) },

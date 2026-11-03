@@ -13,6 +13,7 @@ const network = require('../controllers/followController');
 const search = require('../controllers/searchController');
 const report = require('../controllers/reportController');
 const admin = require('../controllers/adminController');
+const oauthCtl = require('../controllers/oauthController');
 const notification = require('../controllers/notificationController');
 const verification = require('../controllers/verificationController');
 const seo = require('../controllers/seoController');
@@ -48,6 +49,12 @@ router.get('/ads.txt', seo.adsTxt);
 
 // Auth
 router.get('/inscription', requireGuest, auth.showRegister);
+// Sign up / log in with Google or Apple
+router.get('/auth/:provider', requireGuest, authLimiter, oauthCtl.start);
+router.get('/auth/:provider/callback', authLimiter, oauthCtl.callback);
+router.post('/auth/:provider/callback', authLimiter, oauthCtl.callback); // Apple (form_post)
+router.get('/inscription/finaliser', requireGuest, oauthCtl.finishForm);
+router.post('/inscription/finaliser', requireGuest, authLimiter, oauthCtl.finish);
 router.post('/inscription', requireGuest, authLimiter, auth.register);
 router.get('/connexion', requireGuest, auth.showLogin);
 router.post('/connexion', requireGuest, authLimiter, auth.login);

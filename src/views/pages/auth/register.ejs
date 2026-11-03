@@ -5,24 +5,8 @@
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
     <% if (values.retour) { %><input type="hidden" name="retour" value="<%= values.retour %>"><% } %>
 
-    <fieldset>
-      <legend class="label">Je suis</legend>
-      <div class="grid grid-cols-2 gap-2">
-        <label class="cursor-pointer rounded-lg border-2 p-3 text-center transition" :class="role === 'candidate' ? 'border-brand-600 bg-brand-50' : 'border-gray-200'">
-          <input type="radio" name="role" value="candidate" x-model="role" class="sr-only" <%= values.role !== 'recruiter' ? 'checked' : '' %>>
-          <span class="mx-auto mb-1 block w-fit text-brand-600"><%- icon('user', 'w-7 h-7') %></span>
-          <span class="block font-semibold">Candidat</span>
-          <span class="block text-xs text-gray-500">Je cherche un emploi</span>
-        </label>
-        <label class="cursor-pointer rounded-lg border-2 p-3 text-center transition" :class="role === 'recruiter' ? 'border-brand-600 bg-brand-50' : 'border-gray-200'">
-          <input type="radio" name="role" value="recruiter" x-model="role" class="sr-only" <%= values.role === 'recruiter' ? 'checked' : '' %>>
-          <span class="mx-auto mb-1 block w-fit text-brand-600"><%- icon('building', 'w-7 h-7') %></span>
-          <span class="block font-semibold">Recruteur</span>
-          <span class="block text-xs text-gray-500">Je publie des offres</span>
-        </label>
-      </div>
-      <% if (errors.role) { %><p class="field-error"><%= errors.role %></p><% } %>
-    </fieldset>
+    <%- include('../../partials/roleChoice') %>
+    <%- include('../../partials/oauthButtons', { verb: "S'inscrire", retour: values.retour, roleAware: true }) %>
 
     <div class="grid grid-cols-2 gap-2">
       <%- include('../../partials/field', { name: 'firstName', label: 'Prénom', placeholder: 'Prénom', autocomplete: 'given-name', required: true }) %>

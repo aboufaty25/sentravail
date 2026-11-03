@@ -159,3 +159,22 @@ sudo apt install -y certbot python3-certbot-nginx && sudo certbot --nginx -d sen
 ```
 
 `deploy/ecosystem.config.js` lance une seule instance (les notifications temps réel l'exigent) et le recalcul des scores toutes les 15 minutes ; `deploy/nginx.conf` gère HTTPS, les WebSockets et les envois jusqu'à 45 Mo.
+
+## Connexion avec Google et Apple (facultatif)
+
+Les boutons « Continuer avec Google / Apple » apparaissent dès que les variables correspondantes sont remplies (hPanel → Node.js → Variables d'environnement), puis redémarrage.
+
+**Google** (gratuit)
+1. https://console.cloud.google.com → créez un projet « SenTravail ».
+2. *API et services → Écran de consentement OAuth* : type « Externe », nom SenTravail, email d'assistance, domaine `sentravail.com`, liens vers `/confidentialite` et `/conditions`. Publiez-le (« En production »).
+3. *Identifiants → Créer des identifiants → ID client OAuth* → « Application Web ».
+   - Origine JavaScript autorisée : `https://sentravail.com`
+   - URI de redirection autorisé : `https://sentravail.com/auth/google/callback`
+4. Copiez l'ID client et le code secret dans `GOOGLE_CLIENT_ID` et `GOOGLE_CLIENT_SECRET`.
+
+**Apple** (nécessite un compte Apple Developer, 99 $/an)
+1. https://developer.apple.com/account → *Identifiers* : un **App ID** avec « Sign in with Apple », puis un **Services ID** (ex. `com.sentravail.web`) → *Configure* : domaine `sentravail.com`, Return URL `https://sentravail.com/auth/apple/callback`.
+2. *Keys* → nouvelle clé avec « Sign in with Apple » → téléchargez le fichier `.p8` (une seule fois) et notez le **Key ID**.
+3. Variables : `APPLE_CLIENT_ID` = le Services ID, `APPLE_TEAM_ID` = votre Team ID (en haut à droite du compte), `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY` = contenu du `.p8` sur une seule ligne, retours à la ligne remplacés par `\n`.
+
+Fonctionnement : un compte Google/Apple déjà connu se connecte directement ; si l'email (vérifié) correspond à un compte existant, il y est rattaché ; sinon la personne choisit **Candidat** ou **Recruteur** (nom d'entreprise obligatoire) sur « Finaliser l'inscription ». Le rôle administrateur ne s'obtient jamais ainsi (`ADMIN_EMAILS` ou `npm run make-admin`).

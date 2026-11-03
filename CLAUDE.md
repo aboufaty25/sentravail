@@ -93,6 +93,12 @@ Aucun réel, aucun upload vidéo : ni onglet, ni route, ni modèle, ni code fron
 - **Connexion obligatoire** pour : publier, commenter, aimer, partager dans son fil, s'abonner, enregistrer, signaler, créer un CV. Côté visiteur, ces boutons portent `data-login="message"` et ouvrent la fenêtre « Connectez-vous pour continuer » (Se connecter / Créer un compte) ; après connexion ou inscription, retour à la page d'origine via `?retour=` (chemins du site uniquement, `src/utils/returnTo.js`). Côté serveur, `requireAuth` répond 401 + `require-login` aux actions htmx et redirige les pages vers `/connexion?retour=…`.
 - Le partage externe (WhatsApp, Facebook, copier le lien) reste ouvert à tous.
 
+## Connexion Google / Apple (`src/services/oauth.js`, `src/controllers/oauthController.js`)
+
+- OpenID Connect (code d'autorisation) : `/auth/:provider` → fournisseur → `/auth/:provider/callback` (Apple en POST `form_post`, exempté du CSRF, protégé par l'état signé). État, nonce et `retour` dans le cookie signé `st_oauth` (10 min, SameSite=None en https). Le jeton d'identité est vérifié (émetteur, audience, expiration, nonce).
+- Compte connu (`googleId` / `appleId`) → connecté ; email **vérifié** d'un compte existant → rattaché ; sinon `/inscription/finaliser` : choix **Candidat / Recruteur** (jamais admin ; entreprise obligatoire pour un recruteur), CGU, puis création (mot de passe aléatoire : « Mot de passe oublié » permet d'en définir un). Le profil choisi sur `/inscription` est transmis (`?role=`).
+- Boutons affichés seulement si les variables `GOOGLE_*` / `APPLE_*` sont remplies (`docs/DEPLOIEMENT.md`). Comptes suspendus refusés comme pour la connexion classique.
+
 ## Candidature (fonctionnalité centrale)
 
 1. « Voir l'offre » → `/offres/:slug` (données structurées `JobPosting`, bouton « Postuler » fixe sur mobile).

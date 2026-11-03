@@ -115,6 +115,7 @@ app.use((req, res, next) => {
     // AdSense (admin settings, .env as fallback)
     ...(() => { const a = adsConfig.current(); return { adsEnabled: a.enabled, adsClient: a.client, adSlots: a.slots }; })(),
     brand: branding.current(),
+    oauthProviders: require('./services/oauth').enabledProviders(),
     ogImage: branding.current().shareImage,
     // Private or personal pages are never indexed.
     noindex: /^\/(admin|parametres|mes-|cv|candidatures|notifications|enregistrements|publier|menu|reinitialiser|mot-de-passe-oublie|offres\/nouvelle|offres\/[^/]+\/modifier)/.test(req.path),

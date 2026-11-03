@@ -45,6 +45,19 @@ const registerSchema = z
     message: "Indiquez le nom de votre entreprise.",
   });
 
+// Account created with Google/Apple: the email comes from the provider; the person still
+// chooses their profile (never admin) and, for recruiters, gives the company name.
+const oauthSignupSchema = z
+  .object({
+    firstName: name('Prénom'),
+    lastName: name('Nom'),
+    phone: optionalPhone,
+    role: z.enum(['candidate', 'recruiter'], { message: 'Choisissez votre profil : candidat ou recruteur.' }),
+    companyName: z.string().trim().max(120).optional().default(''),
+    acceptTerms: z.literal('on', { message: "Vous devez accepter les conditions d'utilisation." }),
+  })
+  .refine((d) => d.role !== 'recruiter' || d.companyName.length >= 2, { path: ['companyName'], message: "Indiquez le nom de votre entreprise." });
+
 const loginSchema = z.object({
   identifier: z.string().trim().min(3, 'Saisissez votre email ou votre numéro de téléphone.'),
   password: z.string().min(1, 'Saisissez votre mot de passe.'),
@@ -71,4 +84,4 @@ function fieldErrors(error) {
   return out;
 }
 
-module.exports = { registerSchema, loginSchema, forgotSchema, resetSchema, fieldErrors };
+module.exports = { oauthSignupSchema, registerSchema, loginSchema, forgotSchema, resetSchema, fieldErrors };
