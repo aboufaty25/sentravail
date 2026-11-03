@@ -32,6 +32,7 @@ async function start() {
   await promoteConfiguredAdmins();
   await refs.load();
   await branding.load();
+  await require('./services/jobImport').importPending().catch((err) => console.error('[import] failed:', err.message));
   setInterval(() => refs.load().catch(() => {}), 5 * 60 * 1000).unref();
   const server = http.createServer(app);
   initSocket(server, sessionMiddleware());

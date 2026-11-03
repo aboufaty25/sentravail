@@ -131,3 +131,4 @@ Aucun réel, aucun upload vidéo : ni onglet, ni route, ni modèle, ni code fron
 - `npm run make-admin -- email` : nommer un administrateur (ou variable `ADMIN_EMAILS`, appliquée au démarrage aux comptes existants)
 - `npm run set-password -- email` : changer le mot de passe d'un compte (saisi au clavier, déconnecte ses sessions)
 - `npm run scores` : recalcul des scores du fil
+- `npm run import-jobs -- fichier.json [email-admin]` : publier des offres préparées en JSON sous un compte admin. Les fichiers de `data/imports/` sont aussi importés **automatiquement une seule fois** au démarrage (repère `import:<fichier>` dans `site_settings` ; offres déjà présentes ou clôturées ignorées ; publiées « validées par l'admin », visibles dans le fil, sans être mises à la une).
