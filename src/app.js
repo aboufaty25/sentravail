@@ -89,6 +89,11 @@ const uploadOpts = { maxAge: env.isProd ? '30d' : 0, immutable: env.isProd };
 app.use('/uploads', express.static(env.uploadDir, uploadOpts));
 app.use('/vendor/htmx', express.static(path.join(root, 'node_modules/htmx.org/dist'), staticOpts));
 app.use('/vendor/alpine', express.static(path.join(root, 'node_modules/alpinejs/dist'), staticOpts));
+// pdf.js (live CV preview): only the two files needed.
+app.get(/^\/vendor\/pdfjs\/(pdf\.min\.mjs|pdf\.worker\.min\.mjs)$/, (req, res) => {
+  res.type('text/javascript').set('Cache-Control', env.isProd ? 'public, max-age=604800' : 'no-cache')
+    .sendFile(path.join(root, 'node_modules/pdfjs-dist/legacy/build', req.params[0]));
+});
 
 app.use(globalLimiter);
 // Dynamic pages: never stored by shared caches/CDN (they contain personal data);

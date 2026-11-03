@@ -32,7 +32,7 @@ src/
   controllers/   publish, post, job, event, application, cv, comment, follow, search,
                  notification, report, verification, admin, seo, page, auth, profile
   services/      feedRanking, posts, jobs, follows, notifications, moderation, moderationActions,
-                 verification, reactions, cvPdf, cvStorage, storage, mail, refs, branding, adsConfig, googleConfig, oauth, jobImport
+                 verification, reactions, cv/ (CV PDF), cvStorage, storage, mail, refs, branding, adsConfig, googleConfig, oauth, jobImport
   middlewares/   auth, roles, csrf, upload, rateLimit, errors, flash
   migrations/    001… (idempotentes)
   views/         layouts, partials (postCard, postContent, cards/*, jobCard, applyModal,
@@ -108,6 +108,14 @@ Aucun réel, aucun upload vidéo : ni onglet, ni route, ni modèle, ni code fron
 5. Anti-spam : champ piège invisible (`website`) et limites par IP (6/heure, 20/jour pour les visiteurs).
 6. CV stockés hors du dossier public, téléchargeables uniquement par lien signé.
 
+## Créateur de CV (`/cv/creer`, `src/services/cv/`)
+
+- **7 modèles** (`src/config/cvTemplates.js`) : Rubis, Terracotta, Classique, Émeraude, Encadré, Prune, Horizon ; options : couleur (palette ou libre), police (Inter, Lora, mixte, intégrées en sous-ensemble), photo oui/non, niveaux oui/non, **ordre des rubriques**. Rubriques : coordonnées (adresse, nationalité, site, permis), titre, profil, expériences, formation, compétences (niveau 0-5), langues, qualités, centres d'intérêt, certificats, rubrique libre.
+- **Rendu unique PDFKit** (`templates/*.js` + `layout.js`) : colonnes `Flow` avec **sauts de page automatiques** (en-tête d'entrée gardé avec sa 1ʳᵉ ligne, rubriques courtes non coupées, fond/colonnes redessinés à chaque page). Polices WOFF converties en TTF une fois en mémoire (~0,1 s par CV).
+- **Aperçu en direct = le vrai PDF** : `POST /cv/apercu` (souple, rien n'est stocké, limité) affiché avec **pdf.js** (`/vendor/pdfjs/`, chargé à la demande) ; ordinateur : colonne à droite ; mobile : vignette en direct dans la barre du bas + aperçu plein écran. Brouillon dans `localStorage`.
+- **Téléchargement en un clic** : `POST /cv/creer` (strict, `src/validators/cv.js`) enregistre le CV (`users.cvBuilt`, format normalisé par `normalize.js`, anciens CV compris), le rend CV de candidature et déclenche le téléchargement.
+- Vignettes des modèles : `public/img/cv/*.jpg`, régénérées par `npm run cv:thumbs` (développement, Playwright).
+
 ## Recrutement sur la plateforme (ATS)
 
 - Étapes d'une candidature (`Application.status`) : `confirmed_sent` (nouvelle) → `viewed` (à examiner) → `shortlisted` → `interview` → `offer` → `hired`, ou `rejected` à tout moment (`opened_mail` = email pas encore confirmé, hors pipeline).
@@ -144,4 +152,5 @@ Aucun réel, aucun upload vidéo : ni onglet, ni route, ni modèle, ni code fron
 - `npm run make-admin -- email` : nommer un administrateur (ou variable `ADMIN_EMAILS`, appliquée au démarrage aux comptes existants)
 - `npm run set-password -- email` : changer le mot de passe d'un compte (saisi au clavier, déconnecte ses sessions)
 - `npm run scores` : recalcul des scores du fil
+- `npm run cv:thumbs` : régénère les vignettes des modèles de CV (application démarrée)
 - `npm run import-jobs -- fichier.json [email-admin]` : publier des offres préparées en JSON sous un compte admin. Les fichiers de `data/imports/` sont aussi importés **automatiquement une seule fois** au démarrage (repère `import:<fichier>` dans `site_settings` ; offres déjà présentes ou clôturées ignorées ; publiées « validées par l'admin », visibles dans le fil, sans être mises à la une).

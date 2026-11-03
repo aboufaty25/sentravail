@@ -19,7 +19,7 @@ const verification = require('../controllers/verificationController');
 const seo = require('../controllers/seoController');
 const publish = require('../controllers/publishController');
 const events = require('../controllers/eventController');
-const { authLimiter, postLimiter, commentLimiter, actionLimiter, applyLimiter, serverMailLimiter, cvBuildLimiter } = require('../middlewares/rateLimit');
+const { authLimiter, postLimiter, commentLimiter, actionLimiter, applyLimiter, serverMailLimiter, cvBuildLimiter, cvPreviewLimiter } = require('../middlewares/rateLimit');
 const { imageUpload, brandingImageUpload, jobImagesUpload, cvUpload, handleUploadErrors } = require('../middlewares/upload');
 
 const recruiterOnly = [requireAuth, requireRole('recruiter', 'admin')];
@@ -113,6 +113,7 @@ router.get('/cv/telecharger', application.downloadCv);
 // CV builder: members only (the apply modal asks guests to log in)
 router.get('/cv/creer', requireAuth, cv.builder);
 router.post('/cv/creer', requireAuth, cvBuildLimiter, cv.save);
+router.post('/cv/apercu', requireAuth, cvPreviewLimiter, cv.preview);
 router.post('/cv/photo', requireAuth, cvBuildLimiter, handleUploadErrors(imageUpload.single('photo')), cv.uploadPhoto);
 
 // Comments

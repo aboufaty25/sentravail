@@ -85,3 +85,13 @@ module.exports.cvBuildLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: 'Trop de tentatives. Réessayez dans une heure.' },
 });
+
+// Live CV preview: one PDF per pause while typing (debounced in the browser).
+module.exports.cvPreviewLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: env.isTest ? 10000 : 90,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  keyGenerator: (req) => (req.session?.userId ? `u${req.session.userId}` : ipKeyGenerator(req.ip)),
+  message: { error: "Trop d'aperçus en peu de temps. Patientez quelques secondes." },
+});

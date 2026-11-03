@@ -352,66 +352,177 @@
       sendViaServer() { return this.finish(`/candidatures/${this.appId}/envoyer`); },
     }));
 
-    // CV builder: 7 steps, live preview, draft saved locally, PDF generated server-side.
+    // CV builder: 8 steps, live preview (the real PDF, rendered with pdf.js), draft saved
+    // locally, one-click download. The pdf.js document lives outside Alpine's reactive state.
     Alpine.data('cvBuilder', (cfg) => {
       const draftKey = `st-cv-draft-${cfg.userKey}`;
       let uid = 0;
       const withIds = (list) => (list || []).map((x) => ({ ...x, _id: ++uid }));
+      const MONTHS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+      const STEP_OF = { template: 0, color: 0, font: 0, personal: 1, title: 2, summary: 2, experiences: 3, educations: 4, skills: 5, languages: 5, qualities: 6, interests: 6, certificates: 6, custom: 6 };
+      const LABELS = { modele: 'Modèle', infos: 'Coordonnées', profil: 'Profil', experiences: 'Expériences', formations: 'Formation', competences: 'Compétences', plus: 'Plus', terminer: 'Terminer' };
+      let pdfDoc = null;
+      let pdfjsLib = null;
+      let previewTimer = null;
+      let controller = null;
+      let paintToken = 0;
+
+      const fromData = (d) => ({
+        template: d.template,
+        color: d.color,
+        font: d.font,
+        showPhoto: d.showPhoto !== false,
+        showLevels: d.showLevels !== false,
+        sectionOrder: [...(d.sectionOrder || cfg.options.SECTIONS)],
+        personal: { firstName: '', lastName: '', email: '', phone: '', address: '', nationality: '', website: '', license: '', photoUrl: '', ...d.personal },
+        title: d.title || '',
+        summary: d.summary || '',
+        experiences: withIds(d.experiences),
+        educations: withIds(d.educations),
+        skills: withIds((d.skills || []).map((s) => (typeof s === 'string' ? { name: s, level: 0 } : s))),
+        languages: withIds(d.languages),
+        qualities: [...(d.qualities || [])],
+        interests: [...(d.interests || [])],
+        certificates: withIds(d.certificates),
+        custom: { title: '', text: '', ...(d.custom || {}) },
+      });
       let start = cfg.initial;
       try {
         const draft = JSON.parse(localStorage.getItem(draftKey) || 'null');
-        if (draft && draft.personal) start = draft;
+        if (draft && draft.personal && draft.version === 2) start = draft.cv;
       } catch (_) { /* storage unavailable */ }
-      const MONTHS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
-      const STEP_OF = { personal: 0, title: 1, summary: 1, experiences: 2, educations: 3, skills: 4, languages: 5, template: 6 };
+
+      async function loadPdfJs() {
+        if (!pdfjsLib) {
+          pdfjsLib = await import('/vendor/pdfjs/pdf.min.mjs');
+          pdfjsLib.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.min.mjs';
+        }
+        return pdfjsLib;
+      }
+
+      // Renders the pages into a container (replaced at once, no flicker).
+      async function paintInto(container, { maxPages = Infinity, token }) {
+        if (!container || !pdfDoc) return;
+        const width = container.clientWidth - (container.dataset.preview === 'thumb' ? 0 : 24);
+        if (width <= 0) return;
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const frag = document.createDocumentFragment();
+        for (let i = 1; i <= Math.min(pdfDoc.numPages, maxPages); i += 1) {
+          const page = await pdfDoc.getPage(i);
+          if (token !== paintToken) return; // a newer preview is on its way
+          const base = page.getViewport({ scale: 1 });
+          const viewport = page.getViewport({ scale: (width / base.width) * dpr });
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.floor(viewport.width);
+          canvas.height = Math.floor(viewport.height);
+          canvas.style.width = `${width}px`;
+          canvas.style.height = `${(width * base.height) / base.width}px`;
+          canvas.className = container.dataset.preview === 'thumb' ? 'block' : 'mx-auto block bg-white shadow-md';
+          canvas.setAttribute('aria-label', `Page ${i}`);
+          await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+          frag.appendChild(canvas);
+        }
+        if (token !== paintToken) return;
+        container.replaceChildren(frag);
+      }
+
       return {
+        options: cfg.options,
+        steps: cfg.steps,
         step: 0,
-        tab: 'edit',
-        cv: {
-          template: start.template || 'classic',
-          personal: { firstName: '', lastName: '', email: '', phone: '', city: '', photoUrl: '', ...start.personal },
-          title: start.title || '',
-          summary: start.summary || '',
-          experiences: withIds(start.experiences),
-          educations: withIds(start.educations),
-          skills: [...(start.skills || [])],
-          languages: withIds(start.languages),
-        },
-        levels: cfg.levels,
+        cv: fromData(start),
         newSkill: '',
+        newQuality: '',
+        newInterest: '',
         uploading: false,
         saving: false,
+        saved: null,
         savedDraft: false,
         error: '',
+        errors: {},
+        previewLoading: false,
+        previewError: '',
+        pageCount: 0,
+        mobilePreview: false,
         init() {
           let t;
           this.$watch('cv', () => {
             clearTimeout(t);
             t = setTimeout(() => {
-              try { localStorage.setItem(draftKey, JSON.stringify(this.cv)); this.savedDraft = true; setTimeout(() => { this.savedDraft = false; }, 1500); } catch (_) { /* ignore */ }
+              try { localStorage.setItem(draftKey, JSON.stringify({ version: 2, cv: this.payload() })); this.savedDraft = true; setTimeout(() => { this.savedDraft = false; }, 1500); } catch (_) { /* ignore */ }
             }, 600);
+            this.schedulePreview();
           });
+          this.refreshPreview();
+          let resize;
+          window.addEventListener('resize', () => { clearTimeout(resize); resize = setTimeout(() => this.paint(), 250); });
         },
-        fullName() { return `${this.cv.personal.firstName} ${this.cv.personal.lastName}`.trim(); },
-        month(v) { if (!v) return ''; const [y, m] = v.split('-'); return `${MONTHS[Number(m) - 1]} ${y}`; },
-        period(e) {
-          const s = this.month(e.start);
-          const end = e.current ? "aujourd'hui" : this.month(e.end);
-          return s && end ? `${s} — ${end}` : s || end || '';
+        // Data sent to the server (without the list ids used by the form).
+        payload() {
+          const strip = (list) => list.map(({ _id, ...rest }) => rest);
+          const c = this.cv;
+          return { ...c, experiences: strip(c.experiences), educations: strip(c.educations), skills: strip(c.skills), languages: strip(c.languages), certificates: strip(c.certificates) };
         },
+        stepLabel(i = this.step) { return LABELS[this.steps[i]] || ''; },
         go(i) {
-          this.step = Math.max(0, Math.min(6, i));
+          this.step = Math.max(0, Math.min(this.steps.length - 1, i));
           window.scrollTo({ top: 0, behavior: 'smooth' });
         },
-        move(list, i, delta) { const j = i + delta; if (j < 0 || j >= list.length) return; [list[i], list[j]] = [list[j], list[i]]; },
-        addExperience() { this.cv.experiences.push({ _id: ++uid, title: '', company: '', city: '', start: '', end: '', current: false, description: '' }); },
-        addEducation() { this.cv.educations.push({ _id: ++uid, degree: '', school: '', city: '', start: '', end: '' }); },
+        month(v) { if (!v) return ''; const [y, m] = v.split('-'); return `${MONTHS[Number(m) - 1]} ${y}`; },
+        periodLabel(e) {
+          const s = this.month(e.start);
+          const end = e.current ? "aujourd'hui" : this.month(e.end);
+          return s && end ? `${s} – ${end}` : s || end || '';
+        },
+        move(list, i, delta) { const j = i + delta; if (j < 0 || j >= list.length) return; const [item] = list.splice(i, 1); list.splice(j, 0, item); },
+        chooseTemplate(key) {
+          const previousDefault = this.options.TEMPLATES[this.cv.template]?.color;
+          this.cv.template = key;
+          // Follow the template's own color unless the person picked another one.
+          if (!this.cv.color || this.cv.color === previousDefault) this.cv.color = this.options.TEMPLATES[key].color;
+          this.cv.font = this.options.TEMPLATES[key].font;
+        },
+        add(list) {
+          const blank = {
+            experiences: { title: '', company: '', city: '', start: '', end: '', current: false, description: '' },
+            educations: { degree: '', school: '', city: '', start: '', end: '', current: false, description: '' },
+            certificates: { name: '', year: '' },
+          }[list];
+          this.cv[list].push({ _id: ++uid, ...blank });
+        },
         addSkill() {
           const s = this.newSkill.trim();
-          if (s && !this.cv.skills.includes(s) && this.cv.skills.length < 30) this.cv.skills.push(s);
+          if (s && !this.cv.skills.some((k) => k.name.toLowerCase() === s.toLowerCase()) && this.cv.skills.length < 30) this.cv.skills.push({ _id: ++uid, name: s, level: 0 });
           this.newSkill = '';
         },
-        addLanguage(name) { if (this.cv.languages.length < 8) this.cv.languages.push({ _id: ++uid, name, level: name === 'Wolof' ? 'Langue maternelle' : 'Courant' }); },
+        addLanguage(name) { if (this.cv.languages.length < 10) this.cv.languages.push({ _id: ++uid, name, level: ['Wolof', 'Pulaar', 'Sérère', 'Diola'].includes(name) ? 'Langue maternelle' : 'Courant' }); },
+        addChip(list, value) {
+          const v = String(value || '').trim();
+          if (v && !this.cv[list].includes(v) && this.cv[list].length < 12) this.cv[list].push(v);
+        },
+        sectionLabel(key) { return key === 'custom' && this.cv.custom.title ? this.cv.custom.title : this.options.SECTION_LABELS[key]; },
+        filled(key) {
+          if (key === 'summary') return !!this.cv.summary.trim();
+          if (key === 'custom') return !!this.cv.custom.text.trim();
+          return this.cv[key].length > 0;
+        },
+        checklist() {
+          const c = this.cv;
+          const out = [];
+          if (!c.personal.firstName || !c.personal.lastName || !c.personal.email) out.push({ text: 'Renseignez vos nom, prénom et email', step: 1 });
+          if (!c.title) out.push({ text: 'Ajoutez votre titre professionnel', step: 2 });
+          if (!c.summary) out.push({ text: 'Rédigez quelques lignes de profil', step: 2 });
+          if (!c.experiences.length) out.push({ text: 'Ajoutez au moins une expérience', step: 3 });
+          if (!c.educations.length) out.push({ text: 'Ajoutez votre formation', step: 4 });
+          if (!c.skills.length) out.push({ text: 'Listez vos compétences', step: 5 });
+          return out;
+        },
+        restart() {
+          if (!window.confirm('Recommencer à partir de votre profil ? Le brouillon actuel sera effacé.')) return;
+          try { localStorage.removeItem(draftKey); } catch (_) { /* ignore */ }
+          this.cv = fromData(cfg.initial);
+          this.go(0);
+        },
         async uploadPhoto(e) {
           const file = e.target.files[0];
           e.target.value = '';
@@ -419,34 +530,98 @@
           this.uploading = true;
           try {
             const data = new FormData();
-            data.append('photo', await resizeImage(file, 600, 0.85), 'photo.jpg');
+            data.append('photo', await resizeImage(file, 700, 0.88), 'photo.jpg');
             const res = await fetch('/cv/photo', { method: 'POST', body: data, headers: { 'X-CSRF-Token': csrf(), Accept: 'application/json' } });
             const json = await res.json().catch(() => ({}));
-            if (res.ok) this.cv.personal.photoUrl = json.url; else toast(json.error || 'Envoi de la photo impossible.', 'error');
+            if (res.ok) { this.cv.personal.photoUrl = json.url; this.cv.showPhoto = true; } else toast(json.error || 'Envoi de la photo impossible.', 'error');
           } catch (_) { toast('Pas de connexion internet.', 'error'); }
           this.uploading = false;
         },
-        async save() {
+
+        // ---------- Live preview ----------
+        schedulePreview() {
+          clearTimeout(previewTimer);
+          previewTimer = setTimeout(() => this.refreshPreview(), 650);
+        },
+        async refreshPreview() {
+          if (controller) controller.abort();
+          controller = new AbortController();
+          this.previewLoading = true;
+          try {
+            const [lib, res] = await Promise.all([
+              loadPdfJs(),
+              fetch('/cv/apercu', { method: 'POST', signal: controller.signal, headers: { 'X-CSRF-Token': csrf(), 'Content-Type': 'application/json', Accept: 'application/pdf' }, body: JSON.stringify(this.payload()) }),
+            ]);
+            if (!res.ok) throw new Error(res.status === 429 ? "Trop d'aperçus, patientez quelques secondes." : 'Aperçu indisponible.');
+            const data = new Uint8Array(await res.arrayBuffer());
+            const next = await lib.getDocument({ data, isEvalSupported: false }).promise;
+            if (pdfDoc) pdfDoc.destroy();
+            pdfDoc = next;
+            this.pageCount = pdfDoc.numPages;
+            this.previewError = '';
+            await this.paint();
+          } catch (err) {
+            if (err.name !== 'AbortError') this.previewError = err.message && err.message.length < 80 ? err.message : 'Aperçu indisponible.';
+          } finally {
+            this.previewLoading = false;
+          }
+        },
+        async paint() {
+          paintToken += 1;
+          const token = paintToken;
+          const desk = this.$refs.desk;
+          if (desk && desk.offsetParent) await paintInto(desk, { token });
+          await paintInto(this.$refs.thumb, { maxPages: 1, token });
+          if (this.mobilePreview) await paintInto(this.$refs.full, { token });
+        },
+        openPreview() {
+          this.mobilePreview = true;
+          this.$nextTick(() => this.paint());
+        },
+
+        // ---------- One-click download ----------
+        validate() {
+          const p = this.cv.personal;
+          const errors = {};
+          if (p.firstName.trim().length < 2) errors['personal.firstName'] = 'Prénom requis.';
+          if (p.lastName.trim().length < 2) errors['personal.lastName'] = 'Nom requis.';
+          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(p.email.trim())) errors['personal.email'] = 'Adresse email invalide.';
+          if (this.cv.title.trim().length < 2) errors.title = 'Indiquez votre titre professionnel.';
+          this.errors = errors;
+          const first = Object.keys(errors)[0];
+          if (first) { this.mobilePreview = false; this.go(STEP_OF[first.split('.')[0]]); toast(errors[first], 'error'); return false; }
+          return true;
+        },
+        async download() {
           this.error = '';
+          if (!this.validate()) return;
           this.saving = true;
           try {
             const res = await fetch('/cv/creer', {
               method: 'POST',
               headers: { 'X-CSRF-Token': csrf(), 'Content-Type': 'application/json', Accept: 'application/json' },
-              body: JSON.stringify({ ...this.cv, returnTo: cfg.returnTo }),
+              body: JSON.stringify({ ...this.payload(), returnTo: cfg.returnTo }),
             });
             const json = await res.json().catch(() => ({}));
             if (!res.ok) {
               this.error = json.error || 'Enregistrement impossible. Vérifiez les informations.';
               const first = (json.path || '').split('.')[0];
-              if (first in STEP_OF && STEP_OF[first] !== 6) { this.go(STEP_OF[first]); this.tab = 'edit'; toast(this.error, 'error'); }
+              if (first in STEP_OF) { this.mobilePreview = false; this.go(STEP_OF[first]); }
+              toast(this.error, 'error');
               return;
             }
+            // Download right away (signed link to the stored PDF).
+            const a = document.createElement('a');
+            a.href = json.downloadPath;
+            a.download = json.fileName || 'CV.pdf';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            this.saved = json;
             try { localStorage.removeItem(draftKey); } catch (_) { /* ignore */ }
-            if (json.returnTo) { window.location.href = json.returnTo; return; }
-            toast(json.message);
-            window.location.href = json.downloadPath; // downloads the PDF
-            setTimeout(() => { window.location.href = cfg.loggedIn ? '/cv' : '/'; }, 1500);
+            toast('CV téléchargé et enregistré dans votre profil.');
+            if (json.returnTo) setTimeout(() => { window.location.href = json.returnTo; }, 1200);
+            else { this.mobilePreview = false; this.go(this.steps.length - 1); }
           } catch (_) {
             this.error = 'Pas de connexion internet. Réessayez.';
           } finally {

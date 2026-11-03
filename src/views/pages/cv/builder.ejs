@@ -1,164 +1,299 @@
 <%
-  const steps = ['Infos', 'Titre', 'Expériences', 'Formations', 'Compétences', 'Langues', 'Modèle'];
-  const cfg = JSON.stringify({ initial, loggedIn: !!currentUser, userKey: currentUser ? currentUser.id : 'guest', returnTo, levels: LANGUAGE_LEVELS }).replace(/</g, '\\u003c');
+  const STEPS = [['modele', 'Modèle'], ['infos', 'Coordonnées'], ['profil', 'Profil'], ['experiences', 'Expériences'], ['formations', 'Formation'], ['competences', 'Compétences'], ['plus', 'Plus'], ['terminer', 'Terminer']];
+  const cfg = JSON.stringify({ initial, userKey: currentUser ? currentUser.id : 'guest', returnTo, options, steps: STEPS.map(s => s[0]) }).replace(/</g, '\\u003c');
+  const QUALITY_IDEAS = ['Rigueur', 'Ponctualité', "Esprit d'équipe", 'Autonomie', 'Sens du contact', 'Dynamisme', 'Organisation', 'Discrétion', 'Adaptabilité', 'Créativité'];
+  const INTEREST_IDEAS = ['Lecture', 'Football', 'Musique', 'Cuisine', 'Voyages', 'Bénévolat', 'Couture', 'Informatique', 'Photographie'];
 %>
-<div x-data="cvBuilder(<%= cfg %>)">
+<div x-data="cvBuilder(<%= cfg %>)" class="pb-24 lg:pb-0">
+  <%# Header + steps %>
   <div class="card mb-2 px-3 py-3 sm:rounded-lg sm:px-4">
     <div class="flex items-center gap-2">
       <a href="<%= returnTo || '/cv' %>" class="icon-btn !bg-transparent" aria-label="Retour"><%- icon('arrowLeft', 'w-5 h-5') %></a>
-      <h1 class="flex-1 text-lg font-semibold">Créer mon CV</h1>
-      <span class="text-xs text-gray-500" x-show="savedDraft" x-transition>Brouillon enregistré</span>
+      <div class="min-w-0 flex-1">
+        <h1 class="text-lg font-semibold leading-tight">Créer mon CV</h1>
+        <p class="text-xs text-gray-500"><span x-text="'Étape ' + (step + 1) + ' sur <%= STEPS.length %>'"></span> · <span x-text="stepLabel()"></span><span x-show="savedDraft" x-transition class="text-green-700"> · brouillon enregistré</span></p>
+      </div>
+      <button type="button" class="btn-primary hidden !py-2 text-sm lg:inline-flex" :disabled="saving" @click="download()"><%- icon('download', 'w-4 h-4') %> <span x-text="saving ? 'Création…' : 'Télécharger le PDF'"></span></button>
     </div>
     <ol class="mt-3 flex gap-1" aria-label="Étapes">
-      <% steps.forEach((s, i) => { %>
-        <li class="flex-1"><button type="button" @click="go(<%= i %>)" class="block w-full text-left" :aria-current="step === <%= i %> ? 'step' : null">
-          <span class="block h-1.5 rounded-full" :class="step >= <%= i %> ? 'bg-brand-600' : 'bg-gray-200'"></span>
-          <span class="mt-1 hidden text-[11px] font-medium sm:block" :class="step === <%= i %> ? 'text-brand-700' : 'text-gray-500'"><%= s %></span>
+      <% STEPS.forEach(([key, label], i) => { %>
+        <li class="flex-1"><button type="button" @click="go(<%= i %>)" class="block w-full text-left" :aria-current="step === <%= i %> ? 'step' : null" title="<%= label %>">
+          <span class="block h-1.5 rounded-full transition-colors" :class="step >= <%= i %> ? 'bg-brand-600' : 'bg-gray-200'"></span>
+          <span class="mt-1 hidden truncate text-[11px] font-medium xl:block" :class="step === <%= i %> ? 'text-brand-700' : 'text-gray-500'"><%= label %></span>
         </button></li>
       <% }) %>
     </ol>
-    <div class="mt-3 grid grid-cols-2 gap-1 rounded-lg bg-gray-100 p-1 text-sm font-semibold lg:hidden" role="tablist">
-      <button type="button" role="tab" @click="tab = 'edit'" :class="tab === 'edit' ? 'bg-white shadow' : 'text-gray-600'" class="rounded-md py-1.5">Modifier</button>
-      <button type="button" role="tab" @click="tab = 'preview'" :class="tab === 'preview' ? 'bg-white shadow' : 'text-gray-600'" class="rounded-md py-1.5">Aperçu</button>
-    </div>
   </div>
 
-  <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-    <section class="card px-4 py-4 sm:rounded-lg" :class="tab === 'edit' ? '' : 'hidden lg:block'">
-      <%# 1. Personal %>
-      <div x-show="step === 0" class="space-y-3">
-        <h2 class="text-lg font-semibold">Informations personnelles</h2>
+  <div class="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-4">
+    <%# ================= FORM ================= %>
+    <section class="card min-w-0 px-4 py-4 sm:rounded-lg" aria-live="polite">
+
+      <%# 0. Template, color, font %>
+      <div x-show="step === 0" class="space-y-5">
+        <div>
+          <h2 class="text-lg font-semibold">Choisissez un modèle</h2>
+          <p class="text-sm text-gray-500">Vous pourrez en changer à tout moment, vos informations sont conservées.</p>
+        </div>
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3">
+          <template x-for="(tpl, key) in options.TEMPLATES" :key="key">
+            <button type="button" @click="chooseTemplate(key)" class="group rounded-lg border-2 p-1.5 text-left transition" :class="cv.template === key ? 'border-brand-600 bg-brand-50' : 'border-gray-200 hover:border-gray-300'" :aria-pressed="cv.template === key">
+              <span class="block overflow-hidden rounded bg-white ring-1 ring-gray-200"><img :src="'/img/cv/' + key + '.jpg'" :alt="'Modèle ' + tpl.label" loading="lazy" width="298" height="421" class="block aspect-[210/297] w-full object-cover object-top"></span>
+              <span class="mt-1.5 flex items-center gap-1.5 px-0.5"><span class="h-3 w-3 shrink-0 rounded-full" :style="'background:' + tpl.color"></span><span class="font-semibold" x-text="tpl.label"></span></span>
+              <span class="block px-0.5 text-xs leading-snug text-gray-500" x-text="tpl.description"></span>
+            </button>
+          </template>
+        </div>
+        <div>
+          <h3 class="label">Couleur</h3>
+          <div class="flex flex-wrap items-center gap-2">
+            <template x-for="c in options.COLORS" :key="c">
+              <button type="button" @click="cv.color = c" class="h-8 w-8 rounded-full ring-offset-2 transition" :class="cv.color === c ? 'ring-2 ring-gray-900' : 'hover:scale-110'" :style="'background:' + c" :aria-label="'Couleur ' + c" :aria-pressed="cv.color === c"></button>
+            </template>
+            <label class="relative flex h-8 w-8 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-gray-300 text-gray-500" title="Autre couleur">
+              <span aria-hidden="true">+</span><input type="color" x-model="cv.color" class="absolute inset-0 cursor-pointer opacity-0" aria-label="Choisir une autre couleur">
+            </label>
+          </div>
+        </div>
+        <div>
+          <h3 class="label">Police</h3>
+          <div class="grid grid-cols-3 gap-2">
+            <template x-for="(label, key) in options.FONTS" :key="key">
+              <button type="button" @click="cv.font = key" class="rounded-lg border-2 px-2 py-2 text-center text-sm" :class="cv.font === key ? 'border-brand-600 bg-brand-50 font-semibold' : 'border-gray-200'" :aria-pressed="cv.font === key">
+                <span class="block text-lg leading-none" :style="key === 'sans' ? 'font-family: Inter, sans-serif' : 'font-family: Georgia, serif'">Aa</span><span class="mt-1 block text-xs" x-text="label"></span>
+              </button>
+            </template>
+          </div>
+        </div>
+        <div class="space-y-2">
+          <label class="flex items-center justify-between gap-3 rounded-lg border border-gray-200 p-3"><span><span class="font-medium">Afficher la photo</span><span class="block text-xs text-gray-500">Si vous en ajoutez une à l'étape suivante.</span></span><input type="checkbox" x-model="cv.showPhoto" class="h-5 w-5"></label>
+          <label class="flex items-center justify-between gap-3 rounded-lg border border-gray-200 p-3"><span><span class="font-medium">Afficher les niveaux</span><span class="block text-xs text-gray-500">Barres ou points pour les compétences et les langues.</span></span><input type="checkbox" x-model="cv.showLevels" class="h-5 w-5"></label>
+        </div>
+      </div>
+
+      <%# 1. Contact details %>
+      <div x-show="step === 1" x-cloak class="space-y-3">
+        <h2 class="text-lg font-semibold">Coordonnées</h2>
         <div class="flex items-center gap-3">
-          <template x-if="cv.personal.photoUrl"><img :src="cv.personal.photoUrl" alt="" class="h-16 w-16 rounded-full object-cover"></template>
-          <template x-if="!cv.personal.photoUrl"><span class="flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 text-gray-400"><%- icon('user', 'w-8 h-8') %></span></template>
-          <label class="btn-light cursor-pointer text-sm"><span x-text="uploading ? 'Envoi…' : (cv.personal.photoUrl ? 'Changer la photo' : 'Ajouter une photo')"></span>
-            <input type="file" accept="image/jpeg,image/png,image/webp" class="sr-only" @change="uploadPhoto($event)"></label>
-          <button type="button" x-show="cv.personal.photoUrl" class="text-sm text-red-600 hover:underline" @click="cv.personal.photoUrl = ''">Retirer</button>
+          <template x-if="cv.personal.photoUrl"><img :src="cv.personal.photoUrl" alt="Votre photo" class="h-20 w-20 rounded-full object-cover ring-2 ring-gray-100"></template>
+          <template x-if="!cv.personal.photoUrl"><span class="flex h-20 w-20 items-center justify-center rounded-full bg-gray-100 text-gray-400"><%- icon('user', 'w-9 h-9') %></span></template>
+          <div class="space-y-1">
+            <label class="btn-light cursor-pointer !py-2 text-sm"><span x-text="uploading ? 'Envoi…' : (cv.personal.photoUrl ? 'Changer la photo' : 'Ajouter une photo')"></span>
+              <input type="file" accept="image/jpeg,image/png,image/webp" class="sr-only" @change="uploadPhoto($event)"></label>
+            <button type="button" x-show="cv.personal.photoUrl" class="block text-sm text-red-600 hover:underline" @click="cv.personal.photoUrl = ''">Retirer la photo</button>
+            <p class="text-xs text-gray-500">Photo nette, de face, fond uni.</p>
+          </div>
         </div>
         <div class="grid grid-cols-2 gap-2">
-          <div><label class="label" for="cv-fn">Prénom *</label><input id="cv-fn" class="input" x-model="cv.personal.firstName" autocomplete="given-name"></div>
-          <div><label class="label" for="cv-ln">Nom *</label><input id="cv-ln" class="input" x-model="cv.personal.lastName" autocomplete="family-name"></div>
+          <div><label class="label" for="cv-fn">Prénom *</label><input id="cv-fn" class="input" :class="errors['personal.firstName'] && 'input-error'" x-model="cv.personal.firstName" autocomplete="given-name" maxlength="60"></div>
+          <div><label class="label" for="cv-ln">Nom *</label><input id="cv-ln" class="input" :class="errors['personal.lastName'] && 'input-error'" x-model="cv.personal.lastName" autocomplete="family-name" maxlength="60"></div>
         </div>
-        <div><label class="label" for="cv-em">Email *</label><input id="cv-em" type="email" class="input" x-model="cv.personal.email" autocomplete="email"></div>
+        <div><label class="label" for="cv-em">Email *</label><input id="cv-em" type="email" class="input" :class="errors['personal.email'] && 'input-error'" x-model="cv.personal.email" autocomplete="email" maxlength="190"><p class="field-error" x-show="errors['personal.email']" x-text="errors['personal.email']"></p></div>
         <div class="grid grid-cols-2 gap-2">
-          <div><label class="label" for="cv-ph">Téléphone</label><input id="cv-ph" type="tel" class="input" x-model="cv.personal.phone" autocomplete="tel" placeholder="77 123 45 67"></div>
-          <div><label class="label" for="cv-ci">Ville</label><input id="cv-ci" class="input" x-model="cv.personal.city" placeholder="Dakar"></div>
+          <div><label class="label" for="cv-ph">Téléphone</label><input id="cv-ph" type="tel" class="input" x-model="cv.personal.phone" autocomplete="tel" placeholder="+221 77 123 45 67" maxlength="30"></div>
+          <div><label class="label" for="cv-ad">Adresse / ville</label><input id="cv-ad" class="input" x-model="cv.personal.address" placeholder="Médina, Dakar" maxlength="120"></div>
         </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div><label class="label" for="cv-na">Nationalité</label><input id="cv-na" class="input" x-model="cv.personal.nationality" placeholder="Sénégalaise" maxlength="60"></div>
+          <div><label class="label" for="cv-li">Permis de conduire</label><input id="cv-li" class="input" x-model="cv.personal.license" placeholder="B" maxlength="60"></div>
+        </div>
+        <div><label class="label" for="cv-web">Site web ou LinkedIn</label><input id="cv-web" class="input" x-model="cv.personal.website" placeholder="linkedin.com/in/votre-nom" maxlength="120" inputmode="url"></div>
       </div>
 
       <%# 2. Title & summary %>
-      <div x-show="step === 1" class="space-y-3">
+      <div x-show="step === 2" x-cloak class="space-y-3">
         <h2 class="text-lg font-semibold">Titre et profil</h2>
-        <div><label class="label" for="cv-title">Titre professionnel *</label><input id="cv-title" class="input" x-model="cv.title" maxlength="120" placeholder="Ex. Comptable — 5 ans d'expérience"></div>
-        <div><label class="label" for="cv-sum">Profil (facultatif)</label>
-          <textarea id="cv-sum" rows="6" maxlength="1200" class="input" x-model="cv.summary" placeholder="En 3 ou 4 phrases : qui vous êtes, ce que vous savez faire, ce que vous recherchez."></textarea>
-          <p class="mt-1 text-right text-xs text-gray-400"><span x-text="cv.summary.length"></span>/1200</p></div>
+        <div><label class="label" for="cv-title">Titre professionnel *</label><input id="cv-title" class="input" :class="errors.title && 'input-error'" x-model="cv.title" maxlength="120" placeholder="Ex. Comptable, Assistante de direction…"><p class="field-error" x-show="errors.title" x-text="errors.title"></p></div>
+        <div><label class="label" for="cv-sum">Profil</label>
+          <textarea id="cv-sum" rows="7" maxlength="1500" class="input" x-model="cv.summary" placeholder="En 3 ou 4 phrases : qui vous êtes, vos années d'expérience, vos points forts et ce que vous recherchez."></textarea>
+          <p class="mt-1 flex justify-between text-xs text-gray-400"><span>Idéal : 300 à 600 caractères.</span><span x-text="cv.summary.length + '/1500'"></span></p></div>
       </div>
 
-      <%# 3. Experiences %>
-      <div x-show="step === 2" class="space-y-3">
-        <h2 class="text-lg font-semibold">Expériences professionnelles</h2>
-        <p class="text-sm text-gray-500" x-show="!cv.experiences.length">Stages, emplois, bénévolat… Commencez par le plus récent.</p>
-        <template x-for="(e, i) in cv.experiences" :key="e._id">
-          <div class="space-y-2 rounded-lg border border-gray-200 p-3">
-            <div class="flex items-center justify-between"><p class="font-semibold" x-text="e.title || 'Nouvelle expérience'"></p>
-              <div class="flex gap-1">
-                <button type="button" class="icon-btn !h-8 !w-8 !bg-transparent" @click="move(cv.experiences, i, -1)" :disabled="i === 0" aria-label="Monter">↑</button>
-                <button type="button" class="icon-btn !h-8 !w-8 !bg-transparent text-red-600" @click="cv.experiences.splice(i, 1)" aria-label="Supprimer"><%- icon('trash', 'w-4 h-4') %></button>
-              </div></div>
-            <input class="input" x-model="e.title" placeholder="Intitulé du poste *" maxlength="120">
-            <div class="grid grid-cols-2 gap-2"><input class="input" x-model="e.company" placeholder="Entreprise" maxlength="120"><input class="input" x-model="e.city" placeholder="Ville" maxlength="80"></div>
-            <div class="grid grid-cols-2 gap-2">
-              <label class="text-xs text-gray-500">Début<input type="month" class="input mt-0.5" x-model="e.start"></label>
-              <label class="text-xs text-gray-500">Fin<input type="month" class="input mt-0.5" x-model="e.end" :disabled="e.current"></label>
+      <%# 3. Experiences / 4. Education (same editor) %>
+      <% [['experiences', 3, 'Expériences professionnelles', 'Ajouter une expérience', 'title', 'Intitulé du poste *', 'company', 'Entreprise', 'Missions et résultats, une ligne par point', 15],
+          ['educations', 4, 'Formation', 'Ajouter une formation', 'degree', 'Diplôme ou formation *', 'school', 'Établissement', 'Mention, spécialité… (facultatif)', 10]].forEach(([listKey, stepIndex, heading, addLabel, mainKey, mainLabel, orgKey, orgLabel, descPh, max]) => { %>
+      <div x-show="step === <%= stepIndex %>" x-cloak class="space-y-3">
+        <h2 class="text-lg font-semibold"><%= heading %></h2>
+        <p class="text-sm text-gray-500" x-show="!cv.<%= listKey %>.length"><%= listKey === 'experiences' ? 'Emplois, stages, bénévolat… Commencez par le plus récent.' : 'Diplômes et formations, du plus récent au plus ancien.' %></p>
+        <template x-for="(e, i) in cv.<%= listKey %>" :key="e._id">
+          <div class="rounded-lg border border-gray-200" x-data="{ open: !e.<%= mainKey %> }">
+            <div class="flex items-center gap-1 px-3 py-2">
+              <button type="button" class="min-w-0 flex-1 text-left" @click="open = !open" :aria-expanded="open">
+                <span class="block truncate font-semibold" x-text="e.<%= mainKey %> || '<%= listKey === 'experiences' ? 'Nouvelle expérience' : 'Nouvelle formation' %>'"></span>
+                <span class="block truncate text-xs text-gray-500" x-text="[e.<%= orgKey %>, periodLabel(e)].filter(Boolean).join(' · ')"></span>
+              </button>
+              <button type="button" class="icon-btn !h-8 !w-8 !bg-transparent" @click="move(cv.<%= listKey %>, i, -1)" :disabled="i === 0" aria-label="Monter">↑</button>
+              <button type="button" class="icon-btn !h-8 !w-8 !bg-transparent" @click="move(cv.<%= listKey %>, i, 1)" :disabled="i === cv.<%= listKey %>.length - 1" aria-label="Descendre">↓</button>
+              <button type="button" class="icon-btn !h-8 !w-8 !bg-transparent text-red-600" @click="cv.<%= listKey %>.splice(i, 1)" aria-label="Supprimer"><%- icon('trash', 'w-4 h-4') %></button>
             </div>
-            <label class="flex items-center gap-2 text-sm"><input type="checkbox" x-model="e.current" class="h-4 w-4"> Poste actuel</label>
-            <textarea rows="3" class="input" x-model="e.description" maxlength="1500" placeholder="Missions et résultats (une ligne par point)"></textarea>
-          </div>
-        </template>
-        <button type="button" class="btn-soft w-full" @click="addExperience()" x-show="cv.experiences.length < 10"><%- icon('plus', 'w-4 h-4') %> Ajouter une expérience</button>
-      </div>
-
-      <%# 4. Education %>
-      <div x-show="step === 3" class="space-y-3">
-        <h2 class="text-lg font-semibold">Formations</h2>
-        <template x-for="(e, i) in cv.educations" :key="e._id">
-          <div class="space-y-2 rounded-lg border border-gray-200 p-3">
-            <div class="flex items-center justify-between"><p class="font-semibold" x-text="e.degree || 'Nouvelle formation'"></p>
-              <button type="button" class="icon-btn !h-8 !w-8 !bg-transparent text-red-600" @click="cv.educations.splice(i, 1)" aria-label="Supprimer"><%- icon('trash', 'w-4 h-4') %></button></div>
-            <input class="input" x-model="e.degree" placeholder="Diplôme ou formation *" maxlength="120">
-            <div class="grid grid-cols-2 gap-2"><input class="input" x-model="e.school" placeholder="Établissement" maxlength="120"><input class="input" x-model="e.city" placeholder="Ville" maxlength="80"></div>
-            <div class="grid grid-cols-2 gap-2">
-              <label class="text-xs text-gray-500">Début<input type="month" class="input mt-0.5" x-model="e.start"></label>
-              <label class="text-xs text-gray-500">Fin<input type="month" class="input mt-0.5" x-model="e.end"></label>
+            <div x-show="open" class="space-y-2 border-t border-gray-100 px-3 py-3">
+              <input class="input" x-model="e.<%= mainKey %>" placeholder="<%= mainLabel %>" maxlength="120" aria-label="<%= mainLabel %>">
+              <div class="grid grid-cols-2 gap-2"><input class="input" x-model="e.<%= orgKey %>" placeholder="<%= orgLabel %>" maxlength="120" aria-label="<%= orgLabel %>"><input class="input" x-model="e.city" placeholder="Ville" maxlength="80" aria-label="Ville"></div>
+              <div class="grid grid-cols-2 gap-2">
+                <label class="text-xs text-gray-500">Début<input type="month" class="input mt-0.5" x-model="e.start"></label>
+                <label class="text-xs text-gray-500">Fin<input type="month" class="input mt-0.5" x-model="e.end" :disabled="e.current"></label>
+              </div>
+              <label class="flex items-center gap-2 text-sm"><input type="checkbox" x-model="e.current" class="h-4 w-4"> <%= listKey === 'experiences' ? 'Poste actuel' : 'En cours' %></label>
+              <textarea rows="4" class="input" x-model="e.description" maxlength="2000" placeholder="<%= descPh %>"></textarea>
             </div>
           </div>
         </template>
-        <button type="button" class="btn-soft w-full" @click="addEducation()" x-show="cv.educations.length < 8"><%- icon('plus', 'w-4 h-4') %> Ajouter une formation</button>
+        <button type="button" class="btn-soft w-full" @click="add('<%= listKey %>')" x-show="cv.<%= listKey %>.length < <%= max %>"><%- icon('plus', 'w-4 h-4') %> <%= addLabel %></button>
       </div>
+      <% }) %>
 
-      <%# 5. Skills %>
-      <div x-show="step === 4" class="space-y-3">
-        <h2 class="text-lg font-semibold">Compétences</h2>
-        <form class="flex gap-2" @submit.prevent="addSkill()">
-          <input class="input" x-model="newSkill" maxlength="60" placeholder="Ex. Excel, Permis B, Service client…" aria-label="Nouvelle compétence">
-          <button class="btn-primary shrink-0">Ajouter</button>
-        </form>
-        <ul class="flex flex-wrap gap-2">
-          <template x-for="(s, i) in cv.skills" :key="s">
-            <li class="flex items-center gap-1 rounded-full bg-brand-50 py-1 pl-3 pr-1 text-sm font-medium text-brand-700"><span x-text="s"></span>
-              <button type="button" class="flex h-6 w-6 items-center justify-center rounded-full hover:bg-brand-100" @click="cv.skills.splice(i, 1)" :aria-label="'Retirer ' + s">✕</button></li>
+      <%# 5. Skills & languages %>
+      <div x-show="step === 5" x-cloak class="space-y-5">
+        <div class="space-y-2">
+          <h2 class="text-lg font-semibold">Compétences</h2>
+          <form class="flex gap-2" @submit.prevent="addSkill()">
+            <input class="input min-w-0" x-model="newSkill" maxlength="60" placeholder="Ex. Excel, Service client, Sage…" aria-label="Nouvelle compétence">
+            <button class="btn-primary shrink-0">Ajouter</button>
+          </form>
+          <ul class="divide-y divide-gray-100 rounded-lg border border-gray-200" x-show="cv.skills.length">
+            <template x-for="(s, i) in cv.skills" :key="s._id">
+              <li class="flex items-center gap-2 px-3 py-2">
+                <input class="min-w-0 flex-1 bg-transparent text-sm font-medium focus:outline-none" x-model="s.name" maxlength="60" aria-label="Compétence">
+                <span class="flex gap-1" x-show="cv.showLevels" role="group" :aria-label="'Niveau de ' + s.name">
+                  <template x-for="n in 5" :key="n"><button type="button" class="h-4 w-4 rounded-full border transition" :class="s.level >= n ? 'border-transparent' : 'border-gray-300 bg-white'" :style="s.level >= n ? 'background:' + cv.color : ''" @click="s.level = s.level === n ? 0 : n" :aria-label="'Niveau ' + n + ' : ' + options.SKILL_LEVELS[n]"></button></template>
+                </span>
+                <button type="button" class="flex h-7 w-7 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100" @click="cv.skills.splice(i, 1)" :aria-label="'Retirer ' + s.name">✕</button>
+              </li>
+            </template>
+          </ul>
+          <p class="text-xs text-gray-500" x-show="cv.showLevels && cv.skills.length">Touchez les points pour indiquer votre niveau (facultatif).</p>
+        </div>
+        <div class="space-y-2">
+          <h2 class="text-lg font-semibold">Langues</h2>
+          <template x-for="(l, i) in cv.languages" :key="l._id">
+            <div class="flex gap-2">
+              <input class="input min-w-0" x-model="l.name" placeholder="Langue" maxlength="40" aria-label="Langue">
+              <select class="input min-w-0" x-model="l.level" aria-label="Niveau"><template x-for="lv in options.LANGUAGE_LEVELS" :key="lv"><option :value="lv" x-text="lv" :selected="lv === l.level"></option></template></select>
+              <button type="button" class="icon-btn shrink-0 !bg-transparent text-red-600" @click="cv.languages.splice(i, 1)" aria-label="Supprimer"><%- icon('trash', 'w-4 h-4') %></button>
+            </div>
           </template>
-        </ul>
-      </div>
-
-      <%# 6. Languages %>
-      <div x-show="step === 5" class="space-y-3">
-        <h2 class="text-lg font-semibold">Langues</h2>
-        <template x-for="(l, i) in cv.languages" :key="l._id">
-          <div class="flex gap-2">
-            <input class="input" x-model="l.name" placeholder="Langue" maxlength="40" aria-label="Langue">
-            <select class="input" x-model="l.level" aria-label="Niveau"><template x-for="lv in levels"><option :value="lv" x-text="lv" :selected="lv === l.level"></option></template></select>
-            <button type="button" class="icon-btn shrink-0 !bg-transparent text-red-600" @click="cv.languages.splice(i, 1)" aria-label="Supprimer"><%- icon('trash', 'w-4 h-4') %></button>
+          <div class="flex flex-wrap gap-2">
+            <template x-for="name in ['Français', 'Wolof', 'Anglais', 'Pulaar', 'Sérère', 'Diola', 'Arabe', 'Espagnol']" :key="name">
+              <button type="button" class="rounded-full bg-gray-100 px-3 py-1.5 text-sm font-medium hover:bg-gray-200" x-show="!cv.languages.some(l => l.name === name)" @click="addLanguage(name)" x-text="'+ ' + name"></button>
+            </template>
+            <button type="button" class="rounded-full bg-gray-100 px-3 py-1.5 text-sm font-medium hover:bg-gray-200" @click="addLanguage('')">+ Autre</button>
           </div>
-        </template>
-        <div class="flex flex-wrap gap-2">
-          <template x-for="name in ['Français', 'Wolof', 'Anglais', 'Pulaar', 'Sérère', 'Arabe']">
-            <button type="button" class="rounded-full bg-gray-100 px-3 py-1.5 text-sm font-medium hover:bg-gray-200" x-show="!cv.languages.some(l => l.name === name)" @click="addLanguage(name)" x-text="'+ ' + name"></button>
-          </template>
-          <button type="button" class="rounded-full bg-gray-100 px-3 py-1.5 text-sm font-medium hover:bg-gray-200" @click="addLanguage('')">+ Autre</button>
         </div>
       </div>
 
-      <%# 7. Template & save %>
-      <div x-show="step === 6" class="space-y-3">
-        <h2 class="text-lg font-semibold">Choisissez un modèle</h2>
-        <div class="grid grid-cols-2 gap-3">
-          <% [['classic', 'Classique', 'Sobre, une colonne'], ['modern', 'Moderne', 'Colonne colorée avec photo']].forEach(([key, label, desc]) => { %>
-            <button type="button" @click="cv.template = '<%= key %>'" class="rounded-lg border-2 p-3 text-left" :class="cv.template === '<%= key %>' ? 'border-brand-600 bg-brand-50' : 'border-gray-200'">
-              <span class="mb-2 flex h-20 overflow-hidden rounded bg-white ring-1 ring-gray-200">
-                <% if (key === 'modern') { %><span class="w-1/3 bg-brand-800"></span><% } %>
-                <span class="flex-1 space-y-1 p-2"><span class="block h-2 w-2/3 rounded bg-gray-800"></span><span class="block h-1.5 w-1/2 rounded bg-brand-500"></span><span class="block h-1 w-full rounded bg-gray-200"></span><span class="block h-1 w-5/6 rounded bg-gray-200"></span><span class="block h-1 w-full rounded bg-gray-200"></span></span>
-              </span>
-              <span class="block font-semibold"><%= label %></span><span class="block text-xs text-gray-500"><%= desc %></span>
-            </button>
-          <% }) %>
+      <%# 6. More: qualities, interests, certificates, free section %>
+      <div x-show="step === 6" x-cloak class="space-y-5">
+        <% [['qualities', 'Qualités', 'newQuality', QUALITY_IDEAS], ['interests', "Centres d'intérêt", 'newInterest', INTEREST_IDEAS]].forEach(([key, label, model, ideas]) => { %>
+        <div class="space-y-2">
+          <h2 class="text-lg font-semibold"><%= label %></h2>
+          <form class="flex gap-2" @submit.prevent="addChip('<%= key %>', <%= model %>); <%= model %> = ''">
+            <input class="input min-w-0" x-model="<%= model %>" maxlength="60" placeholder="Ajouter…" aria-label="<%= label %>"><button class="btn-light shrink-0">Ajouter</button>
+          </form>
+          <ul class="flex flex-wrap gap-2">
+            <template x-for="(q, i) in cv.<%= key %>" :key="q + i">
+              <li class="flex items-center gap-1 rounded-full bg-brand-50 py-1 pl-3 pr-1 text-sm font-medium text-brand-700"><span x-text="q"></span><button type="button" class="flex h-6 w-6 items-center justify-center rounded-full hover:bg-brand-100" @click="cv.<%= key %>.splice(i, 1)" :aria-label="'Retirer ' + q">✕</button></li>
+            </template>
+          </ul>
+          <div class="flex flex-wrap gap-1.5">
+            <% ideas.forEach(idea => { %><button type="button" class="rounded-full border border-dashed border-gray-300 px-2.5 py-1 text-xs text-gray-600 hover:bg-gray-50" x-show="!cv.<%= key %>.includes(<%= JSON.stringify(idea) %>)" @click="addChip('<%= key %>', <%= JSON.stringify(idea) %>)">+ <%= idea %></button><% }) %>
+          </div>
+        </div>
+        <% }) %>
+        <div class="space-y-2">
+          <h2 class="text-lg font-semibold">Certificats et attestations</h2>
+          <template x-for="(c, i) in cv.certificates" :key="c._id">
+            <div class="flex gap-2">
+              <input class="input min-w-0" x-model="c.name" placeholder="Ex. Attestation premiers secours" maxlength="140" aria-label="Certificat">
+              <input class="input !w-20 shrink-0" x-model="c.year" placeholder="Année" maxlength="20" inputmode="numeric" aria-label="Année">
+              <button type="button" class="icon-btn shrink-0 !bg-transparent text-red-600" @click="cv.certificates.splice(i, 1)" aria-label="Supprimer"><%- icon('trash', 'w-4 h-4') %></button>
+            </div>
+          </template>
+          <button type="button" class="btn-soft w-full" @click="add('certificates')" x-show="cv.certificates.length < 12"><%- icon('plus', 'w-4 h-4') %> Ajouter un certificat</button>
+        </div>
+        <div class="space-y-2">
+          <h2 class="text-lg font-semibold">Rubrique libre <span class="text-sm font-normal text-gray-500">(facultatif)</span></h2>
+          <input class="input" x-model="cv.custom.title" maxlength="60" placeholder="Titre, ex. Projets, Associations, Références" aria-label="Titre de la rubrique libre">
+          <textarea class="input" rows="4" x-model="cv.custom.text" maxlength="1500" placeholder="Contenu de la rubrique" aria-label="Contenu de la rubrique libre"></textarea>
+        </div>
+      </div>
+
+      <%# 7. Finish: order + download %>
+      <div x-show="step === 7" x-cloak class="space-y-5">
+        <div>
+          <h2 class="text-lg font-semibold">Ordre des rubriques</h2>
+          <p class="text-sm text-gray-500">Selon le modèle, certaines rubriques s'affichent dans la colonne latérale.</p>
+          <ol class="mt-2 divide-y divide-gray-100 rounded-lg border border-gray-200">
+            <template x-for="(key, i) in cv.sectionOrder" :key="key">
+              <li class="flex items-center gap-2 px-3 py-2" :class="!filled(key) && 'opacity-50'">
+                <span class="w-5 text-center text-xs font-semibold text-gray-400" x-text="i + 1"></span>
+                <span class="min-w-0 flex-1 truncate text-sm font-medium" x-text="sectionLabel(key)"></span>
+                <span class="text-xs text-gray-400" x-show="!filled(key)">vide</span>
+                <button type="button" class="icon-btn !h-8 !w-8 !bg-transparent" @click="move(cv.sectionOrder, i, -1)" :disabled="i === 0" :aria-label="'Monter ' + sectionLabel(key)">↑</button>
+                <button type="button" class="icon-btn !h-8 !w-8 !bg-transparent" @click="move(cv.sectionOrder, i, 1)" :disabled="i === cv.sectionOrder.length - 1" :aria-label="'Descendre ' + sectionLabel(key)">↓</button>
+              </li>
+            </template>
+          </ol>
+        </div>
+        <div class="rounded-lg bg-gray-50 p-3 text-sm" x-show="checklist().length">
+          <p class="font-semibold">Pour un CV complet :</p>
+          <ul class="mt-1 space-y-1"><template x-for="item in checklist()" :key="item.text"><li><button type="button" class="text-left text-brand-700 hover:underline" @click="go(item.step)" x-text="'→ ' + item.text"></button></li></template></ul>
         </div>
         <p x-show="error" x-text="error" class="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700" role="alert"></p>
-        <button type="button" class="btn-primary w-full !py-3 text-base" :disabled="saving" @click="save()">
-          <span x-show="!saving"><%= returnTo ? 'Créer mon CV et revenir à ma candidature' : 'Enregistrer et télécharger le PDF' %></span><span x-show="saving">Création du PDF…</span>
+        <template x-if="saved">
+          <div class="rounded-lg bg-green-50 p-3 text-sm text-green-800" role="status">
+            <p class="font-semibold">CV enregistré et téléchargé ✔</p>
+            <p>Il est utilisé automatiquement pour vos candidatures. <a :href="saved.downloadPath" class="font-semibold underline">Télécharger à nouveau</a></p>
+            <% if (returnTo) { %><a href="<%= returnTo %>" class="btn-primary mt-2 w-full">Revenir à ma candidature</a><% } %>
+          </div>
+        </template>
+        <button type="button" class="btn-primary w-full !py-3 text-base" :disabled="saving" @click="download()">
+          <%- icon('download', 'w-5 h-5') %> <span x-text="saving ? 'Création du PDF…' : 'Télécharger mon CV (PDF)'"></span>
         </button>
-        <p class="text-center text-xs text-gray-500"><%= currentUser ? 'Votre CV sera enregistré dans votre profil et utilisé pour vos candidatures.' : 'Créez un compte pour garder votre CV et le réutiliser.' %></p>
+        <p class="text-center text-xs text-gray-500">Votre CV est enregistré dans votre profil et proposé automatiquement quand vous postulez.</p>
+        <p class="text-center"><button type="button" class="text-xs text-gray-400 hover:underline" @click="restart()">Recommencer depuis mon profil</button></p>
       </div>
 
-      <div class="mt-5 flex justify-between gap-2 border-t border-gray-100 pt-3">
+      <%# Navigation (desktop; mobile uses the bottom bar) %>
+      <div class="mt-5 hidden justify-between gap-2 border-t border-gray-100 pt-3 lg:flex">
         <button type="button" class="btn-light" @click="go(step - 1)" :disabled="step === 0">Précédent</button>
-        <button type="button" class="btn-primary" @click="go(step + 1)" x-show="step < 6">Suivant</button>
+        <button type="button" class="btn-primary" @click="go(step + 1)" x-show="step < steps.length - 1">Suivant : <span x-text="stepLabel(step + 1)"></span></button>
       </div>
     </section>
 
-    <section :class="tab === 'preview' ? '' : 'hidden lg:block'" aria-label="Aperçu du CV">
-      <div class="lg:sticky lg:top-[72px]"><%- include('../../partials/cvPreview') %></div>
+    <%# ================= LIVE PREVIEW (desktop) ================= %>
+    <section class="hidden lg:block" aria-label="Aperçu du CV">
+      <div class="sticky top-[72px] flex max-h-[calc(100vh-88px)] flex-col overflow-hidden rounded-lg bg-gray-200">
+        <div class="flex items-center gap-2 bg-white px-3 py-2 text-sm shadow-sm">
+          <span class="h-2 w-2 rounded-full" :class="previewLoading ? 'animate-pulse bg-amber-500' : (previewError ? 'bg-red-500' : 'bg-green-500')"></span>
+          <span class="font-semibold">Aperçu en direct</span>
+          <span class="text-gray-500" x-text="pageCount ? '· ' + pageCount + (pageCount > 1 ? ' pages' : ' page') : ''"></span>
+          <span class="ml-auto text-xs text-red-600" x-show="previewError" x-text="previewError"></span>
+        </div>
+        <div x-ref="desk" class="flex-1 space-y-3 overflow-y-auto p-3" data-preview="desk"></div>
+      </div>
     </section>
+  </div>
+
+  <%# ================= MOBILE: bottom bar with live thumbnail ================= %>
+  <div class="fixed inset-x-0 bottom-0 z-30 border-t border-gray-200 bg-white px-3 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] shadow-[0_-4px_12px_rgba(0,0,0,0.06)] lg:hidden">
+    <div class="flex items-center gap-2">
+      <button type="button" class="btn-light !px-3" @click="go(step - 1)" :disabled="step === 0" aria-label="Étape précédente">←</button>
+      <button type="button" @click="openPreview()" class="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-gray-200 px-2 py-1 text-left" aria-label="Voir l'aperçu du CV">
+        <span x-ref="thumb" data-preview="thumb" class="block h-[52px] w-[37px] shrink-0 overflow-hidden rounded-sm bg-gray-100 ring-1 ring-gray-200"></span>
+        <span class="min-w-0"><span class="block text-sm font-semibold">Aperçu</span><span class="block truncate text-xs text-gray-500" x-text="previewLoading ? 'Mise à jour…' : (pageCount ? pageCount + (pageCount > 1 ? ' pages' : ' page') + ' · en direct' : 'en direct')"></span></span>
+      </button>
+      <button type="button" class="btn-primary !px-4" x-show="step < steps.length - 1" @click="go(step + 1)">Suivant</button>
+      <button type="button" class="btn-primary !px-3" x-show="step === steps.length - 1" :disabled="saving" @click="download()"><%- icon('download', 'w-4 h-4') %> PDF</button>
+    </div>
+  </div>
+
+  <%# Mobile full-screen preview %>
+  <div x-show="mobilePreview" x-cloak x-transition.opacity class="fixed inset-0 z-50 flex flex-col bg-gray-800 lg:hidden" role="dialog" aria-modal="true" aria-label="Aperçu du CV" @keydown.escape.window="mobilePreview = false">
+    <div class="flex items-center gap-2 bg-white px-3 py-2">
+      <button type="button" class="icon-btn" @click="mobilePreview = false" aria-label="Fermer l'aperçu"><%- icon('x', 'w-5 h-5') %></button>
+      <span class="flex-1 font-semibold">Aperçu <span class="font-normal text-gray-500" x-text="pageCount ? '· ' + pageCount + (pageCount > 1 ? ' pages' : ' page') : ''"></span></span>
+      <button type="button" class="btn-primary !py-2 text-sm" :disabled="saving" @click="download()"><%- icon('download', 'w-4 h-4') %> <span x-text="saving ? '…' : 'Télécharger'"></span></button>
+    </div>
+    <div x-ref="full" data-preview="full" class="flex-1 space-y-3 overflow-y-auto p-3"></div>
   </div>
 </div>
