@@ -36,7 +36,11 @@ async function start() {
   setInterval(() => refs.load().catch(() => {}), 5 * 60 * 1000).unref();
   const server = http.createServer(app);
   initSocket(server, sessionMiddleware());
-  server.listen(env.PORT, () => console.log(`SenTravail running on ${env.APP_URL} (port ${env.PORT})`));
+  server.listen(env.PORT, () => {
+    console.log(`SenTravail running on ${env.APP_URL} (port ${env.PORT})`);
+    // Exact return URLs to declare in the Google / Apple consoles.
+    for (const p of require('./services/oauth').enabledProviders()) console.log(`Sign-in with ${p}: return URL ${require('./services/oauth').redirectUri(p)}`);
+  });
 
   // Feed scores decay with time: recompute them every 15 minutes (also available as `npm run scores`).
   const refresh = () => refreshRecentScores().catch((err) => console.error('Score refresh failed:', err.message));

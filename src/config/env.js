@@ -5,7 +5,8 @@ const { z } = require('zod');
 const schema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().default(3000),
-  APP_URL: z.string().default('http://localhost:3000'),
+  // Public address, without trailing slash (used for links, sitemap and Google/Apple return URLs).
+  APP_URL: z.string().trim().default('http://localhost:3000').transform((v) => v.replace(/\/+$/, '')),
   SESSION_SECRET: z.string().min(16, 'SESSION_SECRET must be at least 16 characters'),
   DB_HOST: z.string().default('127.0.0.1'),
   DB_PORT: z.coerce.number().default(3306),
@@ -59,6 +60,9 @@ if (env.NODE_ENV === 'production' && (env.SESSION_SECRET.length < 32 || /change-
   process.exit(1);
 }
 env.isProd = env.NODE_ENV === 'production';
+if (env.isProd && env.APP_URL.startsWith('http://')) {
+  console.warn(`APP_URL is ${env.APP_URL}: use https://… (Google/Apple sign-in and secure cookies need it).`);
+}
 env.isTest = env.NODE_ENV === 'test';
 if (env.isTest) env.DB_NAME = env.DB_NAME_TEST;
 env.adsEnabled = !!env.ADSENSE_CLIENT_ID;
