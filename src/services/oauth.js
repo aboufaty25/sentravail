@@ -22,7 +22,7 @@ const PROVIDERS = {
     token: 'https://appleid.apple.com/auth/token',
     issuers: ['https://appleid.apple.com'],
     clientId: () => env.APPLE_CLIENT_ID,
-    enabled: () => !!(env.APPLE_CLIENT_ID && env.APPLE_TEAM_ID && env.APPLE_KEY_ID && env.APPLE_PRIVATE_KEY),
+    enabled: () => diagnose('apple') === null,
     scope: 'name email',
     extra: { response_mode: 'form_post' }, // Apple POSTs the code back
     clientSecret: () => appleClientSecret(),
@@ -31,11 +31,35 @@ const PROVIDERS = {
 
 const b64url = (buf) => Buffer.from(buf).toString('base64url');
 
+// The .p8 key may come with real newlines or with "\n", with quotes or Windows line endings.
+function applePrivateKey() {
+  return env.APPLE_PRIVATE_KEY.trim().replace(/^["']|["']$/g, '').replace(/\\n/g, '\n').replace(/\r/g, '');
+}
+
+// Why a provider is not available (shown in the startup log; never the values themselves).
+function diagnose(name) {
+  const vars = name === 'google'
+    ? { GOOGLE_CLIENT_ID: env.GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET: env.GOOGLE_CLIENT_SECRET }
+    : { APPLE_CLIENT_ID: env.APPLE_CLIENT_ID, APPLE_TEAM_ID: env.APPLE_TEAM_ID, APPLE_KEY_ID: env.APPLE_KEY_ID, APPLE_PRIVATE_KEY: env.APPLE_PRIVATE_KEY };
+  const missing = Object.keys(vars).filter((k) => !String(vars[k] || '').trim());
+  if (missing.length === Object.keys(vars).length) return 'not configured';
+  if (missing.length) return `missing ${missing.join(', ')}`;
+  if (name === 'apple') {
+    try {
+      const key = crypto.createPrivateKey(applePrivateKey());
+      if (key.asymmetricKeyType !== 'ec') return 'APPLE_PRIVATE_KEY is not an EC key (.p8 file expected)';
+    } catch (_) {
+      return 'APPLE_PRIVATE_KEY cannot be read: paste the whole .p8 file, including the BEGIN/END lines';
+    }
+  }
+  return null;
+}
+
 // Apple's client secret is a short-lived JWT signed (ES256) with the .p8 key.
 function appleClientSecret(now = Math.floor(Date.now() / 1000)) {
   const header = b64url(JSON.stringify({ alg: 'ES256', kid: env.APPLE_KEY_ID }));
   const payload = b64url(JSON.stringify({ iss: env.APPLE_TEAM_ID, iat: now, exp: now + 300, aud: 'https://appleid.apple.com', sub: env.APPLE_CLIENT_ID }));
-  const key = env.APPLE_PRIVATE_KEY.replace(/\\n/g, '\n');
+  const key = applePrivateKey();
   const signature = crypto.sign('sha256', Buffer.from(`${header}.${payload}`), { key, dsaEncoding: 'ieee-p1363' });
   return `${header}.${payload}.${b64url(signature)}`;
 }
@@ -108,4 +132,4 @@ function readStateCookie(req, res) {
   return value.exp > Date.now() ? value : null;
 }
 
-module.exports = { PROVIDERS, enabledProviders, authorizationUrl, exchange, appleClientSecret, decodeJwtPayload, setStateCookie, readStateCookie, redirectUri };
+module.exports = { diagnose, PROVIDERS, enabledProviders, authorizationUrl, exchange, appleClientSecret, decodeJwtPayload, setStateCookie, readStateCookie, redirectUri };

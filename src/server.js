@@ -39,7 +39,11 @@ async function start() {
   server.listen(env.PORT, () => {
     console.log(`SenTravail running on ${env.APP_URL} (port ${env.PORT})`);
     // Exact return URLs to declare in the Google / Apple consoles.
-    for (const p of require('./services/oauth').enabledProviders()) console.log(`Sign-in with ${p}: return URL ${require('./services/oauth').redirectUri(p)}`);
+    const oauth = require('./services/oauth');
+    for (const p of Object.keys(oauth.PROVIDERS)) {
+      const problem = oauth.diagnose(p);
+      console.log(problem ? `Sign-in with ${p}: OFF (${problem})` : `Sign-in with ${p}: ON, return URL ${oauth.redirectUri(p)}`);
+    }
   });
 
   // Feed scores decay with time: recompute them every 15 minutes (also available as `npm run scores`).

@@ -154,3 +154,21 @@ test('Apple: form_post callback (no CSRF token), name sent once, ES256 client se
   expect(crypto.verify('sha256', Buffer.from(`${h}.${p}`), { key: publicKey, dsaEncoding: 'ieee-p1363' }, Buffer.from(sig, 'base64url'))).toBe(true);
   expect(oauth.enabledProviders()).toEqual(['google', 'apple']);
 });
+
+test('Apple key accepted with real newlines, "\\n", quotes or Windows line endings; clear diagnosis otherwise', () => {
+  const env = require('../src/config/env');
+  const saved = env.APPLE_PRIVATE_KEY;
+  const pem = privateKey.export({ type: 'pkcs8', format: 'pem' });
+  try {
+    for (const variant of [pem, pem.replace(/\n/g, '\\n'), `"${pem.replace(/\n/g, '\\n')}"`, pem.replace(/\n/g, '\r\n')]) {
+      env.APPLE_PRIVATE_KEY = variant;
+      expect(oauth.diagnose('apple')).toBeNull();
+      expect(oauth.appleClientSecret().split('.')).toHaveLength(3);
+    }
+    env.APPLE_PRIVATE_KEY = 'MIGTAgEAMBMGByqGSM49AgEGCCqGSM49';
+    expect(oauth.diagnose('apple')).toMatch(/cannot be read/);
+    expect(oauth.enabledProviders()).toEqual(['google']);
+    env.APPLE_PRIVATE_KEY = '';
+    expect(oauth.diagnose('apple')).toBe('missing APPLE_PRIVATE_KEY');
+  } finally { env.APPLE_PRIVATE_KEY = saved; }
+});
