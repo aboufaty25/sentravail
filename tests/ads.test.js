@@ -73,6 +73,11 @@ test('ads are lazy and never leave an empty box: requested one screen ahead, unf
   expect(css).toMatch(/\.ad-unit:not\(\.ad-filled\)\{[^}]*max-height:0/);
   const home = (await s.agent.get('/')).text;
   expect(home).toMatch(/data-ad-slot-wrapper[^>]*class="ad-unit /);
+  // adsbygoogle.push() fills the FIRST empty <ins> of the page: no <ins> may exist before its
+  // unit is requested, otherwise Google fills the wrong unit and the requested one stays folded.
+  expect(home).not.toContain('<ins');
+  expect(js).toContain("document.createElement('ins')");
+  expect(js).toMatch(/MutationObserver[\s\S]*subtree: true/);
 });
 
 test('admin settings override .env: publisher id, default unit, on/off switch, ads.txt', async () => {

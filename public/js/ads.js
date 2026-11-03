@@ -13,24 +13,31 @@
 
   let observer = null;
 
-  // Unfold the unit once Google reports it filled; drop it if unfilled.
-  function followStatus(wrapper, ins) {
-    const apply = () => {
-      const status = ins.getAttribute('data-ad-status');
-      if (status === 'filled') wrapper.classList.add('ad-filled');
-      else if (status === 'unfilled') wrapper.remove();
-      return !!status;
-    };
-    if (apply()) return;
-    const mo = new MutationObserver(() => { if (apply()) mo.disconnect(); });
-    mo.observe(ins, { attributes: true, attributeFilter: ['data-ad-status'] });
+  // Unfold a unit once Google reports it filled; drop it if unfilled. Applied to every unit
+  // on the page (whichever ins Google fills), so a filled ad is never left folded.
+  function applyStatus(ins) {
+    const wrapper = ins.closest('[data-ad-slot-wrapper]');
+    const status = ins.getAttribute('data-ad-status');
+    if (!wrapper || !status) return;
+    if (status === 'filled') wrapper.classList.add('ad-filled');
+    else if (status === 'unfilled') wrapper.remove();
   }
+  new MutationObserver((records) => records.forEach((r) => r.target.matches && r.target.matches('ins.adsbygoogle') && applyStatus(r.target)))
+    .observe(document.documentElement, { subtree: true, attributes: true, attributeFilter: ['data-ad-status'] });
 
+  // adsbygoogle.push() fills the first empty <ins> of the page: the <ins> is created only when
+  // the unit is requested, so the empty tags on the page are always the requested ones.
   function request(wrapper) {
-    const ins = wrapper.querySelector('ins.adsbygoogle:not([data-adsbygoogle-status])');
-    if (!ins || wrapper.dataset.adRequested) return;
+    if (wrapper.dataset.adRequested) return;
     wrapper.dataset.adRequested = '1';
-    followStatus(wrapper, ins);
+    const ins = document.createElement('ins');
+    ins.className = 'adsbygoogle';
+    ins.style.display = 'block';
+    ins.setAttribute('data-ad-client', wrapper.dataset.adClient || client);
+    ins.setAttribute('data-ad-slot', wrapper.dataset.adSlot);
+    ins.setAttribute('data-ad-format', wrapper.dataset.adFormat || 'auto');
+    ins.setAttribute('data-full-width-responsive', 'true');
+    wrapper.appendChild(ins);
     try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch (_) { wrapper.remove(); /* ad blocked */ }
   }
 

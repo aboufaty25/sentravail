@@ -1,11 +1,12 @@
 <%# AdSense unit. Rendered only when ads are on, the page allows ads and a slot id exists.
-    Folded until Google fills it; requested about one screen before it is seen (public/js/ads.js).
+    The <ins> tag is created by public/js/ads.js only when the unit is about to be seen
+    (adsbygoogle.push fills the first empty <ins> of the page, so only one may exist at a time);
+    the frame stays folded until Google has filled it.
     slot: feed | sidebar | jobTop | jobBottom. inline: no card frame (inside another card). %>
 <% const place = locals.slot || 'feed'; const slotId = adSlots[place]; %>
 <% if (adsEnabled && !noAds && slotId) { %>
-  <div data-ad-slot-wrapper data-ad-place="<%= place %>" class="ad-unit <%= locals.inline ? 'my-3' : 'card overflow-hidden px-3 py-2 sm:rounded-lg' %>" aria-label="Publicité">
+  <div data-ad-slot-wrapper data-ad-place="<%= place %>" data-ad-client="<%= adsClient %>" data-ad-slot="<%= slotId %>" data-ad-format="<%= place === 'sidebar' ? 'rectangle' : 'auto' %>"
+    class="ad-unit <%= locals.inline ? 'my-3' : 'card overflow-hidden px-3 py-2 sm:rounded-lg' %>" aria-label="Publicité">
     <p class="mb-1 text-[11px] uppercase tracking-wide text-gray-400">Publicité</p>
-    <ins class="adsbygoogle" style="display:block" data-ad-client="<%= adsClient %>" data-ad-slot="<%= slotId %>"
-      data-ad-format="<%= place === 'sidebar' ? 'rectangle' : 'auto' %>" data-full-width-responsive="true"></ins>
   </div>
 <% } %>
