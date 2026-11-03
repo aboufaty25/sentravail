@@ -1,86 +1,65 @@
-/* AdSense loader with cookie consent and viewability-first lazy loading.
- * - Nothing from Google is loaded before the visitor accepts; if they refuse, no ads at all.
- *   The choice is stored for 12 months in the "st_consent" cookie and can be changed with
- *   any [data-consent-reset] link.
- * - Each ad unit is requested only when it is about to enter the screen (and never when its
- *   column is hidden, e.g. desktop sidebars on a phone), so the impressions counted are ads
- *   people actually see: better viewability, better revenue per impression. */
+/* AdSense loader, viewability-first.
+ * - The Google script loads right away (no consent banner; Google's own consent message
+ *   handles visitors from Europe/UK, see AdSense > Privacy & messaging).
+ * - Each unit is requested about one screen before it scrolls into view (so it is ready
+ *   when the visitor gets there) and never in a hidden column (desktop sidebars on a phone).
+ * - A unit stays folded until Google has actually filled it: no empty box while loading,
+ *   and an unfilled unit never shows at all. */
 (function () {
   const me = document.currentScript;
   const client = me && me.dataset.client;
   if (!client) return;
 
-  const getConsent = () => (document.cookie.match(/(?:^|;\s*)st_consent=(granted|denied)/) || [])[1] || null;
-  const setConsent = (v) => {
-    document.cookie = `st_consent=${v}; Max-Age=${365 * 24 * 3600}; Path=/; SameSite=Lax${location.protocol === 'https:' ? '; Secure' : ''}`;
-  };
-  let loaded = false;
   let observer = null;
+
+  // Unfold the unit once Google reports it filled; drop it if unfilled.
+  function followStatus(wrapper, ins) {
+    const apply = () => {
+      const status = ins.getAttribute('data-ad-status');
+      if (status === 'filled') wrapper.classList.add('ad-filled');
+      else if (status === 'unfilled') wrapper.remove();
+      return !!status;
+    };
+    if (apply()) return;
+    const mo = new MutationObserver(() => { if (apply()) mo.disconnect(); });
+    mo.observe(ins, { attributes: true, attributeFilter: ['data-ad-status'] });
+  }
 
   function request(wrapper) {
     const ins = wrapper.querySelector('ins.adsbygoogle:not([data-adsbygoogle-status])');
     if (!ins || wrapper.dataset.adRequested) return;
     wrapper.dataset.adRequested = '1';
-    try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch (_) { /* ad blocked */ }
+    followStatus(wrapper, ins);
+    try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch (_) { wrapper.remove(); /* ad blocked */ }
   }
 
   function watch(root) {
-    if (!loaded) return;
-    const wrappers = (root || document).querySelectorAll('[data-ad-slot-wrapper]:not([data-ad-watched])');
-    wrappers.forEach((w) => {
+    (root || document).querySelectorAll('[data-ad-slot-wrapper]:not([data-ad-watched])').forEach((w) => {
       w.dataset.adWatched = '1';
-      w.classList.remove('hidden');
       if (observer) observer.observe(w);
       else request(w); // very old browsers
     });
   }
 
-  function loadAds() {
-    if (loaded) return;
-    loaded = true;
-    const s = document.createElement('script');
-    s.async = true;
-    s.crossOrigin = 'anonymous';
-    s.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${encodeURIComponent(client)}`;
-    document.head.appendChild(s);
-    if ('IntersectionObserver' in window) {
-      // Request slightly before the unit scrolls in (ads take a moment to render),
-      // only for units that are really displayed (a hidden column never intersects).
-      observer = new IntersectionObserver((entries) => {
-        entries.forEach((e) => {
-          if (!e.isIntersecting || !e.target.offsetParent) return;
-          observer.unobserve(e.target);
-          request(e.target);
-        });
-      }, { rootMargin: '0px 0px 200px 0px', threshold: 0 });
-    }
-    watch(document);
+  const s = document.createElement('script');
+  s.async = true;
+  s.crossOrigin = 'anonymous';
+  s.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${encodeURIComponent(client)}`;
+  s.onerror = () => document.querySelectorAll('[data-ad-slot-wrapper]').forEach((w) => w.remove()); // blocked: no empty boxes
+  document.head.appendChild(s);
+
+  if ('IntersectionObserver' in window) {
+    observer = new IntersectionObserver((entries) => {
+      entries.forEach((e) => {
+        if (!e.isIntersecting || !e.target.offsetParent) return; // hidden column: never requested
+        observer.unobserve(e.target);
+        request(e.target);
+      });
+    }, { rootMargin: '0px 0px 100% 0px', threshold: 0 }); // one screen ahead
   }
 
-  function banner(show) {
-    const el = document.getElementById('consent-banner');
-    if (el) el.classList.toggle('hidden', !show);
-  }
-
-  document.addEventListener('DOMContentLoaded', () => {
-    const consent = getConsent();
-    if (consent === 'granted') loadAds();
-    else if (!consent) banner(true);
-
-    document.addEventListener('click', (e) => {
-      const btn = e.target.closest('[data-consent]');
-      if (btn) {
-        setConsent(btn.dataset.consent);
-        banner(false);
-        if (btn.dataset.consent === 'granted') loadAds();
-        return;
-      }
-      if (e.target.closest('[data-consent-reset]')) {
-        e.preventDefault();
-        banner(true);
-      }
-    });
-  });
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => watch(document));
+  else watch(document);
   // Feed pages loaded by infinite scroll bring new ad slots.
   document.addEventListener('htmx:afterSettle', (e) => watch(e.target));
 })();

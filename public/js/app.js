@@ -488,13 +488,7 @@
         if (deferredInstall) this.reveal();
         window.addEventListener('st-installable', () => this.reveal());
       },
-      // Never on top of the cookie banner: wait until it has been answered.
       reveal() {
-        const banner = document.getElementById('consent-banner');
-        if (banner && !banner.classList.contains('hidden')) {
-          document.addEventListener('click', (e) => { if (e.target.closest('[data-consent]')) setTimeout(() => this.reveal(), 800); }, { once: true });
-          return;
-        }
         this.show = true;
       },
       async install() {

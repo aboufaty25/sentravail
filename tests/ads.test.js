@@ -31,12 +31,15 @@ test('CSP allows Google ad domains', async () => {
   expect(csp).toMatch(/frame-src[^;]*doubleclick/);
 });
 
-test('the Google script is never in the HTML: it is loaded by ads.js after consent', async () => {
+test('ads load directly (no cookie banner), with early connections to Google', async () => {
   const res = await request(app).get('/offres');
   expect(res.text).toContain('src="/js/ads.js?v=');
   expect(res.text).toContain('data-client="ca-pub-1234567890123456"');
-  expect(res.text).toContain('id="consent-banner"');
-  expect(res.text).not.toContain('pagead2.googlesyndication.com/pagead/js');
+  expect(res.text).not.toContain('consent-banner');
+  expect(res.text).toContain('<link rel="preconnect" href="https://pagead2.googlesyndication.com" crossorigin>');
+  const js = (await request(app).get('/js/ads.js')).text;
+  expect(js).not.toContain('st_consent');
+  expect(js).toContain('pagead2.googlesyndication.com/pagead/js/adsbygoogle.js');
 });
 
 test('ad placements: feed after the 1st post then every 3 posts, both side columns, job page under the title and after Postuler', async () => {
@@ -60,12 +63,16 @@ test('ad placements: feed after the 1st post then every 3 posts, both side colum
   expect(jobPage.indexOf('data-ad-place="jobBottom"')).toBeGreaterThan(jobPage.indexOf('id="postuler"'));
 });
 
-test('ads are lazy: hidden until consent, requested only when about to be seen', async () => {
+test('ads are lazy and never leave an empty box: requested one screen ahead, unfolded only once filled', async () => {
   const js = (await request(app).get('/js/ads.js')).text;
   expect(js).toContain('IntersectionObserver');
   expect(js).toContain('offsetParent');
+  expect(js).toContain("'0px 0px 100% 0px'");
+  expect(js).toContain('ad-filled');
+  const css = (await request(app).get('/css/app.css')).text;
+  expect(css).toMatch(/\.ad-unit:not\(\.ad-filled\)\{[^}]*max-height:0/);
   const home = (await s.agent.get('/')).text;
-  expect(home).toMatch(/data-ad-slot-wrapper[^>]*class="ad-unit hidden/);
+  expect(home).toMatch(/data-ad-slot-wrapper[^>]*class="ad-unit /);
 });
 
 test('admin settings override .env: publisher id, default unit, on/off switch, ads.txt', async () => {

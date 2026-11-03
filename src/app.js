@@ -21,7 +21,7 @@ const root = path.join(__dirname, '..');
 const app = express();
 
 // Google AdSense domains. Ads can be switched on from the admin at any time
-// (/admin/publicites), so they are always allowed; nothing loads without consent.
+// (/admin/publicites), so they are always allowed.
 const GOOGLE_ADS = ['https://pagead2.googlesyndication.com', 'https://*.googlesyndication.com', 'https://*.doubleclick.net', 'https://*.google.com', 'https://*.googleadservices.com', 'https://*.googletagservices.com', 'https://*.adtrafficquality.google', 'https://*.gstatic.com'];
 const ADS = { script: GOOGLE_ADS, connect: GOOGLE_ADS, frame: GOOGLE_ADS, img: ['https:'] };
 
@@ -114,7 +114,6 @@ app.use((req, res, next) => {
     assetVersion,
     // AdSense (admin settings, .env as fallback)
     ...(() => { const a = adsConfig.current(); return { adsEnabled: a.enabled, adsClient: a.client, adSlots: a.slots }; })(),
-    consent: req.cookies?.st_consent || (req.get('cookie') || '').match(/(?:^|;\s*)st_consent=(granted|denied)/)?.[1] || null,
     brand: branding.current(),
     ogImage: branding.current().shareImage,
     // Private or personal pages are never indexed.

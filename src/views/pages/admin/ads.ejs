@@ -11,7 +11,7 @@
     <div class="flex items-start justify-between gap-2">
       <div>
         <h2 id="ads-account" class="text-lg font-semibold">Google AdSense</h2>
-        <p class="text-sm text-gray-500">Les publicités ne se chargent qu'après l'accord du visiteur (bandeau cookies) et seulement quand l'emplacement arrive à l'écran, pour un meilleur taux de visibilité.</p>
+        <p class="text-sm text-gray-500">Chaque emplacement est demandé environ un écran avant d'être vu et ne s'affiche qu'une fois rempli par Google : pas d'espace vide, meilleur taux de visibilité.</p>
       </div>
       <span class="shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold <%= ads.enabled ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-600' %>"><%= ads.enabled ? 'Actives' : 'Désactivées' %></span>
     </div>
@@ -63,6 +63,7 @@
   <section class="card rounded-lg p-4 text-sm text-gray-600" aria-labelledby="ads-auto">
     <h2 id="ads-auto" class="text-lg font-semibold text-gray-900">Annonces automatiques</h2>
     <p class="mt-1">Le code AdSense chargé sur le site active aussi les annonces automatiques si elles sont activées dans votre compte AdSense (Annonces → Par site → sentravail.com). Elles ne s'affichent jamais sur les pages sans publicité (connexion, inscription, formulaires, administration, candidature, CV).</p>
+    <p class="mt-2"><strong>Visiteurs d'Europe / Royaume-Uni :</strong> activez le message de consentement gratuit de Google (AdSense → Confidentialité et messages → RGPD), sinon Google leur montre peu ou pas d'annonces.</p>
   </section>
 
   <div class="flex justify-end"><button class="btn-primary">Enregistrer</button></div>

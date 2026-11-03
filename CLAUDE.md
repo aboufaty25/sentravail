@@ -119,9 +119,9 @@ Aucun réel, aucun upload vidéo : ni onglet, ni route, ni modèle, ni code fron
 
 - Réglages dans l'administration (`/admin/publicites`, `src/services/adsConfig.js`, table `site_settings`, `.env` en repli) : identifiant éditeur, bloc par défaut, bloc par emplacement, interrupteur marche/arrêt. Valeurs initiales de sentravail.com insérées par la migration 013.
 - Emplacements : fil après la **1ʳᵉ publication puis toutes les 3** (après 1, 4, 7…) ; **colonnes de gauche et de droite** (ordinateur) ; page offre **sous le titre** (`jobTop`) et **entre « Postuler » et les offres similaires** (`jobBottom`). Annonces automatiques : même script, activées depuis le compte AdSense.
-- **Visibilité d'abord** (`public/js/ads.js`) : chaque bloc n'est demandé qu'à l'approche de l'écran (IntersectionObserver, 200 px) et jamais dans une colonne masquée ; un bloc non rempli est replié (`.ad-unit`).
+- **Visibilité d'abord** (`public/js/ads.js`) : chaque bloc est demandé environ un écran avant d'être vu (IntersectionObserver) et jamais dans une colonne masquée ; il reste replié (hauteur 0, `.ad-unit`) jusqu'à ce que Google le remplisse (`data-ad-status="filled"` → `.ad-filled`) ; non rempli ou bloqué, il disparaît. Préconnexion aux domaines Google dans `head.ejs`.
 - Jamais sur : connexion, inscription, formulaires de publication, modal de candidature, créateur de CV, administration, pages d'erreur.
-- Rien de Google n'est chargé avant le consentement (bandeau cookies) ; en cas de refus, aucune publicité.
+- **Pas de bandeau cookies** : les annonces se chargent directement (choix du propriétaire). Les visiteurs d'Europe/Royaume-Uni passent par le message de consentement de Google, à activer dans AdSense (Confidentialité et messages → RGPD). La page Confidentialité explique les cookies publicitaires.
 - `/ads.txt` généré depuis `ADSENSE_CLIENT_ID`. Pages obligatoires : À propos, Contact, Confidentialité, Conditions.
 
 ## Commandes

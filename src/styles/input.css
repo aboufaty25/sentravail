@@ -31,7 +31,18 @@
 .app-header.is-collapsed { transform: translateY(-56px); }
 @media (min-width: 1024px) { .app-header.is-collapsed { transform: none; } }
 
-/* AdSense: collapse a unit that Google could not fill (no empty frame left on the page). */
+/* AdSense: a unit stays folded (but keeps its width, which Google needs to size the ad)
+   until it is filled; an unfilled unit never shows (public/js/ads.js). */
+.ad-unit:not(.ad-filled) {
+  max-height: 0 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  border-width: 0 !important;
+  box-shadow: none !important;
+  overflow: hidden;
+}
 .ad-unit:has(ins[data-ad-status='unfilled']) {
   display: none !important;
 }

@@ -32,5 +32,11 @@
 <%# app.js must run before Alpine so its components are registered on alpine:init %>
 <script src="/js/app.js?v=<%= assetVersion %>" defer></script>
 <script src="/vendor/alpine/cdn.min.js?v=<%= assetVersion %>" defer></script>
-<%# AdSense loads only after consent (public/js/ads.js), never on ad-free pages %>
-<% if (adsEnabled && !noAds) { %><script src="/js/ads.js?v=<%= assetVersion %>" data-client="<%= adsClient %>" defer></script><% } %>
+<%# AdSense (public/js/ads.js), never on ad-free pages. Early connections make ads appear sooner. %>
+<% if (adsEnabled && !noAds) { %>
+<link rel="preconnect" href="https://pagead2.googlesyndication.com" crossorigin>
+<link rel="preconnect" href="https://googleads.g.doubleclick.net" crossorigin>
+<link rel="preconnect" href="https://tpc.googlesyndication.com" crossorigin>
+<link rel="dns-prefetch" href="https://ep1.adtrafficquality.google">
+<script src="/js/ads.js?v=<%= assetVersion %>" data-client="<%= adsClient %>" async></script>
+<% } %>
