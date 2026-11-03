@@ -13,17 +13,17 @@ const { globalLimiter } = require('./middlewares/rateLimit');
 const { notFound, errorHandler } = require('./middlewares/errors');
 const viewHelpers = require('./utils/viewHelpers');
 const branding = require('./services/branding');
+const adsConfig = require('./services/adsConfig');
 const routes = require('./routes');
 const { unseenCount } = require('./services/notifications');
 
 const root = path.join(__dirname, '..');
 const app = express();
 
-// Google AdSense domains, allowed only when ADSENSE_CLIENT_ID is set.
+// Google AdSense domains. Ads can be switched on from the admin at any time
+// (/admin/publicites), so they are always allowed; nothing loads without consent.
 const GOOGLE_ADS = ['https://pagead2.googlesyndication.com', 'https://*.googlesyndication.com', 'https://*.doubleclick.net', 'https://*.google.com', 'https://*.googleadservices.com', 'https://*.googletagservices.com', 'https://*.adtrafficquality.google', 'https://*.gstatic.com'];
-const ADS = env.adsEnabled
-  ? { script: GOOGLE_ADS, connect: GOOGLE_ADS, frame: GOOGLE_ADS, img: ['https:'] }
-  : { script: [], connect: [], frame: [], img: [] };
+const ADS = { script: GOOGLE_ADS, connect: GOOGLE_ADS, frame: GOOGLE_ADS, img: ['https:'] };
 
 // Short hash of the built assets, appended as ?v= so browsers and the service worker
 // pick up new CSS/JS right after a deploy.
@@ -101,6 +101,7 @@ app.use(flash);
 app.use(csrfProtection);
 app.use(loadUser);
 app.use(branding.refresh);
+app.use(adsConfig.refresh);
 app.use((req, res, next) => {
   Object.assign(res.locals, viewHelpers, {
     appUrl: env.APP_URL,
@@ -111,9 +112,8 @@ app.use((req, res, next) => {
     noAds: false,
     wide: false,
     assetVersion,
-    adsEnabled: env.adsEnabled,
-    adsClient: env.ADSENSE_CLIENT_ID,
-    adSlots: { feed: env.ADSENSE_SLOT_FEED, sidebar: env.ADSENSE_SLOT_SIDEBAR, job: env.ADSENSE_SLOT_JOB },
+    // AdSense (admin settings, .env as fallback)
+    ...(() => { const a = adsConfig.current(); return { adsEnabled: a.enabled, adsClient: a.client, adSlots: a.slots }; })(),
     consent: req.cookies?.st_consent || (req.get('cookie') || '').match(/(?:^|;\s*)st_consent=(granted|denied)/)?.[1] || null,
     brand: branding.current(),
     ogImage: branding.current().shareImage,

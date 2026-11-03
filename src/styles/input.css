@@ -30,3 +30,8 @@
 .app-header { transition: transform .2s ease; will-change: transform; }
 .app-header.is-collapsed { transform: translateY(-56px); }
 @media (min-width: 1024px) { .app-header.is-collapsed { transform: none; } }
+
+/* AdSense: collapse a unit that Google could not fill (no empty frame left on the page). */
+.ad-unit:has(ins[data-ad-status='unfilled']) {
+  display: none !important;
+}

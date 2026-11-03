@@ -1,0 +1,69 @@
+<%- include('../../partials/adminNav') %>
+<% const PLACES = [
+  ['feed', "Fil d'actualité", 'Après la 1ʳᵉ publication, puis toutes les 3 publications.'],
+  ['sidebar', 'Barres latérales (ordinateur)', 'Colonne de gauche et colonne de droite.'],
+  ['jobTop', "Page d'une offre — sous le titre", ''],
+  ['jobBottom', "Page d'une offre — après « Postuler »", 'Entre le bouton Postuler et les offres similaires.'],
+]; %>
+<form method="post" action="/admin/publicites" class="space-y-3" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <section class="card space-y-4 rounded-lg p-4" aria-labelledby="ads-account">
+    <div class="flex items-start justify-between gap-2">
+      <div>
+        <h2 id="ads-account" class="text-lg font-semibold">Google AdSense</h2>
+        <p class="text-sm text-gray-500">Les publicités ne se chargent qu'après l'accord du visiteur (bandeau cookies) et seulement quand l'emplacement arrive à l'écran, pour un meilleur taux de visibilité.</p>
+      </div>
+      <span class="shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold <%= ads.enabled ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-600' %>"><%= ads.enabled ? 'Actives' : 'Désactivées' %></span>
+    </div>
+    <label class="flex items-center gap-3 rounded-lg border border-gray-200 p-3">
+      <input type="checkbox" name="enabled" class="h-4 w-4" <%= ads.switchOn ? 'checked' : '' %>>
+      <span><span class="font-semibold">Afficher les publicités</span><span class="block text-sm text-gray-500">Décochez pour tout couper immédiatement, sans perdre les réglages.</span></span>
+    </label>
+    <div class="grid gap-3 sm:grid-cols-2">
+      <div>
+        <label for="ads-client" class="label">Identifiant éditeur</label>
+        <input id="ads-client" name="client" value="<%= ads.client %>" placeholder="ca-pub-1234567890123456" class="input <%= errors.client ? 'input-error' : '' %>" autocomplete="off">
+        <% if (errors.client) { %><p class="field-error"><%= errors.client %></p><% } %>
+      </div>
+      <div>
+        <label for="ads-default" class="label">Bloc d'annonces par défaut (data-ad-slot)</label>
+        <input id="ads-default" name="defaultSlot" value="<%= ads.defaultSlot %>" inputmode="numeric" placeholder="6556069017" class="input <%= errors.defaultSlot ? 'input-error' : '' %>" autocomplete="off">
+        <% if (errors.defaultSlot) { %><p class="field-error"><%= errors.defaultSlot %></p><% } %>
+        <p class="mt-1 text-xs text-gray-500">Utilisé pour tous les emplacements qui n'ont pas leur propre bloc.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="card rounded-lg p-4" aria-labelledby="ads-places">
+    <h2 id="ads-places" class="text-lg font-semibold">Emplacements</h2>
+    <p class="text-sm text-gray-500">Facultatif : créez un bloc par emplacement dans AdSense pour suivre leurs revenus séparément.</p>
+    <div class="mt-3 divide-y divide-gray-100">
+      <% PLACES.forEach(([key, label, help]) => { %>
+        <div class="grid gap-2 py-3 sm:grid-cols-2 sm:items-center">
+          <div><label for="ads-<%= key %>" class="font-medium"><%= label %></label><% if (help) { %><p class="text-xs text-gray-500"><%= help %></p><% } %></div>
+          <div>
+            <input id="ads-<%= key %>" name="<%= key %>" value="<%= ads.overrides[key] %>" inputmode="numeric" placeholder="<%= ads.defaultSlot ? `Par défaut : ${ads.defaultSlot}` : 'ID du bloc' %>" class="input !py-2 <%= errors[key] ? 'input-error' : '' %>" autocomplete="off">
+            <% if (errors[key]) { %><p class="field-error"><%= errors[key] %></p><% } %>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+  </section>
+
+  <section class="card rounded-lg p-4" aria-labelledby="ads-txt">
+    <h2 id="ads-txt" class="text-lg font-semibold">ads.txt</h2>
+    <% if (adsTxt) { %>
+      <p class="text-sm text-gray-500">Généré automatiquement à l'adresse <a href="/ads.txt" class="font-semibold text-brand-600 hover:underline" target="_blank" rel="noopener">/ads.txt</a> :</p>
+      <pre class="mt-2 overflow-x-auto rounded-md bg-gray-50 p-2 text-sm"><%= adsTxt %></pre>
+    <% } else { %>
+      <p class="text-sm text-gray-500">Renseignez l'identifiant éditeur pour générer /ads.txt.</p>
+    <% } %>
+  </section>
+
+  <section class="card rounded-lg p-4 text-sm text-gray-600" aria-labelledby="ads-auto">
+    <h2 id="ads-auto" class="text-lg font-semibold text-gray-900">Annonces automatiques</h2>
+    <p class="mt-1">Le code AdSense chargé sur le site active aussi les annonces automatiques si elles sont activées dans votre compte AdSense (Annonces → Par site → sentravail.com). Elles ne s'affichent jamais sur les pages sans publicité (connexion, inscription, formulaires, administration, candidature, CV).</p>
+  </section>
+
+  <div class="flex justify-end"><button class="btn-primary">Enregistrer</button></div>
+</form>

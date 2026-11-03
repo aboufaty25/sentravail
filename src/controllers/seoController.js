@@ -68,11 +68,14 @@ async function sitemap(req, res) {
   res.send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${body}\n</urlset>\n`);
 }
 
-// ads.txt generated from ADSENSE_CLIENT_ID (Google's certification authority id is fixed).
-function adsTxt(req, res) {
-  if (!env.adsEnabled) return res.status(404).type('text/plain').send('');
-  res.type('text/plain').set('Cache-Control', 'public, max-age=86400');
-  return res.send(`google.com, ${env.ADSENSE_CLIENT_ID.replace(/^ca-/, '')}, DIRECT, f08c47fec0942fa0\n`);
+// ads.txt generated from the AdSense publisher id (admin settings or ADSENSE_CLIENT_ID).
+async function adsTxt(req, res) {
+  const adsConfig = require('../services/adsConfig');
+  await adsConfig.load().catch(() => {});
+  const line = adsConfig.adsTxt();
+  if (!line) return res.status(404).type('text/plain').send('');
+  res.type('text/plain').set('Cache-Control', 'public, max-age=3600');
+  return res.send(line);
 }
 
 module.exports = { robots, sitemap, adsTxt };

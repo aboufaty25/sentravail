@@ -101,12 +101,11 @@ describe('PWA', () => {
 });
 
 describe('Without AdSense configured', () => {
-  test('no ads.txt, no ad script, no consent banner, CSP without Google', async () => {
+  test('no ads.txt, no ad script, no consent banner (Google stays allowed by the CSP: ads can be switched on from the admin)', async () => {
     expect((await request(app).get('/ads.txt')).status).toBe(404);
     const res = await request(app).get('/offres');
     expect(res.text).not.toContain('/js/ads.js');
     expect(res.text).not.toContain('consent-banner');
     expect(res.text).not.toContain('adsbygoogle');
-    expect(res.headers['content-security-policy']).not.toContain('googlesyndication');
   });
 });

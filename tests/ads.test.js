@@ -39,17 +39,55 @@ test('the Google script is never in the HTML: it is loaded by ads.js after conse
   expect(res.text).not.toContain('pagead2.googlesyndication.com/pagead/js');
 });
 
-test('ad placements: feed after every 6 posts, right column, bottom of a job page', async () => {
-  // FEED_PAGE_SIZE is 3 in tests: posts 1-3 on page 1, the ad comes after post 6 (page 2).
+test('ad placements: feed after the 1st post then every 3 posts, both side columns, job page under the title and after Postuler', async () => {
+  // FEED_PAGE_SIZE is 3 in tests: posts 1-3 on page 1 (ad after post 1), posts 4-6 on page 2 (ad after post 4).
   const home = await s.agent.get('/');
-  expect(home.text).not.toContain('data-ad-slot="1111111111"');
-  expect(home.text).toContain('data-ad-slot="2222222222"');
+  const feed1 = home.text.slice(home.text.indexOf('id="feed"'));
+  expect((feed1.match(/data-ad-slot="1111111111"/g) || []).length).toBe(1);
+  const firstArticleEnd = feed1.indexOf('</article>');
+  expect(feed1.indexOf('data-ad-slot="1111111111"')).toBeGreaterThan(firstArticleEnd);
+  expect(feed1.indexOf('data-ad-slot="1111111111"')).toBeLessThan(feed1.indexOf('<article', firstArticleEnd));
+  // Left and right columns.
+  expect((home.text.match(/data-ad-slot="2222222222"/g) || []).length).toBe(2);
   const since = home.text.match(/since=(\d+)/)[1];
   const page2 = await s.agent.get(`/fil?page=2&since=${since}`);
   expect((page2.text.match(/data-ad-slot="1111111111"/g) || []).length).toBe(1);
-  expect(page2.text.indexOf('data-ad-slot="1111111111"')).toBeGreaterThan(page2.text.lastIndexOf('<article'));
-  const jobPage = await request(app).get(`/offres/${job.slug}`);
-  expect(jobPage.text).toContain('data-ad-slot="3333333333"');
+  expect(page2.text.indexOf('data-ad-slot="1111111111"')).toBeLessThan(page2.text.indexOf('<article', page2.text.indexOf('</article>')));
+  const jobPage = (await request(app).get(`/offres/${job.slug}`)).text;
+  expect((jobPage.match(/data-ad-slot="3333333333"/g) || []).length).toBe(2);
+  expect(jobPage.indexOf('data-ad-place="jobTop"')).toBeGreaterThan(jobPage.indexOf('id="job-title"'));
+  expect(jobPage.indexOf('data-ad-place="jobTop"')).toBeLessThan(jobPage.indexOf('Description du poste'));
+  expect(jobPage.indexOf('data-ad-place="jobBottom"')).toBeGreaterThan(jobPage.indexOf('id="postuler"'));
+});
+
+test('ads are lazy: hidden until consent, requested only when about to be seen', async () => {
+  const js = (await request(app).get('/js/ads.js')).text;
+  expect(js).toContain('IntersectionObserver');
+  expect(js).toContain('offsetParent');
+  const home = (await s.agent.get('/')).text;
+  expect(home).toMatch(/data-ad-slot-wrapper[^>]*class="ad-unit hidden/);
+});
+
+test('admin settings override .env: publisher id, default unit, on/off switch, ads.txt', async () => {
+  const { SiteSetting } = require('../src/models');
+  const adsConfig = require('../src/services/adsConfig');
+  const adm = await loginAs(await createUser({ role: 'admin' }));
+  expect((await s.agent.get('/admin/publicites')).status).toBe(403);
+  expect((await adm.agent.get('/admin/publicites')).status).toBe(200);
+  const post = (body) => adm.agent.post('/admin/publicites').type('form').send({ _csrf: adm.csrf, ...body });
+  expect((await post({ enabled: 'on', client: 'pub-123', defaultSlot: '6556069017' })).status).toBe(422);
+  expect((await s.agent.post('/admin/publicites').type('form').send({ _csrf: s.csrf, client: 'ca-pub-1531184274736744' })).status).toBe(403);
+  expect((await post({ enabled: 'on', client: 'ca-pub-1531184274736744', defaultSlot: '6556069017', feed: '', sidebar: '', jobTop: '', jobBottom: '' })).status).toBe(302);
+  expect(adsConfig.current().slots).toEqual({ feed: '6556069017', sidebar: '6556069017', jobTop: '6556069017', jobBottom: '6556069017' });
+  expect((await request(app).get('/ads.txt')).text).toBe('google.com, pub-1531184274736744, DIRECT, f08c47fec0942fa0\n');
+  expect((await request(app).get(`/offres/${job.slug}`)).text).toContain('data-ad-slot="6556069017"');
+  // Switched off: no ad code at all.
+  await post({ client: 'ca-pub-1531184274736744', defaultSlot: '6556069017' });
+  const off = (await request(app).get(`/offres/${job.slug}`)).text;
+  expect(off).not.toContain('adsbygoogle');
+  expect(off).not.toContain('/js/ads.js');
+  await SiteSetting.destroy({ where: { key: adsConfig.KEYS } });
+  await adsConfig.load();
 });
 
 test.each(['/connexion', '/inscription', '/mot-de-passe-oublie', '/offres/nouvelle', '/publier', '/cv/creer', '/admin', '/notifications', '/menu', '/mes-offres'])(

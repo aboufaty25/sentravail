@@ -1,6 +1,10 @@
-/* AdSense loader with cookie consent. Nothing from Google is loaded before the visitor
- * accepts; if they refuse, no ads are loaded at all. The choice is stored for 12 months
- * in the "st_consent" cookie and can be changed with any [data-consent-reset] link. */
+/* AdSense loader with cookie consent and viewability-first lazy loading.
+ * - Nothing from Google is loaded before the visitor accepts; if they refuse, no ads at all.
+ *   The choice is stored for 12 months in the "st_consent" cookie and can be changed with
+ *   any [data-consent-reset] link.
+ * - Each ad unit is requested only when it is about to enter the screen (and never when its
+ *   column is hidden, e.g. desktop sidebars on a phone), so the impressions counted are ads
+ *   people actually see: better viewability, better revenue per impression. */
 (function () {
   const me = document.currentScript;
   const client = me && me.dataset.client;
@@ -11,12 +15,23 @@
     document.cookie = `st_consent=${v}; Max-Age=${365 * 24 * 3600}; Path=/; SameSite=Lax${location.protocol === 'https:' ? '; Secure' : ''}`;
   };
   let loaded = false;
+  let observer = null;
 
-  function fillSlots(root) {
+  function request(wrapper) {
+    const ins = wrapper.querySelector('ins.adsbygoogle:not([data-adsbygoogle-status])');
+    if (!ins || wrapper.dataset.adRequested) return;
+    wrapper.dataset.adRequested = '1';
+    try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch (_) { /* ad blocked */ }
+  }
+
+  function watch(root) {
     if (!loaded) return;
-    (root || document).querySelectorAll('ins.adsbygoogle:not([data-adsbygoogle-status])').forEach((ins) => {
-      ins.closest('[data-ad-slot-wrapper]')?.classList.remove('hidden');
-      try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch (_) { /* ad blocked */ }
+    const wrappers = (root || document).querySelectorAll('[data-ad-slot-wrapper]:not([data-ad-watched])');
+    wrappers.forEach((w) => {
+      w.dataset.adWatched = '1';
+      w.classList.remove('hidden');
+      if (observer) observer.observe(w);
+      else request(w); // very old browsers
     });
   }
 
@@ -28,7 +43,18 @@
     s.crossOrigin = 'anonymous';
     s.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${encodeURIComponent(client)}`;
     document.head.appendChild(s);
-    fillSlots(document);
+    if ('IntersectionObserver' in window) {
+      // Request slightly before the unit scrolls in (ads take a moment to render),
+      // only for units that are really displayed (a hidden column never intersects).
+      observer = new IntersectionObserver((entries) => {
+        entries.forEach((e) => {
+          if (!e.isIntersecting || !e.target.offsetParent) return;
+          observer.unobserve(e.target);
+          request(e.target);
+        });
+      }, { rootMargin: '0px 0px 200px 0px', threshold: 0 });
+    }
+    watch(document);
   }
 
   function banner(show) {
@@ -56,5 +82,5 @@
     });
   });
   // Feed pages loaded by infinite scroll bring new ad slots.
-  document.addEventListener('htmx:afterSettle', (e) => fillSlots(e.target));
+  document.addEventListener('htmx:afterSettle', (e) => watch(e.target));
 })();

@@ -155,6 +155,8 @@ router.get('/admin/filtre', ...adminOnly, admin.filterIndex);
 router.post('/admin/filtre', ...adminOnly, admin.filterUpdate);
 router.get('/admin/referentiels', ...adminOnly, admin.refsIndex);
 router.get('/admin/apparence', ...adminOnly, admin.brandingIndex);
+router.get('/admin/publicites', ...adminOnly, admin.adsIndex);
+router.post('/admin/publicites', ...adminOnly, admin.adsUpdate);
 router.post('/admin/apparence/:asset', ...adminOnly, brandingUpload, admin.brandingUpdate);
 router.post('/admin/referentiels', ...adminOnly, admin.refsAdd);
 router.post('/admin/referentiels/:id', ...adminOnly, admin.refsUpdate);

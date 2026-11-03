@@ -17,6 +17,7 @@
           <p class="mt-0.5 font-medium text-gray-700"><%= job.companyName %></p>
         </div>
       </div>
+      <%- include('../../partials/adSlot', { slot: 'jobTop', inline: true }) %>
 
       <dl class="mt-4 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
         <div class="rounded-lg bg-gray-50 p-2.5"><dt class="text-xs text-gray-500">Lieu</dt><dd class="font-semibold"><%= job.location %></dd></div>
@@ -79,7 +80,7 @@
 
     <%- include('../../partials/postSocial', { post, oob: false }) %>
   </article>
-  <%- include('../../partials/adSlot', { slot: 'job' }) %>
+  <%- include('../../partials/adSlot', { slot: 'jobBottom' }) %>
 
   <% if (similarPosts.length) { %>
     <section aria-labelledby="similar-title" class="px-2 sm:px-0">

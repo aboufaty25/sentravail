@@ -111,13 +111,15 @@ Aucun réel, aucun upload vidéo : ni onglet, ni route, ni modèle, ni code fron
 
 ## Fil d'actualité
 
-- Offres à la une (approuvées par l'admin ou officielles) épinglées en haut.
+- En haut du fil : **toutes les offres ouvertes publiées par un admin, de la plus récente à la plus ancienne**, puis les autres offres à la une (5 max), puis le fil classé (`pinnedJobs` dans `src/services/posts.js`). La page `/offres` place aussi les offres admin en premier.
 - Puis tri par score : `engagement = likes×1 + comments×3 + shares×5 + saves×2 + views×0.05`, `score = (engagement + 1) / (heures + 2)^1.5`, bonus ×1.5 si l'auteur est suivi, ×1.3 si l'offre/la recherche/l'événement correspond à la ville ou au secteur du lecteur. Recalcul à chaque interaction et toutes les 15 min.
 - Visibilité : « Mon réseau » = abonnés seulement ; offre de recruteur non approuvée = auteur + abonnés, sauf si virale (`VIRAL_THRESHOLD`) ; publications en modération visibles seulement par l'auteur et l'admin.
 
 ## AdSense
 
-- Emplacements : fil toutes les 6 publications, colonne de droite (desktop), bas de la page offre.
+- Réglages dans l'administration (`/admin/publicites`, `src/services/adsConfig.js`, table `site_settings`, `.env` en repli) : identifiant éditeur, bloc par défaut, bloc par emplacement, interrupteur marche/arrêt. Valeurs initiales de sentravail.com insérées par la migration 013.
+- Emplacements : fil après la **1ʳᵉ publication puis toutes les 3** (après 1, 4, 7…) ; **colonnes de gauche et de droite** (ordinateur) ; page offre **sous le titre** (`jobTop`) et **entre « Postuler » et les offres similaires** (`jobBottom`). Annonces automatiques : même script, activées depuis le compte AdSense.
+- **Visibilité d'abord** (`public/js/ads.js`) : chaque bloc n'est demandé qu'à l'approche de l'écran (IntersectionObserver, 200 px) et jamais dans une colonne masquée ; un bloc non rempli est replié (`.ad-unit`).
 - Jamais sur : connexion, inscription, formulaires de publication, modal de candidature, créateur de CV, administration, pages d'erreur.
 - Rien de Google n'est chargé avant le consentement (bandeau cookies) ; en cas de refus, aucune publicité.
 - `/ads.txt` généré depuis `ADSENSE_CLIENT_ID`. Pages obligatoires : À propos, Contact, Confidentialité, Conditions.

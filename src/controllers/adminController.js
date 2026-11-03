@@ -529,3 +529,40 @@ async function brandingUpdate(req, res) {
 }
 
 Object.assign(module.exports, { brandingIndex, brandingUpdate });
+
+// ======================= AdSense settings =======================
+const adsConfig = require('../services/adsConfig');
+
+const adsSchema = z.object({
+  enabled: z.string().optional(),
+  client: z.string().trim().refine((v) => !v || /^ca-pub-\d{10,20}$/.test(v), 'Identifiant éditeur invalide (ex. ca-pub-1234567890123456).'),
+  defaultSlot: z.string().trim().refine((v) => !v || /^\d{6,20}$/.test(v), "ID de bloc d'annonces invalide (chiffres uniquement)."),
+  ...Object.fromEntries(adsConfig.PLACEMENTS.map((p) => [p, z.string().trim().optional().default('').refine((v) => !v || /^\d{6,20}$/.test(v), "ID de bloc d'annonces invalide (chiffres uniquement).")])),
+});
+
+async function adsIndex(req, res) {
+  await adsConfig.load();
+  view(res, 'ads', { title: 'Publicités', section: 'ads', ads: adsConfig.current(), errors: {}, adsTxt: adsConfig.adsTxt() });
+}
+
+async function adsUpdate(req, res) {
+  const body = req.body || {};
+  const parsed = adsSchema.safeParse(body);
+  if (!parsed.success) {
+    const errors = Object.fromEntries(parsed.error.issues.map((i) => [i.path[0], i.message]));
+    const ads = { ...adsConfig.current(), client: body.client, defaultSlot: body.defaultSlot, switchOn: body.enabled === 'on', overrides: Object.fromEntries(adsConfig.PLACEMENTS.map((p) => [p, body[p] || ''])) };
+    res.status(422);
+    return view(res, 'ads', { title: 'Publicités', section: 'ads', ads, errors, adsTxt: adsConfig.adsTxt() });
+  }
+  const d = parsed.data;
+  await adsConfig.save({
+    'ads.enabled': d.enabled === 'on' ? 'on' : 'off',
+    'ads.client': d.client,
+    'ads.slot.default': d.defaultSlot,
+    ...Object.fromEntries(adsConfig.PLACEMENTS.map((p) => [`ads.slot.${p}`, d[p]])),
+  });
+  req.flash('success', 'Réglages publicitaires enregistrés.');
+  return res.redirect('/admin/publicites');
+}
+
+Object.assign(module.exports, { adsIndex, adsUpdate });
