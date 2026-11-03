@@ -8,12 +8,13 @@
     <%- include('../../partials/roleChoice') %>
     <%- include('../../partials/oauthButtons', { verb: "S'inscrire", retour: values.retour, roleAware: true }) %>
 
-    <div class="grid grid-cols-2 gap-2">
+    <div class="grid grid-cols-2 gap-2" x-show="role !== 'recruiter'">
       <%- include('../../partials/field', { name: 'firstName', label: 'Prénom', placeholder: 'Prénom', autocomplete: 'given-name', required: true }) %>
       <%- include('../../partials/field', { name: 'lastName', label: 'Nom', placeholder: 'Nom', autocomplete: 'family-name', required: true }) %>
     </div>
     <div x-show="role === 'recruiter'" x-cloak>
-      <%- include('../../partials/field', { name: 'companyName', label: "Nom de l'entreprise", placeholder: 'Nom de votre entreprise', autocomplete: 'organization' }) %>
+      <%- include('../../partials/field', { name: 'companyName', label: "Nom de l'entreprise *", placeholder: 'Ex. Teranga Digital SARL', autocomplete: 'organization' }) %>
+      <p class="mt-1 text-xs text-gray-500">Votre compte recruteur portera le nom de l'entreprise.</p>
     </div>
     <%- include('../../partials/field', { name: 'email', type: 'email', label: 'Email', placeholder: 'vous@exemple.com', autocomplete: 'email', required: true, inputmode: 'email' }) %>
     <%- include('../../partials/field', { name: 'phone', type: 'tel', label: 'Téléphone (facultatif)', placeholder: '77 123 45 67', autocomplete: 'tel', inputmode: 'tel' }) %>

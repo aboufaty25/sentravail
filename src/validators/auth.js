@@ -23,10 +23,18 @@ const optionalPhone = z
     return phone;
   });
 
+// Candidates give their first and last name; a recruiter account is named after the company.
+const optionalName = z.string().trim().max(60, '60 caractères maximum.').optional().default('');
+const namesForCandidates = (d, ctx) => {
+  if (d.role === 'recruiter') return;
+  if (d.firstName.length < 2) ctx.addIssue({ code: 'custom', path: ['firstName'], message: 'Prénom : 2 caractères minimum.' });
+  if (d.lastName.length < 2) ctx.addIssue({ code: 'custom', path: ['lastName'], message: 'Nom : 2 caractères minimum.' });
+};
+
 const registerSchema = z
   .object({
-    firstName: name('Prénom'),
-    lastName: name('Nom'),
+    firstName: optionalName,
+    lastName: optionalName,
     email: z.string().trim().toLowerCase().email('Adresse email invalide.').max(190),
     phone: optionalPhone,
     password,
@@ -43,20 +51,22 @@ const registerSchema = z
   .refine((d) => d.role !== 'recruiter' || d.companyName.length >= 2, {
     path: ['companyName'],
     message: "Indiquez le nom de votre entreprise.",
-  });
+  })
+  .superRefine(namesForCandidates);
 
 // Account created with Google/Apple: the email comes from the provider; the person still
 // chooses their profile (never admin) and, for recruiters, gives the company name.
 const oauthSignupSchema = z
   .object({
-    firstName: name('Prénom'),
-    lastName: name('Nom'),
+    firstName: optionalName,
+    lastName: optionalName,
     phone: optionalPhone,
     role: z.enum(['candidate', 'recruiter'], { message: 'Choisissez votre profil : candidat ou recruteur.' }),
     companyName: z.string().trim().max(120).optional().default(''),
     acceptTerms: z.literal('on', { message: "Vous devez accepter les conditions d'utilisation." }),
   })
-  .refine((d) => d.role !== 'recruiter' || d.companyName.length >= 2, { path: ['companyName'], message: "Indiquez le nom de votre entreprise." });
+  .refine((d) => d.role !== 'recruiter' || d.companyName.length >= 2, { path: ['companyName'], message: "Indiquez le nom de votre entreprise." })
+  .superRefine(namesForCandidates);
 
 const loginSchema = z.object({
   identifier: z.string().trim().min(3, 'Saisissez votre email ou votre numéro de téléphone.'),
@@ -74,6 +84,12 @@ const resetSchema = z
     message: 'Les mots de passe ne correspondent pas.',
   });
 
+// Names stored for a new account: a recruiter account carries the company name.
+function accountNames(d) {
+  if (d.role === 'recruiter') return { firstName: d.companyName.slice(0, 60), lastName: '' };
+  return { firstName: d.firstName, lastName: d.lastName };
+}
+
 // Turns a ZodError into { field: firstMessage }.
 function fieldErrors(error) {
   const out = {};
@@ -84,4 +100,4 @@ function fieldErrors(error) {
   return out;
 }
 
-module.exports = { oauthSignupSchema, registerSchema, loginSchema, forgotSchema, resetSchema, fieldErrors };
+module.exports = { accountNames, oauthSignupSchema, registerSchema, loginSchema, forgotSchema, resetSchema, fieldErrors };

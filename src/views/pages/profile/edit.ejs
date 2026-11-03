@@ -5,14 +5,16 @@
   </div>
   <form method="post" action="/parametres/profil" class="space-y-4" novalidate>
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <% if (currentUser.role === 'recruiter') { %>
+      <%- include('../../partials/field', { name: 'companyName', label: "Nom de l'entreprise *", autocomplete: 'organization', required: true }) %>
+      <p class="-mt-2 text-xs text-gray-500">Le nom affiché de votre compte.</p>
+    <% } else { %>
     <div class="grid grid-cols-2 gap-3">
       <%- include('../../partials/field', { name: 'firstName', label: 'Prénom', autocomplete: 'given-name', required: true }) %>
       <%- include('../../partials/field', { name: 'lastName', label: 'Nom', autocomplete: 'family-name', required: true }) %>
     </div>
-    <%- include('../../partials/field', { name: 'headline', label: 'Titre professionnel', placeholder: "Ex. Comptable — 5 ans d'expérience" }) %>
-    <% if (currentUser.role === 'recruiter') { %>
-      <%- include('../../partials/field', { name: 'companyName', label: "Nom de l'entreprise", autocomplete: 'organization' }) %>
     <% } %>
+    <%- include('../../partials/field', { name: 'headline', label: 'Titre professionnel', placeholder: "Ex. Comptable — 5 ans d'expérience" }) %>
     <div class="grid gap-3 sm:grid-cols-2">
       <div>
         <label for="f-city" class="label">Ville</label>

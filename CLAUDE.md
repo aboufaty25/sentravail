@@ -45,7 +45,7 @@ docs/DEPLOIEMENT.md
 ## Rôles
 
 - **Candidat** : profil, CV, publier (directement, sans validation préalable) « Je cherche un emploi », « Événement », « J'ai été recruté ! », postuler, s'abonner, aimer, commenter, partager.
-- **Recruteur** : tout sauf « Je cherche un emploi » + page entreprise, offres d'emploi, candidatures reçues, demande de badge vérifié.
+- **Recruteur** : inscription avec le **nom de l'entreprise seulement** (pas de prénom ni de nom : `firstName` = nom de l'entreprise, `lastName` vide, initiales tirées des deux premiers mots) ; tout sauf « Je cherche un emploi » + page entreprise, offres d'emploi, candidatures reçues, demande de badge vérifié.
 - **Admin** : tout + offres officielles, modération, vérifications, filtre anti-arnaque, utilisateurs, villes et secteurs.
 
 ## Types de publication (`src/config/postTypes.js`)

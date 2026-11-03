@@ -7,7 +7,7 @@ const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const { User } = require('../models');
 const oauth = require('../services/oauth');
-const { oauthSignupSchema, fieldErrors } = require('../validators/auth');
+const { oauthSignupSchema, fieldErrors, accountNames } = require('../validators/auth');
 const { generateUsername } = require('../services/username');
 const { safeReturn } = require('../utils/returnTo');
 const { queueEvent } = require('../utils/analytics');
@@ -129,10 +129,10 @@ async function finish(req, res) {
     const target = await startSession(req, existing, p.retour);
     return res.redirect(target);
   }
+  const names = accountNames(d);
   const user = await User.create({
-    username: await generateUsername(d.firstName, d.lastName),
-    firstName: d.firstName,
-    lastName: d.lastName,
+    username: await generateUsername(names.firstName, names.lastName),
+    ...names,
     email: p.email,
     phone: d.phone,
     // No password: login with Google/Apple ("Mot de passe oublié" can set one later).

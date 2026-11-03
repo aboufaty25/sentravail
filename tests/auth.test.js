@@ -72,6 +72,26 @@ describe('Registration', () => {
     expect(user.companyName).toBe('Teranga SA');
   });
 
+  test('a recruiter signs up with the company name only (no first or last name)', async () => {
+    const { agent, csrf } = await agentWithCsrf('/inscription');
+    const res = await agent.post('/inscription').type('form').send({
+      ...validCandidate, firstName: '', lastName: '', email: 'contact@sahel-logistique.sn', phone: '', role: 'recruiter', companyName: 'Sahel Logistique', _csrf: csrf,
+    });
+    expect(res.status).toBe(302);
+    const user = await User.findOne({ where: { email: 'contact@sahel-logistique.sn' } });
+    expect(user.role).toBe('recruiter');
+    expect(user.firstName).toBe('Sahel Logistique');
+    expect(user.lastName).toBe('');
+    expect(user.fullName).toBe('Sahel Logistique');
+    expect(user.initials).toBe('SL');
+    expect(user.username).toMatch(/^sahel-logistique/);
+    // A candidate still needs first and last name.
+    const again = await agentWithCsrf('/inscription');
+    const bad = await again.agent.post('/inscription').type('form').send({ ...validCandidate, firstName: '', lastName: '', email: 'x@ex.com', phone: '', _csrf: again.csrf });
+    expect(bad.status).toBe(422);
+    expect(bad.text).toContain('Prénom : 2 caractères minimum.');
+  });
+
   test('cannot self-register as admin', async () => {
     const { agent, csrf } = await agentWithCsrf('/inscription');
     const res = await agent.post('/inscription').type('form').send({

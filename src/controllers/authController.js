@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 const { Op } = require('sequelize');
 const { User } = require('../models');
 const env = require('../config/env');
-const { registerSchema, loginSchema, forgotSchema, resetSchema, fieldErrors } = require('../validators/auth');
+const { registerSchema, loginSchema, forgotSchema, resetSchema, fieldErrors, accountNames } = require('../validators/auth');
 const { generateUsername } = require('../services/username');
 const { sendPasswordReset } = require('../services/mail');
 const { isEmailLike, normalizePhone } = require('../utils/text');
@@ -47,6 +47,10 @@ async function register(req, res) {
     if (req.body.role === 'recruiter' && String(req.body.companyName || '').trim().length < 2) {
       errors.companyName = errors.companyName || "Indiquez le nom de votre entreprise.";
     }
+    if (req.body.role !== 'recruiter') {
+      if (String(req.body.firstName || '').trim().length < 2) errors.firstName = errors.firstName || 'Prénom : 2 caractères minimum.';
+      if (String(req.body.lastName || '').trim().length < 2) errors.lastName = errors.lastName || 'Nom : 2 caractères minimum.';
+    }
     return res.status(422).render('pages/auth/register', { ...view, title: 'Créer un compte', values, errors });
   }
   const data = parsed.data;
@@ -62,10 +66,10 @@ async function register(req, res) {
     return res.status(422).render('pages/auth/register', { ...view, title: 'Créer un compte', values, errors });
   }
 
+  const names = accountNames(data);
   const user = await User.create({
-    username: await generateUsername(data.firstName, data.lastName),
-    firstName: data.firstName,
-    lastName: data.lastName,
+    username: await generateUsername(names.firstName, names.lastName),
+    ...names,
     email: data.email,
     phone: data.phone,
     passwordHash: await bcrypt.hash(data.password, BCRYPT_ROUNDS),

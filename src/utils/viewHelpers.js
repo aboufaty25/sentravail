@@ -53,13 +53,20 @@ function escapeHtml(s) {
 }
 
 // Avatar image or coloured initials fallback.
+// "AF" for Aïssatou Fall; "TD" for a company account "Teranga Digital" (no last name).
+function initialsOf(firstName = '', lastName = '') {
+  if (lastName) return `${firstName[0] || ''}${lastName[0] || ''}`.toUpperCase();
+  const words = String(firstName).split(/[\s-]+/).filter((w) => /^[\p{L}\d]/u.test(w));
+  return words.slice(0, 2).map((w) => w[0]).join('').toUpperCase() || '?';
+}
+
 function avatar(user, size = 'w-10 h-10', text = 'text-sm') {
   if (!user) return '';
   if (user.avatarUrl) {
     return `<img src="${escapeHtml(user.avatarUrl)}" alt="" loading="lazy" class="${size} rounded-full object-cover bg-gray-200 shrink-0">`;
   }
   const color = AVATAR_COLORS[(user.id || 0) % AVATAR_COLORS.length];
-  const initials = escapeHtml(`${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase());
+  const initials = escapeHtml(initialsOf(user.firstName, user.lastName));
   return `<span class="${size} ${text} ${color} rounded-full text-white font-semibold inline-flex items-center justify-center shrink-0" aria-hidden="true">${initials}</span>`;
 }
 
@@ -159,4 +166,4 @@ function loginAttr(user, message) {
   return user ? '' : `data-login="${escapeHtml(message)}"`;
 }
 
-module.exports = { formatDateTime, guestAvatar, loginAttr, POST_TYPES, EVENT_KINDS, publishOptions, absoluteUrl, REPORT_REASONS, queryString, formatDate, daysLeft, icon, avatar, roleLabel, timeAgo, formatCount, escapeHtml, richText, imageUrl, reactionSummary, REACTIONS };
+module.exports = { initialsOf, formatDateTime, guestAvatar, loginAttr, POST_TYPES, EVENT_KINDS, publishOptions, absoluteUrl, REPORT_REASONS, queryString, formatDate, daysLeft, icon, avatar, roleLabel, timeAgo, formatCount, escapeHtml, richText, imageUrl, reactionSummary, REACTIONS };

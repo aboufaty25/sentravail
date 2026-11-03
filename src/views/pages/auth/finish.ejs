@@ -4,12 +4,13 @@
   <form method="post" action="/inscription/finaliser" class="space-y-3" novalidate>
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
     <%- include('../../partials/roleChoice', { noDefaultRole: true }) %>
-    <div class="grid grid-cols-2 gap-2">
+    <div class="grid grid-cols-2 gap-2" x-show="role !== 'recruiter'">
       <%- include('../../partials/field', { name: 'firstName', label: 'Prénom', placeholder: 'Prénom', autocomplete: 'given-name', required: true }) %>
       <%- include('../../partials/field', { name: 'lastName', label: 'Nom', placeholder: 'Nom', autocomplete: 'family-name', required: true }) %>
     </div>
     <div x-show="role === 'recruiter'" x-cloak>
-      <%- include('../../partials/field', { name: 'companyName', label: "Nom de l'entreprise", placeholder: 'Nom de votre entreprise', autocomplete: 'organization' }) %>
+      <%- include('../../partials/field', { name: 'companyName', label: "Nom de l'entreprise *", placeholder: 'Ex. Teranga Digital SARL', autocomplete: 'organization' }) %>
+      <p class="mt-1 text-xs text-gray-500">Votre compte recruteur portera le nom de l'entreprise.</p>
     </div>
     <%- include('../../partials/field', { name: 'phone', type: 'tel', label: 'Téléphone (facultatif)', placeholder: '77 123 45 67', autocomplete: 'tel', inputmode: 'tel' }) %>
     <label class="flex items-start gap-2 text-sm text-gray-600">

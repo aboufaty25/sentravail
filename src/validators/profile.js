@@ -4,8 +4,9 @@ const { normalizePhone } = require('../utils/text');
 const optionalText = (max) => z.string().trim().max(max, `${max} caractères maximum.`).optional().default('');
 
 const profileSchema = z.object({
-  firstName: z.string().trim().min(2, 'Prénom : 2 caractères minimum.').max(60),
-  lastName: z.string().trim().min(2, 'Nom : 2 caractères minimum.').max(60),
+  // Required for candidates and admins (checked in the controller); recruiters use companyName.
+  firstName: optionalText(60),
+  lastName: optionalText(60),
   headline: optionalText(160),
   bio: optionalText(2000),
   city: optionalText(80),

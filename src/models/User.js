@@ -10,7 +10,7 @@ class User extends Model {
   }
 
   get initials() {
-    return `${this.firstName?.[0] || ''}${this.lastName?.[0] || ''}`.toUpperCase();
+    return require('../utils/viewHelpers').initialsOf(this.firstName, this.lastName);
   }
 
   get displayName() {
