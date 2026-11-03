@@ -18,6 +18,12 @@
 <meta name="twitter:title" content="<%= title %>">
 <meta name="twitter:description" content="<%= metaDescription %>">
 <meta name="twitter:image" content="<%= ogImage %>">
+<% if (google.siteVerification && currentPath === '/') { %><meta name="google-site-verification" content="<%= google.siteVerification %>"><% } %>
+<%# Google Analytics 4: not on admin pages (the team's own visits would skew the figures). %>
+<% if (google.analyticsId && !/^\/admin/.test(currentPath)) { %>
+<link rel="preconnect" href="https://www.googletagmanager.com" crossorigin>
+<script src="/js/analytics.js?v=<%= assetVersion %>" data-id="<%= google.analyticsId %>" data-events="<%= JSON.stringify(gaEvents) %>"<% if (currentUser) { %> data-user="<%= currentUser.role %>"<% } %> async></script>
+<% } %>
 <% if (locals.jsonLd) { %><script type="application/ld+json"><%- jsonLd %></script><% } %>
 <link rel="icon" href="<%= brand.favicon %>" type="<%= brand.faviconType %>">
 <link rel="apple-touch-icon" href="<%= brand.appleIcon %>">

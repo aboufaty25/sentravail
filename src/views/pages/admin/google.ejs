@@ -1,0 +1,57 @@
+<%- include('../../partials/adminNav') %>
+<% const v = values || { analyticsId: g.analyticsId, siteVerification: g.siteVerification }; %>
+<form method="post" action="/admin/google" class="space-y-3" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+  <section class="card space-y-3 rounded-lg p-4" aria-labelledby="ga-title">
+    <div class="flex items-start justify-between gap-2">
+      <div>
+        <h2 id="ga-title" class="text-lg font-semibold">Google Analytics 4</h2>
+        <p class="text-sm text-gray-500">Visiteurs, pages vues, provenance, appareils. Événements suivis : inscriptions, connexions, candidatures envoyées, clics sortants et recherches.</p>
+      </div>
+      <span class="shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold <%= g.analyticsId ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-600' %>"><%= g.analyticsId ? 'Actif' : 'Non configuré' %></span>
+    </div>
+    <div>
+      <label for="ga-id" class="label">ID de mesure</label>
+      <input id="ga-id" name="analyticsId" value="<%= v.analyticsId %>" placeholder="G-XXXXXXXXXX" autocomplete="off" class="input <%= errors.analyticsId ? 'input-error' : '' %>">
+      <% if (errors.analyticsId) { %><p class="field-error"><%= errors.analyticsId %></p><% } %>
+    </div>
+    <details class="rounded-lg bg-gray-50 p-3 text-sm text-gray-700">
+      <summary class="cursor-pointer font-semibold">Où trouver l'ID de mesure ?</summary>
+      <ol class="mt-2 list-decimal space-y-1 pl-5">
+        <li>Ouvrez <a href="https://analytics.google.com" target="_blank" rel="noopener" class="font-semibold text-brand-600 hover:underline">analytics.google.com</a> avec votre compte Google.</li>
+        <li><em>Administration → Créer → Propriété</em> : nom « SenTravail », fuseau horaire Dakar, devise XOF.</li>
+        <li>Plateforme : <em>Web</em> → URL <code><%= appUrl %></code> → « Créer un flux ».</li>
+        <li>Copiez l'<strong>ID de mesure</strong> (G-…) et collez-le ci-dessus.</li>
+      </ol>
+      <p class="mt-2">Les visites des pages d'administration ne sont pas comptées. Les premières données apparaissent dans « Temps réel » en quelques minutes.</p>
+    </details>
+  </section>
+
+  <section class="card space-y-3 rounded-lg p-4" aria-labelledby="gsc-title">
+    <div class="flex items-start justify-between gap-2">
+      <div>
+        <h2 id="gsc-title" class="text-lg font-semibold">Google Search Console</h2>
+        <p class="text-sm text-gray-500">Présence dans la recherche Google : mots-clés, clics, pages indexées, offres d'emploi (Google for Jobs).</p>
+      </div>
+      <span class="shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold <%= g.siteVerification ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-600' %>"><%= g.siteVerification ? 'Balise en place' : 'Non configuré' %></span>
+    </div>
+    <div>
+      <label for="gsc-code" class="label">Balise de validation (méthode « Balise HTML »)</label>
+      <input id="gsc-code" name="siteVerification" value="<%= v.siteVerification %>" placeholder='<meta name="google-site-verification" content="…">' autocomplete="off" class="input <%= errors.siteVerification ? 'input-error' : '' %>">
+      <% if (errors.siteVerification) { %><p class="field-error"><%= errors.siteVerification %></p><% } %>
+      <p class="mt-1 text-xs text-gray-500">Collez la balise entière ou seulement le code : elle est ajoutée à la page d'accueil.</p>
+    </div>
+    <details class="rounded-lg bg-gray-50 p-3 text-sm text-gray-700">
+      <summary class="cursor-pointer font-semibold">Comment valider le site ?</summary>
+      <ol class="mt-2 list-decimal space-y-1 pl-5">
+        <li>Ouvrez <a href="https://search.google.com/search-console" target="_blank" rel="noopener" class="font-semibold text-brand-600 hover:underline">Search Console</a> → <em>Ajouter une propriété</em> → <strong>Préfixe de l'URL</strong> : <code><%= appUrl %></code>.</li>
+        <li>Méthode <strong>Balise HTML</strong> : copiez la balise, collez-la ici, enregistrez, puis cliquez sur « Valider » dans Search Console.</li>
+        <li>Dans <em>Sitemaps</em>, ajoutez : <code><%= appUrl %>/sitemap.xml</code></li>
+        <li>Les offres apparaîtront dans <em>Améliorations → Offres d'emploi</em> (données structurées déjà en place).</li>
+      </ol>
+    </details>
+  </section>
+
+  <div class="flex justify-end"><button class="btn-primary">Enregistrer</button></div>
+</form>

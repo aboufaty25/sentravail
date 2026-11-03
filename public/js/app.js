@@ -300,6 +300,7 @@
           }
           this.appId = json.id;
           if (json.sent) { // on-platform recruitment: received right away
+            if (window.stTrack) window.stTrack('generate_lead', { method: 'platform', job: this.job.slug });
             this.doneMessage = json.message;
             this.step = 'done';
             return;
@@ -329,6 +330,7 @@
           if (!ok) { this.error = json.error || 'Une erreur est survenue. Réessayez.'; return; }
           this.doneMessage = json.message;
           this.step = 'done';
+          if (window.stTrack) window.stTrack('generate_lead', { method: url.endsWith('/envoyer') ? 'server' : 'mailto', job: this.job.slug });
         } catch (_) {
           this.error = 'Pas de connexion internet. Réessayez.';
         } finally {

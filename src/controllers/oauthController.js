@@ -10,6 +10,7 @@ const oauth = require('../services/oauth');
 const { oauthSignupSchema, fieldErrors } = require('../validators/auth');
 const { generateUsername } = require('../services/username');
 const { safeReturn } = require('../utils/returnTo');
+const { queueEvent } = require('../utils/analytics');
 
 const view = { layout: 'layouts/auth', noAds: true };
 const ID_FIELD = { google: 'googleId', apple: 'appleId' };
@@ -81,6 +82,7 @@ async function callback(req, res, next) {
     if (user.isBanned) return loginWithError(req, res, 'Ce compte a été suspendu. Contactez le support.');
     await user.update({ lastLoginAt: new Date() });
     const target = await startSession(req, user, saved.retour);
+    queueEvent(req, 'login', { method: name });
     return res.redirect(target);
   }
   if (!identity.email || !identity.emailVerified) {
@@ -141,6 +143,7 @@ async function finish(req, res) {
     lastLoginAt: new Date(),
   });
   const target = await startSession(req, user, p.retour);
+  queueEvent(req, 'sign_up', { method: p.provider, role: user.role });
   req.flash('success', `Bienvenue sur SenTravail, ${user.firstName} !`);
   return res.redirect(target);
 }

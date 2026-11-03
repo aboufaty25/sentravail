@@ -32,7 +32,7 @@ src/
   controllers/   publish, post, job, event, application, cv, comment, follow, search,
                  notification, report, verification, admin, seo, page, auth, profile
   services/      feedRanking, posts, jobs, follows, notifications, moderation, moderationActions,
-                 verification, reactions, cvPdf, cvStorage, storage, mail, refs, branding
+                 verification, reactions, cvPdf, cvStorage, storage, mail, refs, branding, adsConfig, googleConfig, oauth, jobImport
   middlewares/   auth, roles, csrf, upload, rateLimit, errors, flash
   migrations/    001… (idempotentes)
   views/         layouts, partials (postCard, postContent, cards/*, jobCard, applyModal,
@@ -128,7 +128,12 @@ Aucun réel, aucun upload vidéo : ni onglet, ni route, ni modèle, ni code fron
 - **Visibilité d'abord** (`public/js/ads.js`) : chaque bloc est demandé environ deux écrans avant d'être vu (défilement rapide ; un demi-écran après aussi) (IntersectionObserver) et jamais dans une colonne masquée ; la balise `<ins>` n'est créée qu'au moment de la demande (`adsbygoogle.push()` remplit la **première** `<ins>` vide de la page : n'en jamais écrire dans le HTML) ; le bloc reste replié (hauteur 0, `.ad-unit`) jusqu'à ce que Google le remplisse (`data-ad-status="filled"` → `.ad-filled`) ; non rempli ou bloqué, il disparaît. Préconnexion aux domaines Google dans `head.ejs`.
 - Jamais sur : connexion, inscription, formulaires de publication, modal de candidature, créateur de CV, administration, pages d'erreur.
 - **Pas de bandeau cookies** : les annonces se chargent directement (choix du propriétaire). Les visiteurs d'Europe/Royaume-Uni passent par le message de consentement de Google, à activer dans AdSense (Confidentialité et messages → RGPD). La page Confidentialité explique les cookies publicitaires.
-- `/ads.txt` généré depuis `ADSENSE_CLIENT_ID`. Pages obligatoires : À propos, Contact, Confidentialité, Conditions.
+- `/ads.txt` généré depuis l'identifiant éditeur (admin ou `ADSENSE_CLIENT_ID`). Pages obligatoires : À propos, Contact, Confidentialité, Conditions.
+
+## Google Analytics et Search Console (`/admin/google`, `src/services/googleConfig.js`)
+
+- **GA4** : ID de mesure (`G-…`) saisi dans l'admin (`.env` `GA_MEASUREMENT_ID` en repli) ; chargé par `public/js/analytics.js` (pas de script en ligne, CSP), jamais sur `/admin`. Événements : `sign_up` et `login` (mis en file côté serveur avec `queueEvent(req, …)` de `src/utils/analytics.js`, envoyés à la page suivante), `generate_lead` à chaque candidature envoyée (`window.stTrack`), plus la mesure améliorée de GA (clics sortants, recherche `?q=`). Propriété utilisateur `role`.
+- **Search Console** : balise `google-site-verification` (collée entière ou code seul) ajoutée à la page d'accueil ; sitemap `/sitemap.xml` à déclarer dans Search Console.
 
 ## Commandes
 

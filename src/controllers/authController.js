@@ -8,6 +8,7 @@ const { generateUsername } = require('../services/username');
 const { sendPasswordReset } = require('../services/mail');
 const { isEmailLike, normalizePhone } = require('../utils/text');
 const { safeReturn } = require('../utils/returnTo');
+const { queueEvent } = require('../utils/analytics');
 
 const BCRYPT_ROUNDS = env.isTest ? 4 : 12;
 const RESET_TTL_MS = 60 * 60 * 1000;
@@ -74,6 +75,7 @@ async function register(req, res) {
   });
 
   const target = await startSession(req, user);
+  queueEvent(req, 'sign_up', { method: 'email', role: user.role });
   req.flash('success', `Bienvenue sur SenTravail, ${user.firstName} !`);
   return res.redirect(target);
 }
@@ -106,6 +108,7 @@ async function login(req, res) {
 
   await user.update({ lastLoginAt: new Date() });
   const target = await startSession(req, user);
+  queueEvent(req, 'login', { method: 'email' });
   return res.redirect(target);
 }
 

@@ -37,6 +37,9 @@ const schema = z.object({
   FEED_PAGE_SIZE: z.coerce.number().int().min(3).max(50).default(10),
   VIRAL_THRESHOLD: z.coerce.number().default(5),
   FEATURED_DAYS: z.coerce.number().int().min(1).max(90).default(7),
+  // Google Analytics 4 / Search Console (normally set in the admin: /admin/google)
+  GA_MEASUREMENT_ID: z.string().trim().optional().default(''),
+  GOOGLE_SITE_VERIFICATION: z.string().trim().optional().default(''),
   ADSENSE_CLIENT_ID: z.string().trim().optional().default('').refine((v) => !v || /^ca-pub-\d{10,20}$/.test(v), 'ADSENSE_CLIENT_ID must look like ca-pub-1234567890123456'),
   ADSENSE_SLOT_FEED: z.string().trim().optional().default(''),
   ADSENSE_SLOT_SIDEBAR: z.string().trim().optional().default(''),

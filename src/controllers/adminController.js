@@ -566,3 +566,28 @@ async function adsUpdate(req, res) {
 }
 
 Object.assign(module.exports, { adsIndex, adsUpdate });
+
+// ======================= Google Analytics / Search Console =======================
+const googleConfig = require('../services/googleConfig');
+
+async function googleIndex(req, res) {
+  await googleConfig.load();
+  view(res, 'google', { title: 'Google', section: 'google', g: googleConfig.current(), values: null, errors: {}, appUrl: env.APP_URL });
+}
+
+async function googleUpdate(req, res) {
+  const analyticsId = String(req.body?.analyticsId || '').trim().toUpperCase();
+  const siteVerification = googleConfig.parseVerification(req.body?.siteVerification);
+  const errors = {};
+  if (analyticsId && !googleConfig.GA_RE.test(analyticsId)) errors.analyticsId = 'ID de mesure invalide : il commence par G- (ex. G-ABC123XYZ9).';
+  if (siteVerification && !googleConfig.GSC_RE.test(siteVerification)) errors.siteVerification = 'Code de validation invalide : collez la balise meta fournie par Search Console.';
+  if (Object.keys(errors).length) {
+    res.status(422);
+    return view(res, 'google', { title: 'Google', section: 'google', g: googleConfig.current(), values: { analyticsId, siteVerification: req.body?.siteVerification || '' }, errors, appUrl: env.APP_URL });
+  }
+  await googleConfig.save({ analyticsId, siteVerification });
+  req.flash('success', 'Réglages Google enregistrés.');
+  return res.redirect('/admin/google');
+}
+
+Object.assign(module.exports, { googleIndex, googleUpdate });

@@ -14,6 +14,7 @@ const { notFound, errorHandler } = require('./middlewares/errors');
 const viewHelpers = require('./utils/viewHelpers');
 const branding = require('./services/branding');
 const adsConfig = require('./services/adsConfig');
+const googleConfig = require('./services/googleConfig');
 const routes = require('./routes');
 const { unseenCount } = require('./services/notifications');
 
@@ -23,7 +24,9 @@ const app = express();
 // Google AdSense domains. Ads can be switched on from the admin at any time
 // (/admin/publicites), so they are always allowed.
 const GOOGLE_ADS = ['https://pagead2.googlesyndication.com', 'https://*.googlesyndication.com', 'https://*.doubleclick.net', 'https://*.google.com', 'https://*.googleadservices.com', 'https://*.googletagservices.com', 'https://*.adtrafficquality.google', 'https://*.gstatic.com'];
-const ADS = { script: GOOGLE_ADS, connect: GOOGLE_ADS, frame: GOOGLE_ADS, img: ['https:'] };
+// Google Analytics 4 (gtag.js), set from the admin (/admin/google).
+const GOOGLE_ANALYTICS = ['https://www.googletagmanager.com', 'https://*.google-analytics.com', 'https://*.analytics.google.com'];
+const ADS = { script: [...GOOGLE_ADS, ...GOOGLE_ANALYTICS], connect: [...GOOGLE_ADS, ...GOOGLE_ANALYTICS], frame: GOOGLE_ADS, img: ['https:'] };
 
 // Short hash of the built assets, appended as ?v= so browsers and the service worker
 // pick up new CSS/JS right after a deploy.
@@ -102,6 +105,7 @@ app.use(csrfProtection);
 app.use(loadUser);
 app.use(branding.refresh);
 app.use(adsConfig.refresh);
+app.use(googleConfig.refresh);
 app.use((req, res, next) => {
   Object.assign(res.locals, viewHelpers, {
     appUrl: env.APP_URL,
@@ -116,6 +120,9 @@ app.use((req, res, next) => {
     ...(() => { const a = adsConfig.current(); return { adsEnabled: a.enabled, adsClient: a.client, adSlots: a.slots }; })(),
     brand: branding.current(),
     oauthProviders: require('./services/oauth').enabledProviders(),
+    google: googleConfig.current(),
+    // Analytics events queued by the server for this page (sign_up, login…), sent once.
+    gaEvents: (() => { const e = req.session?.gaEvents || []; if (req.session?.gaEvents) delete req.session.gaEvents; return e; })(),
     ogImage: branding.current().shareImage,
     // Private or personal pages are never indexed.
     noindex: /^\/(admin|parametres|mes-|cv|candidatures|notifications|enregistrements|publier|menu|reinitialiser|mot-de-passe-oublie|offres\/nouvelle|offres\/[^/]+\/modifier)/.test(req.path),
