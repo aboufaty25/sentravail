@@ -67,7 +67,7 @@ test('ads are lazy and never leave an empty box: requested one screen ahead, unf
   const js = (await request(app).get('/js/ads.js')).text;
   expect(js).toContain('IntersectionObserver');
   expect(js).toContain('offsetParent');
-  expect(js).toContain("'0px 0px 100% 0px'");
+  expect(js).toContain("'50% 0px 200% 0px'");
   expect(js).toContain('ad-filled');
   const css = (await request(app).get('/css/app.css')).text;
   expect(css).toMatch(/\.ad-unit:not\(\.ad-filled\)\{[^}]*max-height:0/);

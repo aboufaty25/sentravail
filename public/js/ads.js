@@ -1,8 +1,9 @@
 /* AdSense loader, viewability-first.
  * - The Google script loads right away (no consent banner; Google's own consent message
  *   handles visitors from Europe/UK, see AdSense > Privacy & messaging).
- * - Each unit is requested about one screen before it scrolls into view (so it is ready
- *   when the visitor gets there) and never in a hidden column (desktop sidebars on a phone).
+ * - Each unit is requested about two screens before it scrolls into view, so it is ready
+ *   even when the visitor scrolls fast (a unit just passed is still requested, in case they
+ *   scroll back), and never in a hidden column (desktop sidebars on a phone).
  * - A unit stays folded until Google has actually filled it: no empty box while loading,
  *   and an unfilled unit never shows at all. */
 (function () {
@@ -55,7 +56,7 @@
         observer.unobserve(e.target);
         request(e.target);
       });
-    }, { rootMargin: '0px 0px 100% 0px', threshold: 0 }); // one screen ahead
+    }, { rootMargin: '50% 0px 200% 0px', threshold: 0 }); // two screens ahead (fast scrolling), half a screen behind
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => watch(document));
