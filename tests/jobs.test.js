@@ -58,7 +58,7 @@ describe('Publishing jobs', () => {
   });
 
   test('recruiter publishes a job with an image; readable slug; visible immediately', async () => {
-    const res = await createJob(rec, { ...validJob, requestFeatured: 'on', text: 'Nous recrutons !' }, PNG);
+    const res = await createJob(rec, { ...validJob, text: 'Nous recrutons !' }, PNG);
     expect(res.status).toBe(302);
     const job = await lastJob();
     expect(res.headers.location).toBe(`/offres/${job.slug}`);
@@ -391,6 +391,45 @@ describe('Featured jobs in the feed', () => {
     expect(list.indexOf('>Admin récente<')).toBeLessThan(list.indexOf('>Admin ancienne<'));
     const recIdx = list.indexOf('>Recruteur toute neuve<');
     if (recIdx !== -1) expect(list.indexOf('>Admin ancienne<')).toBeLessThan(recIdx);
+  });
+
+  test('no checkbox: every recruiter offer is sent to the admin for featuring and is visible to all at once', async () => {
+    const form = await rec.agent.get('/offres/nouvelle');
+    expect(form.text).not.toContain('name="requestFeatured"');
+    await createJob(rec, { ...validJob, title: 'Magasinier' });
+    const job = await lastJob();
+    expect(job.post.featureStatus).toBe('pending');
+    expect(job.post.isFeatured).toBe(false);
+    expect((await request(app).get('/offres?q=Magasinier')).text).toContain('>Magasinier<');
+    await createJob(adm, { ...validJob, title: 'Offre admin simple' });
+    expect((await lastJob()).post.featureStatus).toBe('none');
+  });
+
+  test('approved featured offers are pinned with admin offers, ordered by publication date', async () => {
+    const { buildSlug } = require('../src/services/jobs');
+    const make = async (title, author, minutesAgo, extra = {}) => {
+      const createdAt = new Date(Date.now() - minutesAgo * 60_000);
+      const post = await Post.create({ type: 'job', authorId: author.id, status: 'published', createdAt, ...extra });
+      await Post.update({ createdAt }, { where: { id: post.id } });
+      return Job.create({ postId: post.id, slug: buildSlug(title, 'Dakar'), title, companyName: 'X', location: 'Dakar', contractType: 'CDI', sector: 'Comptabilité', description: 'd'.repeat(40), applyEmail: 'a@b.sn' });
+    };
+    // Earlier offers: older and not featured, so the 3 new pinned ones fill the first feed page.
+    const featuredBefore = await Post.findAll({ where: { isFeatured: true }, attributes: ['id', 'featuredUntil', 'createdAt'], raw: true });
+    await Post.update({ isFeatured: false, createdAt: new Date(Date.now() - 3 * 86_400_000) }, { where: {} });
+    await make('Admin plus ancienne', admin, 300);
+    await make('Une recruteur mise en avant', recruiter, 120, { isFeatured: true, featuredUntil: new Date(Date.now() + 86_400_000), featureStatus: 'approved' });
+    await make('Admin plus récente', admin, 10);
+    await make('Recruteur non mise en avant', recruiter, 0);
+    const home = (await request(app).get('/')).text;
+    const at = (t) => home.indexOf(`>${t}<`);
+    expect(at('Admin plus récente')).toBeGreaterThan(-1);
+    expect(at('Admin plus récente')).toBeLessThan(at('Une recruteur mise en avant'));
+    expect(at('Une recruteur mise en avant')).toBeLessThan(at('Admin plus ancienne'));
+    if (at('Recruteur non mise en avant') !== -1) expect(at('Admin plus ancienne')).toBeLessThan(at('Recruteur non mise en avant'));
+    const list = (await request(app).get('/offres')).text;
+    expect(list.indexOf('>Admin plus récente<')).toBeLessThan(list.indexOf('>Une recruteur mise en avant<'));
+    expect(list.indexOf('>Une recruteur mise en avant<')).toBeLessThan(list.indexOf('>Admin plus ancienne<'));
+    for (const p of featuredBefore) await Post.update({ isFeatured: true, featuredUntil: p.featuredUntil }, { where: { id: p.id } });
   });
 
   test('expired featuring is no longer pinned', async () => {

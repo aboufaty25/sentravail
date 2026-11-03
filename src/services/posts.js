@@ -47,14 +47,13 @@ function canDelete(post, viewer) {
   return !!viewer && (viewer.id === post.authorId || viewer.role === 'admin');
 }
 
-// Posts that may reach everyone's feed: public, and — for recruiter offers — approved
-// by the admin or gone viral (score above VIRAL_THRESHOLD).
+// Posts that reach everyone's feed: every published public post — job offers included,
+// approved automatically (featuring "À la une" is a separate admin decision).
 function broadcastWhere() {
   return {
     status: 'published',
     visibility: 'public',
     type: { [Op.in]: FEED_TYPES },
-    [Op.or]: [{ type: { [Op.ne]: 'job' } }, { featureStatus: 'approved' }, { score: { [Op.gte]: env.VIRAL_THRESHOLD } }],
   };
 }
 
@@ -134,31 +133,20 @@ async function hydrate(posts, viewer) {
 // set of posts while scrolling so new posts don't shift pages.
 const RERANK_WINDOW = 30;
 
-// Offers pinned on top of the feed, in this order:
-//  1. every open offer published by an administrator, newest first;
-//  2. the other featured offers ("À la une", approved by the admin), up to PINNED_FEATURED.
-const PINNED_FEATURED = 5;
+// Offers pinned on top of the feed, newest first, whoever published them:
+// every open offer of an administrator, and every offer currently featured ("À la une",
+// approved by the admin).
 async function pinnedJobs(since) {
   const adminIds = (await User.findAll({ where: { role: 'admin' }, attributes: ['id'], raw: true })).map((u) => u.id);
-  const open = (p) => p.job && !p.job.isExpired && !p.author.isBanned;
-  const adminJobs = adminIds.length
-    ? (await Post.findAll({
-      where: { type: 'job', status: 'published', visibility: 'public', authorId: { [Op.in]: adminIds }, createdAt: { [Op.lte]: since } },
-      include: postInclude(),
-      order: [['createdAt', 'DESC'], ['id', 'DESC']],
-      limit: 300,
-    })).filter(open)
-    : [];
-  const featured = (await Post.findAll({
-    where: {
-      type: 'job', status: 'published', isFeatured: true, featuredUntil: { [Op.gt]: new Date() }, createdAt: { [Op.lte]: since },
-      ...(adminIds.length ? { authorId: { [Op.notIn]: adminIds } } : {}),
-    },
+  const pinnedWhere = [{ isFeatured: true, featuredUntil: { [Op.gt]: new Date() } }];
+  if (adminIds.length) pinnedWhere.push({ authorId: { [Op.in]: adminIds } });
+  const rows = await Post.findAll({
+    where: { type: 'job', status: 'published', visibility: 'public', createdAt: { [Op.lte]: since }, [Op.or]: pinnedWhere },
     include: postInclude(),
-    order: [['featuredUntil', 'DESC'], ['id', 'DESC']],
-    limit: PINNED_FEATURED * 2,
-  })).filter(open).slice(0, PINNED_FEATURED);
-  return [...adminJobs, ...featured];
+    order: [['createdAt', 'DESC'], ['id', 'DESC']],
+    limit: 300,
+  });
+  return rows.filter((p) => p.job && !p.job.isExpired && !p.author.isBanned);
 }
 
 async function feedPage({ viewer, page = 1, since = new Date() }) {

@@ -126,9 +126,10 @@ Aucun réel, aucun upload vidéo : ni onglet, ni route, ni modèle, ni code fron
 
 ## Fil d'actualité
 
-- En haut du fil : **toutes les offres ouvertes publiées par un admin, de la plus récente à la plus ancienne**, puis les autres offres à la une (5 max), puis le fil classé (`pinnedJobs` dans `src/services/posts.js`). La page `/offres` place aussi les offres admin en premier.
+- En haut du fil : **les offres ouvertes publiées par un admin et les offres « À la une » (mise en avant approuvée par l'admin), mélangées et triées par date de publication, de la plus récente à la plus ancienne**, puis le fil classé (`pinnedJobs` dans `src/services/posts.js`). La page `/offres` suit le même ordre.
+- **Toutes les offres sont visibles par tous dès leur publication** (approuvées automatiquement). Chaque offre de recruteur est **automatiquement proposée à l'admin pour la mise à la une** (`featureStatus: 'pending'`, plus de case à cocher) ; l'admin approuve ou refuse dans `/admin/offres`.
 - Puis tri par score : `engagement = likes×1 + comments×3 + shares×5 + saves×2 + views×0.05`, `score = (engagement + 1) / (heures + 2)^1.5`, bonus ×1.5 si l'auteur est suivi, ×1.3 si l'offre/la recherche/l'événement correspond à la ville ou au secteur du lecteur. Recalcul à chaque interaction et toutes les 15 min.
-- Visibilité : « Mon réseau » = abonnés seulement ; offre de recruteur non approuvée = auteur + abonnés, sauf si virale (`VIRAL_THRESHOLD`) ; publications en modération visibles seulement par l'auteur et l'admin.
+- Visibilité : « Mon réseau » = abonnés seulement ; publications en modération visibles seulement par l'auteur et l'admin.
 
 ## AdSense
 

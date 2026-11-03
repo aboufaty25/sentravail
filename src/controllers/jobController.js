@@ -104,7 +104,8 @@ async function create(req, res) {
     ...decision,
     isFeatured: official,
     featuredUntil: official ? jobs.featuredUntilDate(now) : null,
-    featureStatus: official ? 'approved' : d.requestFeatured === 'on' ? 'pending' : 'none',
+    // Every recruiter offer is submitted to the admin for featuring (no checkbox).
+    featureStatus: official ? 'approved' : isAdmin ? 'none' : 'pending',
     score: baseScore({ createdAt: now }),
   });
   const job = await Job.create({

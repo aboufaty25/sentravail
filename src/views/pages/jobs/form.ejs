@@ -98,10 +98,10 @@
           <span><span class="font-semibold">Offre officielle</span><span class="block text-sm text-gray-500">Badge « Officielle » et mise à la une immédiate pour tous les utilisateurs.</span></span>
         </label>
       <% } else { %>
-        <label class="flex items-start gap-3 rounded-lg border border-gray-200 p-3">
-          <input type="checkbox" name="requestFeatured" class="mt-1 h-4 w-4" <%= v.requestFeatured ? 'checked' : '' %>>
-          <span><span class="font-semibold">Demander la mise à la une</span><span class="block text-sm text-gray-500">Après validation par SenTravail, votre offre sera épinglée en haut du fil de tous les utilisateurs. En attendant, elle est visible par vous et vos abonnés.</span></span>
-        </label>
+        <p class="flex items-start gap-3 rounded-lg bg-brand-50 p-3 text-sm text-brand-900">
+          <%- icon('star', 'w-5 h-5 shrink-0 text-brand-600') %>
+          <span>Votre offre est visible par tous dès sa publication. Elle est aussi proposée automatiquement à l'équipe SenTravail pour être <strong>mise à la une</strong> (épinglée en haut du fil).</span>
+        </p>
       <% } %>
     <% } %>
 

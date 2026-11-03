@@ -28,7 +28,6 @@ const jobSchema = z.object({
     .refine((v) => !v || /^\d{4}-\d{2}-\d{2}$/.test(v), 'Date invalide.')
     .refine((v) => !v || v >= todayUtc(), 'La date limite doit être dans le futur.'),
   text: optional(2000), // optional intro shown above the job card in the feed
-  requestFeatured: z.string().optional(),
   isOfficial: z.string().optional(),
 }).superRefine((d, ctx) => {
   if (d.applyMode === 'email') {

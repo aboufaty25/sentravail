@@ -118,12 +118,12 @@ describe('Visibility', () => {
     expect(ids).toEqual(expect.arrayContaining([networkPost.id, recruiterJob.id, approvedJob.id, publicPost.id]));
   });
 
-  test('a non-follower only sees public posts and approved offers', async () => {
+  test('a non-follower sees public posts and every offer (approved automatically), never network posts', async () => {
     const ids = await feedIds(carlS);
     expect(ids).toContain(publicPost.id);
     expect(ids).toContain(approvedJob.id);
+    expect(ids).toContain(recruiterJob.id);
     expect(ids).not.toContain(networkPost.id);
-    expect(ids).not.toContain(recruiterJob.id);
   });
 
   test('the author and admins always see them', async () => {

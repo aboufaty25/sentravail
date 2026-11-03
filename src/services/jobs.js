@@ -61,8 +61,8 @@ async function search({ q, ville, secteur, contrat, page }, viewer) {
       { model: Job, as: 'job', where: jobWhere, required: true },
       { model: User, as: 'author', attributes: posts.AUTHOR_ATTRS, where: { isBanned: false }, required: true },
     ],
-    // Admin offers first (newest first), then featured ones, then the most recent.
-    order: [[literal("CASE WHEN `author`.`role` = 'admin' THEN 0 ELSE 1 END"), 'ASC'], ['isFeatured', 'DESC'], ['createdAt', 'DESC'], ['id', 'DESC']],
+    // Pinned offers first — admin offers and offers "À la une" together, newest first — then the others.
+    order: [[literal("CASE WHEN `author`.`role` = 'admin' OR (`Post`.`isFeatured` = 1 AND `Post`.`featuredUntil` > NOW()) THEN 0 ELSE 1 END"), 'ASC'], ['createdAt', 'DESC'], ['id', 'DESC']],
     limit: SEARCH_PAGE_SIZE,
     offset: (page - 1) * SEARCH_PAGE_SIZE,
     distinct: true,
