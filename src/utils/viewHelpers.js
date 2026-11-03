@@ -53,6 +53,12 @@ function escapeHtml(s) {
 }
 
 // Avatar image or coloured initials fallback.
+// Verified badge, Facebook style: blue rosette with a white check mark.
+const VERIFIED_LOBES = '<circle cx="20.20" cy="12.00" r="2.9"/><circle cx="19.10" cy="16.10" r="2.9"/><circle cx="16.10" cy="19.10" r="2.9"/><circle cx="12.00" cy="20.20" r="2.9"/><circle cx="7.90" cy="19.10" r="2.9"/><circle cx="4.90" cy="16.10" r="2.9"/><circle cx="3.80" cy="12.00" r="2.9"/><circle cx="4.90" cy="7.90" r="2.9"/><circle cx="7.90" cy="4.90" r="2.9"/><circle cx="12.00" cy="3.80" r="2.9"/><circle cx="16.10" cy="4.90" r="2.9"/><circle cx="19.10" cy="7.90" r="2.9"/>';
+function verifiedBadge(size = 'w-4 h-4', label = 'Compte vérifié') {
+  return `<svg class="${size} inline-block shrink-0 align-[-0.15em]" viewBox="0 0 24 24" role="img" aria-label="${escapeHtml(label)}"><title>${escapeHtml(label)}</title><g fill="#0866FF"><circle cx="12" cy="12" r="8.6"/>${VERIFIED_LOBES}</g><path d="M7.6 12.4l3 3 5.8-6.2" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+}
+
 // "AF" for Aïssatou Fall; "TD" for a company account "Teranga Digital" (no last name).
 function initialsOf(firstName = '', lastName = '') {
   if (lastName) return `${firstName[0] || ''}${lastName[0] || ''}`.toUpperCase();
@@ -166,4 +172,4 @@ function loginAttr(user, message) {
   return user ? '' : `data-login="${escapeHtml(message)}"`;
 }
 
-module.exports = { initialsOf, formatDateTime, guestAvatar, loginAttr, POST_TYPES, EVENT_KINDS, publishOptions, absoluteUrl, REPORT_REASONS, queryString, formatDate, daysLeft, icon, avatar, roleLabel, timeAgo, formatCount, escapeHtml, richText, imageUrl, reactionSummary, REACTIONS };
+module.exports = { verifiedBadge, initialsOf, formatDateTime, guestAvatar, loginAttr, POST_TYPES, EVENT_KINDS, publishOptions, absoluteUrl, REPORT_REASONS, queryString, formatDate, daysLeft, icon, avatar, roleLabel, timeAgo, formatCount, escapeHtml, richText, imageUrl, reactionSummary, REACTIONS };

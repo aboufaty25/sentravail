@@ -4,7 +4,7 @@
     <li class="flex items-center gap-2.5">
       <a href="/profil/<%= u.username %>"><%- avatar(u, 'w-10 h-10') %></a>
       <div class="min-w-0 flex-1">
-        <a href="/profil/<%= u.username %>" class="block truncate text-sm font-semibold hover:underline"><%= u.firstName %> <%= u.lastName %></a>
+        <a href="/profil/<%= u.username %>" class="block truncate text-sm font-semibold hover:underline"><%= u.firstName %> <%= u.lastName %><% if (u.isVerified) { %> <%- verifiedBadge('w-3.5 h-3.5') %><% } %></a>
         <p class="truncate text-xs text-gray-500"><%= u.reason %></p>
       </div>
       <% if (currentUser) { %><%- include('followButton', { targetId: u.id, following: false, variant: 'link' }) %>

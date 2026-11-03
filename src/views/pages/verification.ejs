@@ -1,10 +1,10 @@
 <% const u = currentUser; const methods = { ninea: 'Numéro NINEA', rccm: 'Numéro RCCM', email: 'Email professionnel' }; %>
 <div class="card rounded-lg px-4 py-5 sm:px-6" x-data="{ method: '<%= values.method || 'ninea' %>' }">
-  <h1 class="flex items-center gap-2 text-xl font-semibold"><span class="text-brand-600"><%- icon('check', 'w-6 h-6') %></span> Badge vérifié</h1>
+  <h1 class="flex items-center gap-2 text-xl font-semibold"><%- verifiedBadge('w-7 h-7', 'Badge vérifié') %> Badge vérifié</h1>
   <p class="mt-1 text-sm text-gray-600">Le badge montre aux candidats que votre entreprise est réelle. Les comptes vérifiés peuvent ajouter des liens et partager des conseils carrière.</p>
 
   <% if (u.isVerified) { %>
-    <p class="mt-4 rounded-md bg-green-50 px-3 py-3 text-sm text-green-800">Votre compte est vérifié ✓</p>
+    <p class="mt-4 rounded-md bg-green-50 px-3 py-3 text-sm text-green-800"><span class="inline-flex items-center gap-1.5">Votre compte est vérifié <%- verifiedBadge('w-5 h-5') %></span></p>
   <% } else if (u.role !== 'recruiter') { %>
     <p class="mt-4 rounded-md bg-gray-50 px-3 py-3 text-sm text-gray-700">Le badge vérifié se demande depuis un compte recruteur. Les candidats peuvent être vérifiés par l'équipe SenTravail.</p>
   <% } else { %>

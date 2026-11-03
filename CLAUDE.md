@@ -70,6 +70,7 @@ docs/DEPLOIEMENT.md
 ## Garde-fous (`src/services/moderation.js`)
 
 - **Pas de modération a priori** : tous les comptes, nouveaux compris, publient directement. Seuls le filtre anti-arnaque et les signalements envoient un contenu en modération.
+- **Affichage du badge** : rosette bleue avec coche blanche, façon Facebook — toujours via `verifiedBadge(taille)` (`src/utils/viewHelpers.js`), jamais une simple coche.
 - **Badge vérifié (recruteurs)** : demande avec NINEA, RCCM ou email professionnel (Gmail, Yahoo, Hotmail… refusés ; propriété confirmée par lien), validation par l'admin.
 - **Filtre anti-arnaque** : publication, offre (création et modification), partage ou commentaire contenant un terme interdit (« frais de dossier », « paiement », « payer », « investissement », « argent facile », « Wave », « Orange Money », « dépôt »…) → bloqué et envoyé en modération. Liste modifiable dans l'administration (`/admin/filtre`), comparaison sans accents ni majuscules, mots entiers.
 - Message **« Un vrai recruteur ne demande jamais d'argent »** sur chaque page d'offre et dans le modal Postuler.

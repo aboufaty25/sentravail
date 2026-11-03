@@ -28,7 +28,7 @@
         <% if (job.salary) { %><div class="col-span-2 rounded-lg bg-gray-50 p-2.5 sm:col-span-4"><dt class="text-xs text-gray-500">Salaire</dt><dd class="font-semibold"><%= job.salary %></dd></div><% } %>
       </dl>
       <p class="mt-3 text-xs text-gray-500">Publiée <%= timeAgo(post.createdAt) === "À l'instant" ? "à l'instant" : `il y a ${timeAgo(post.createdAt)}` %> par
-        <a href="/profil/<%= post.author.username %>" class="font-medium hover:underline"><%= post.author.firstName %> <%= post.author.lastName %></a> · <%= formatCount(post.viewsCount) %> vue<%= post.viewsCount > 1 ? 's' : '' %></p>
+        <a href="/profil/<%= post.author.username %>" class="font-medium hover:underline"><%= post.author.firstName %> <%= post.author.lastName %></a><% if (post.author.isVerified) { %> <%- verifiedBadge('w-3.5 h-3.5') %><% } %> · <%= formatCount(post.viewsCount) %> vue<%= post.viewsCount > 1 ? 's' : '' %></p>
 
       <% if (canManage) { %>
         <div class="mt-4 flex flex-wrap items-center gap-2 rounded-lg bg-brand-50 p-3 text-sm">

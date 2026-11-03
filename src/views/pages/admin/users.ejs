@@ -13,7 +13,7 @@
       <a href="/profil/<%= u.username %>"><%- avatar(u, 'w-10 h-10') %></a>
       <div class="min-w-0 flex-1">
         <p class="font-semibold"><a href="/profil/<%= u.username %>" class="hover:underline"><%= u.firstName %> <%= u.lastName %></a>
-          <% if (u.isVerified) { %><span class="text-brand-600" title="Vérifié">✓</span><% } %>
+          <% if (u.isVerified) { %><%- verifiedBadge('w-4 h-4', 'Vérifié') %><% } %>
           <% if (u.isBanned) { %><span class="ml-1 rounded bg-red-100 px-1.5 text-xs font-semibold text-red-700">Suspendu</span><% } %></p>
         <p class="truncate text-sm text-gray-500"><%= u.email %><%= u.phone ? ` · ${u.phone}` : '' %></p>
         <p class="text-xs text-gray-400"><%= roleLabel(u.role) %><%= u.companyName ? ` · ${u.companyName}` : '' %> · inscrit le <%= formatDate(u.createdAt) %><%= reportCounts[u.id] ? ` · ${reportCounts[u.id]} signalement(s)` : '' %></p>

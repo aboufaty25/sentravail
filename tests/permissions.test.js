@@ -153,3 +153,13 @@ describe('Profile', () => {
     expect(res.text).toContain('&lt;script&gt;');
   });
 });
+
+test('verified accounts show the blue rosette badge (Facebook style)', async () => {
+  const { Post } = require('../src/models');
+  const pro = await createUser({ email: 'verifie@ex.com', role: 'recruiter', companyName: 'Badge SA', isVerified: true });
+  await Post.create({ type: 'advice', title: 'Conseil vérifié', text: 'Un conseil publié par un compte vérifié.', authorId: pro.id });
+  const home = (await request(app).get('/')).text;
+  expect(home).toContain('aria-label="Compte vérifié"');
+  expect(home).toContain('fill="#0866FF"');
+  expect((await request(app).get(`/profil/${pro.username}`)).text).toContain('aria-label="Compte vérifié"');
+});

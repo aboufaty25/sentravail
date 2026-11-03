@@ -10,7 +10,7 @@
       </div>
       <h1 class="mt-2 text-2xl font-bold leading-tight">
         <%= p.fullName %>
-        <% if (p.isVerified) { %><span class="ml-1 inline-block align-middle text-brand-600" title="Compte vérifié"><%- icon('check', 'w-5 h-5') %></span><% } %>
+        <% if (p.isVerified) { %><span class="ml-1"><%- verifiedBadge('w-6 h-6') %></span><% } %>
       </h1>
       <% if (p.headline) { %><p class="mt-0.5 text-[15px] text-gray-700"><%= p.headline %></p><% } %>
       <p class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-500">

@@ -5,7 +5,7 @@
     <a href="/profil/<%= a.username %>" class="shrink-0"><%- avatar(a, 'w-10 h-10') %></a>
     <div class="min-w-0 flex-1 leading-tight">
       <a href="/profil/<%= a.username %>" class="font-semibold hover:underline"><%= a.firstName %> <%= a.lastName %></a>
-      <% if (a.isVerified) { %><span class="inline-block align-[-2px] text-brand-600" title="Compte vérifié"><%- icon('check', 'w-4 h-4') %></span><% } %>
+      <% if (a.isVerified) { %><%- verifiedBadge('w-4 h-4') %><% } %>
       <% if (post.type === 'share') { %><span class="text-gray-500"> a partagé <%= post.sharedPost && post.sharedPost.type === 'job' ? 'une offre' : 'une publication' %></span>
       <% } else if (POST_TYPES[post.type]) { %><span class="text-gray-500"> <%= POST_TYPES[post.type].verb %></span><% } %>
       <% if (m.canFollow) { %><%- include('followButton', { targetId: a.id, following: false, variant: 'link' }) %>

@@ -18,7 +18,7 @@
   <a href="/mes-offres" class="menu-item"><span class="text-brand-600"><%- icon('briefcase') %></span> Tableau de recrutement</a>
 <% } %>
 <% if (u && u.role === 'recruiter') { %>
-  <a href="/parametres/verification" class="menu-item"><span class="text-brand-600"><%- icon('check') %></span> Badge vérifié <%= u.isVerified ? '✓' : '' %></a>
+  <a href="/parametres/verification" class="menu-item"><span class="text-brand-600"><%- icon('check') %></span> Badge vérifié <% if (u.isVerified) { %><%- verifiedBadge('w-4 h-4') %><% } %></a>
 <% } %>
 <% if (u && u.hasRole('admin')) { %>
   <a href="/admin" class="menu-item"><span class="text-brand-600"><%- icon('shield') %></span> Administration</a>
