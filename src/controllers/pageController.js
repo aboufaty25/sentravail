@@ -1,11 +1,11 @@
 const { Post } = require('../models');
 const { feedPage, hydrate, postInclude } = require('../services/posts');
-const { featuredJobs } = require('../services/jobs');
 
 async function home(req, res) {
   // Open to everyone (indexable): guests see the public feed.
   const since = new Date();
-  const [{ posts, hasMore }, featured] = await Promise.all([feedPage({ viewer: req.user, page: 1, since }), featuredJobs(req.user)]);
+  // Admin offers and featured offers come first inside the feed itself (services/posts).
+  const { posts, hasMore } = await feedPage({ viewer: req.user, page: 1, since });
   // Just-published post: pin it on top for its author, once.
   const freshId = Number.parseInt(req.query.nouveau, 10);
   let fresh = null;
@@ -14,12 +14,11 @@ async function home(req, res) {
     if (fresh) await hydrate([fresh], req.user);
   }
   const feedPosts = fresh ? posts.filter((p) => p.id !== fresh.id) : posts;
-  const pinned = fresh ? featured.filter((p) => p.id !== fresh.id) : featured;
   return res.render('pages/home', {
     title: req.user ? 'Accueil' : "SenTravail — Le réseau social de l'emploi au Sénégal",
     metaDescription: "Offres d'emploi, candidats disponibles, salons de recrutement et conseils carrière au Sénégal. Postulez gratuitement, même sans compte.",
     canonical: `${require('../config/env').APP_URL}/`,
-    activeTab: 'home', fresh, featured: pinned, posts: feedPosts, hasMore, page: 1, since: since.getTime(),
+    activeTab: 'home', fresh, posts: feedPosts, hasMore, page: 1, since: since.getTime(),
   });
 }
 

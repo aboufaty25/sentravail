@@ -134,17 +134,47 @@ async function hydrate(posts, viewer) {
 // set of posts while scrolling so new posts don't shift pages.
 const RERANK_WINDOW = 30;
 
+// Offers pinned on top of the feed, in this order:
+//  1. every open offer published by an administrator, newest first;
+//  2. the other featured offers ("À la une", approved by the admin), up to PINNED_FEATURED.
+const PINNED_FEATURED = 5;
+async function pinnedJobs(since) {
+  const adminIds = (await User.findAll({ where: { role: 'admin' }, attributes: ['id'], raw: true })).map((u) => u.id);
+  const open = (p) => p.job && !p.job.isExpired && !p.author.isBanned;
+  const adminJobs = adminIds.length
+    ? (await Post.findAll({
+      where: { type: 'job', status: 'published', visibility: 'public', authorId: { [Op.in]: adminIds }, createdAt: { [Op.lte]: since } },
+      include: postInclude(),
+      order: [['createdAt', 'DESC'], ['id', 'DESC']],
+      limit: 300,
+    })).filter(open)
+    : [];
+  const featured = (await Post.findAll({
+    where: {
+      type: 'job', status: 'published', isFeatured: true, featuredUntil: { [Op.gt]: new Date() }, createdAt: { [Op.lte]: since },
+      ...(adminIds.length ? { authorId: { [Op.notIn]: adminIds } } : {}),
+    },
+    include: postInclude(),
+    order: [['featuredUntil', 'DESC'], ['id', 'DESC']],
+    limit: PINNED_FEATURED * 2,
+  })).filter(open).slice(0, PINNED_FEATURED);
+  return [...adminJobs, ...featured];
+}
+
 async function feedPage({ viewer, page = 1, since = new Date() }) {
   const limit = env.FEED_PAGE_SIZE;
   const followed = await followedIds(viewer?.id);
-  const window = Math.min(page * limit + RERANK_WINDOW, 600);
+  const pinned = await pinnedJobs(since);
+  const pinnedIds = pinned.map((p) => p.id);
+  const window = Math.min(Math.max(0, page * limit - pinned.length) + RERANK_WINDOW, 600);
   const rows = await Post.findAll({
     where: {
       [Op.and]: [
         feedWhere(viewer, followed),
         { createdAt: { [Op.lte]: since } },
-        // Featured jobs are pinned separately on top of the first page.
+        // Featured jobs and pinned offers are placed on top instead.
         { [Op.not]: { type: 'job', isFeatured: true, featuredUntil: { [Op.gt]: new Date() } } },
+        ...(pinnedIds.length ? [{ id: { [Op.notIn]: pinnedIds } }] : []),
       ],
     },
     include: postInclude(),
@@ -156,8 +186,9 @@ async function feedPage({ viewer, page = 1, since = new Date() }) {
     .map((p) => ({ p, s: personalize(p.score, p, viewer, { followedIds: followed }) }))
     .sort((a, b) => b.s - a.s || b.p.id - a.p.id)
     .map((x) => x.p);
-  const pageItems = ranked.slice((page - 1) * limit, page * limit);
-  const hasMore = ranked.length > page * limit || rows.length === window;
+  const all = [...pinned, ...ranked];
+  const pageItems = all.slice((page - 1) * limit, page * limit);
+  const hasMore = all.length > page * limit || rows.length === window;
   return { posts: await hydrate(pageItems, viewer), hasMore };
 }
 

@@ -368,6 +368,31 @@ describe('Featured jobs in the feed', () => {
     expect(res.text.indexOf('À la une')).toBeLessThan(res.text.indexOf('Comptable Dakar') === -1 ? Infinity : res.text.indexOf('Comptable Dakar'));
   });
 
+  test('every open admin offer is on top of the feed and of the offers page, newest first', async () => {
+    const { buildSlug } = require('../src/services/jobs');
+    const make = async (title, author, minutesAgo, data = {}) => {
+      const createdAt = new Date(Date.now() - minutesAgo * 60_000);
+      const post = await Post.create({ type: 'job', authorId: author.id, status: 'published', featureStatus: 'approved', createdAt });
+      await Post.update({ createdAt }, { where: { id: post.id } });
+      return Job.create({ postId: post.id, slug: buildSlug(title, 'Dakar'), title, companyName: 'X', location: 'Dakar', contractType: 'CDI', sector: 'Comptabilité', description: 'd'.repeat(40), applyEmail: 'a@b.sn', ...data });
+    };
+    await make('Admin ancienne', admin, 600);
+    await make('Admin récente', admin, 5);
+    await make('Admin clôturée', admin, 1, { deadline: '2020-01-01' });
+    await make('Recruteur toute neuve', recruiter, 0);
+    const home = (await request(app).get('/')).text;
+    const at = (t) => home.indexOf(`>${t}<`);
+    expect(at('Admin récente')).toBeGreaterThan(-1);
+    expect(at('Admin récente')).toBeLessThan(at('Admin ancienne'));
+    // The brand-new recruiter offer comes after every admin offer (possibly on a later page).
+    if (at('Recruteur toute neuve') !== -1) expect(at('Admin ancienne')).toBeLessThan(at('Recruteur toute neuve'));
+    expect(at('Admin clôturée')).toBe(-1);
+    const list = (await request(app).get('/offres')).text;
+    expect(list.indexOf('>Admin récente<')).toBeLessThan(list.indexOf('>Admin ancienne<'));
+    const recIdx = list.indexOf('>Recruteur toute neuve<');
+    if (recIdx !== -1) expect(list.indexOf('>Admin ancienne<')).toBeLessThan(recIdx);
+  });
+
   test('expired featuring is no longer pinned', async () => {
     const job = await Job.findOne({ where: { title: 'Officielle à la une' } });
     await Post.update({ featuredUntil: new Date(Date.now() - 1000) }, { where: { id: job.postId } });

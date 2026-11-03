@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const { Op } = require('sequelize');
+const { Op, literal } = require('sequelize');
 const { Post, Job, User } = require('../models');
 const env = require('../config/env');
 const { slugify } = require('../utils/text');
@@ -61,7 +61,8 @@ async function search({ q, ville, secteur, contrat, page }, viewer) {
       { model: Job, as: 'job', where: jobWhere, required: true },
       { model: User, as: 'author', attributes: posts.AUTHOR_ATTRS, where: { isBanned: false }, required: true },
     ],
-    order: [['isFeatured', 'DESC'], ['createdAt', 'DESC'], ['id', 'DESC']],
+    // Admin offers first (newest first), then featured ones, then the most recent.
+    order: [[literal("CASE WHEN `author`.`role` = 'admin' THEN 0 ELSE 1 END"), 'ASC'], ['isFeatured', 'DESC'], ['createdAt', 'DESC'], ['id', 'DESC']],
     limit: SEARCH_PAGE_SIZE,
     offset: (page - 1) * SEARCH_PAGE_SIZE,
     distinct: true,
