@@ -3,7 +3,7 @@
 <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
   <%- tile('Utilisateurs', formatCount(stats.users), `+${stats.newUsers} cette semaine · ${stats.bannedUsers} suspendu(s)`, '/admin/utilisateurs') %>
   <%- tile('Offres actives', formatCount(stats.jobsActive), `${stats.featuredNow} à la une`, '/offres') %>
-  <%- tile('Candidatures envoyées', formatCount(stats.applications), `+${stats.applications7} cette semaine`, '/admin') %>
+  <%- tile('Candidatures envoyées', formatCount(stats.applications), `+${stats.applications7} cette semaine`, '/admin/candidatures') %>
   <%- tile('Publications', formatCount(stats.postsCount), 'hors offres', '/') %>
   <%- tile('Bloqués par le filtre', adminCounts.filtered || 0, 'publications et commentaires à vérifier', '/admin/moderation', (adminCounts.filtered || 0) > 0) %>
   <%- tile('Signalements à traiter', stats.openReports, 'contenus signalés', '/admin/signalements', stats.openReports > 0) %>
@@ -12,6 +12,8 @@
   <%- tile('Candidats', formatCount(stats.roles.candidate || 0), '', '/admin/utilisateurs?role=candidate') %>
   <%- tile('Recruteurs', formatCount(stats.roles.recruiter || 0), '', '/admin/utilisateurs?role=recruiter') %>
 </div>
+
+<%- include('../../partials/atsAdminSummary') %>
 
 <% const max = Math.max(1, ...chart.map(c => c.n)); %>
 <section class="card mt-3 rounded-lg p-4" aria-labelledby="chart-title">

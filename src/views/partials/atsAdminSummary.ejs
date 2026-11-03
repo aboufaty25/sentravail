@@ -1,0 +1,48 @@
+<%# Recruitment (ATS) summary for the admin. Needs `ats` (services/atsStats) and LABELS. %>
+<% const stages = [['confirmed_sent', 'Nouvelles', 'border-brand-500'], ['viewed', 'À examiner', 'border-gray-400'], ['shortlisted', 'Présélection', 'border-green-500'], ['interview', 'Entretien', 'border-purple-500'], ['offer', 'Proposition', 'border-teal-500'], ['hired', 'Embauches', 'border-green-700'], ['rejected', 'Refusées', 'border-red-500']]; %>
+<section class="card mt-3 rounded-lg p-4" aria-labelledby="ats-title">
+  <div class="flex flex-wrap items-center justify-between gap-2">
+    <h2 id="ats-title" class="font-semibold">Recrutement sur la plateforme</h2>
+    <a href="/admin/candidatures" class="text-sm font-semibold text-brand-600 hover:underline">Toutes les candidatures →</a>
+  </div>
+  <div class="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+    <% [['Candidatures', formatCount(ats.total), `+${ats.received7} en 7 jours · +${ats.received30} en 30 jours`],
+        ['Via SenTravail', formatCount(ats.byMode.platform), `${formatCount(ats.byMode.email)} par email${ats.pendingEmail ? ` · ${ats.pendingEmail} email non confirmé` : ''}`],
+        ['Entretiens en cours', formatCount(ats.interviews), `${ats.upcoming.length} à venir`],
+        ['Embauches', formatCount(ats.hired), `+${ats.hired30} en 30 jours`]].forEach(([label, value, sub]) => { %>
+      <div class="rounded-lg bg-gray-50 p-3"><p class="text-xs text-gray-500"><%= label %></p><p class="text-2xl font-bold"><%= value %></p><p class="text-[11px] text-gray-500"><%= sub %></p></div>
+    <% }) %>
+  </div>
+  <ol class="mt-3 grid grid-cols-4 gap-1.5 text-center sm:grid-cols-7" aria-label="Candidatures par étape">
+    <% stages.forEach(([key, label, tone]) => { %>
+      <li><a href="/admin/candidatures?statut=<%= key %>" class="block rounded-lg border-t-4 <%= tone %> bg-gray-50 px-1 py-2 hover:bg-gray-100">
+        <span class="block text-lg font-bold leading-none"><%= ats.byStage[key] || 0 %></span><span class="mt-1 block text-[11px] text-gray-600"><%= label %></span></a></li>
+    <% }) %>
+  </ol>
+  <p class="mt-2 text-xs text-gray-500">Taux de réponse des recruteurs : <strong><%= ats.responseRate === null ? '—' : `${ats.responseRate} %` %></strong> <span class="text-gray-400">(candidatures de plus de 7 jours vues ou traitées)</span></p>
+
+  <div class="mt-4 grid gap-4 lg:grid-cols-2">
+    <div>
+      <h3 class="text-sm font-semibold">Offres les plus demandées</h3>
+      <% if (!ats.topJobs.length) { %><p class="mt-1 text-sm text-gray-500">Aucune candidature pour le moment.</p><% } %>
+      <ul class="mt-1 divide-y divide-gray-100">
+        <% ats.topJobs.forEach(j => { %>
+          <li class="flex items-center gap-2 py-1.5 text-sm">
+            <a href="<%= j.jobSlug ? `/mes-offres/${j.jobSlug}/candidatures` : '#' %>" class="min-w-0 flex-1 truncate hover:underline"><span class="font-medium"><%= j.jobTitle %></span> <span class="text-gray-500">· <%= j.companyName %></span></a>
+            <span class="shrink-0 rounded-full bg-brand-50 px-2 text-xs font-semibold text-brand-700"><%= j.n %></span>
+          </li>
+        <% }) %>
+      </ul>
+    </div>
+    <div>
+      <h3 class="text-sm font-semibold">Prochains entretiens</h3>
+      <% if (!ats.upcoming.length) { %><p class="mt-1 text-sm text-gray-500">Aucun entretien planifié.</p><% } %>
+      <ul class="mt-1 divide-y divide-gray-100">
+        <% ats.upcoming.forEach(a => { %>
+          <li class="py-1.5 text-sm"><a href="/candidatures/<%= a.id %>" class="hover:underline"><span class="font-medium"><%= a.firstName %> <%= a.lastName %></span> <span class="text-gray-500">· <%= a.jobTitle %></span></a>
+            <span class="block text-xs text-purple-700"><%= formatDateTime(a.interviewAt) %></span></li>
+        <% }) %>
+      </ul>
+    </div>
+  </div>
+</section>

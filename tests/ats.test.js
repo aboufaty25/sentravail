@@ -118,3 +118,38 @@ test('recruiter board: stages, moving a candidate, interview scheduling and priv
   expect(dash.text).toContain('Tableau de recrutement');
   expect(dash.text).toContain('1 embauche');
 });
+
+describe('Admin view of recruitment', () => {
+  let adm;
+  beforeAll(async () => { adm = await loginAs(await createUser({ email: 'admin-ats@ex.com', role: 'admin' })); });
+
+  test('dashboard shows platform-wide recruitment figures', async () => {
+    const page = await adm.agent.get('/admin');
+    expect(page.status).toBe(200);
+    expect(page.text).toContain('Recrutement sur la plateforme');
+    expect(page.text).toContain('Assistant RH'); // most applied-to offer
+    expect(page.text).toMatch(/Via SenTravail<\/p><p class="text-2xl font-bold">[1-9]/);
+  });
+
+  test('all applications, admin only, with stage, mode and text filters', async () => {
+    expect((await cand.agent.get('/admin/candidatures')).status).toBe(403);
+    expect((await rec.agent.get('/admin/candidatures')).status).toBe(403);
+    const all = await adm.agent.get('/admin/candidatures');
+    expect(all.status).toBe(200);
+    expect(all.text).toContain('Fatou Sow');
+    expect(all.text).toContain('Awa Ndiaye');
+    const hired = await adm.agent.get('/admin/candidatures?statut=hired');
+    expect(hired.text).toContain('Fatou Sow');
+    expect(hired.text).not.toContain('Awa Ndiaye');
+    expect((await adm.agent.get('/admin/candidatures?q=ndiaye')).text).not.toContain('Fatou Sow');
+    expect((await adm.agent.get('/admin/candidatures?mode=email')).text).toContain('Aucune candidature ne correspond');
+    // The admin can open any application and any board.
+    const a = await Application.findOne({ where: { email: 'cand@ex.com' } });
+    expect((await adm.agent.get(`/candidatures/${a.id}`)).status).toBe(200);
+    expect((await adm.agent.get(`/mes-offres/${job.slug}/candidatures`)).status).toBe(200);
+  });
+
+  test('recruiters reach their board from the menu', async () => {
+    expect((await rec.agent.get('/menu')).text).toContain('Tableau de recrutement');
+  });
+});

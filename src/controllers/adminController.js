@@ -47,6 +47,7 @@ async function dashboard(req, res) {
       raw: true,
     }),
   ]);
+  const ats = await require('../services/atsStats').platformStats();
   const byDay = Object.fromEntries(signups.map((r) => [String(r.day).slice(0, 10), Number(r.n)]));
   const chart = Array.from({ length: 14 }, (_, i) => {
     const d = days(13 - i).toISOString().slice(0, 10);
@@ -60,6 +61,8 @@ async function dashboard(req, res) {
       roles: Object.fromEntries(usersByRole.map((r) => [r.role, Number(r.count)])),
     },
     chart,
+    ats,
+    LABELS: Application.STATUS_LABELS,
   });
 }
 
@@ -591,3 +594,18 @@ async function googleUpdate(req, res) {
 }
 
 Object.assign(module.exports, { googleIndex, googleUpdate });
+
+// ======================= Recruitment (ATS) across the platform =======================
+async function applicationsIndex(req, res) {
+  const atsStats = require('../services/atsStats');
+  const q = String(req.query.q || '').trim().slice(0, 80);
+  const status = String(req.query.statut || '');
+  const mode = ['platform', 'email'].includes(req.query.mode) ? req.query.mode : '';
+  const page = Math.max(1, Math.min(500, Number.parseInt(req.query.page, 10) || 1));
+  const [result, stats] = await Promise.all([atsStats.search({ status, mode, q, page }), atsStats.platformStats()]);
+  view(res, 'applications', {
+    title: 'Recrutement', section: 'ats', result, stats, filters: { q, status, mode }, page, LABELS: Application.STATUS_LABELS, PIPELINE: Application.PIPELINE,
+  });
+}
+
+Object.assign(module.exports, { applicationsIndex });

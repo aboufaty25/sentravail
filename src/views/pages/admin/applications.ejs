@@ -1,0 +1,45 @@
+<%- include('../../partials/adminNav') %>
+<%- include('../../partials/atsAdminSummary', { ats: stats }) %>
+
+<section class="card mt-3 rounded-lg p-4" aria-labelledby="list-title">
+  <h2 id="list-title" class="font-semibold">Toutes les candidatures <span class="text-sm font-normal text-gray-500">(<%= formatCount(result.total) %>)</span></h2>
+  <form method="get" action="/admin/candidatures" class="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto]">
+    <input name="q" value="<%= filters.q %>" class="input min-w-0 !py-2" placeholder="Candidat, email, offre ou entreprise" aria-label="Rechercher">
+    <select name="statut" class="input !py-2" aria-label="Étape">
+      <option value="">Toutes les étapes</option>
+      <% [...PIPELINE, 'rejected', 'opened_mail'].forEach(st => { %><option value="<%= st %>" <%= filters.status === st ? 'selected' : '' %>><%= LABELS[st].recruiter %></option><% }) %>
+    </select>
+    <select name="mode" class="input !py-2" aria-label="Mode de candidature">
+      <option value="">Tous les modes</option>
+      <option value="platform" <%= filters.mode === 'platform' ? 'selected' : '' %>>Sur SenTravail</option>
+      <option value="email" <%= filters.mode === 'email' ? 'selected' : '' %>>Par email</option>
+    </select>
+    <button class="btn-primary !py-2">Filtrer</button>
+  </form>
+
+  <% if (!result.rows.length) { %>
+    <p class="py-8 text-center text-sm text-gray-500">Aucune candidature ne correspond.</p>
+  <% } else { %>
+    <ul class="mt-3 divide-y divide-gray-100">
+      <% result.rows.forEach(a => { %>
+        <li class="flex items-start gap-3 py-2.5">
+          <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-200 text-sm font-semibold text-gray-700"><%= (a.firstName[0] + a.lastName[0]).toUpperCase() %></span>
+          <div class="min-w-0 flex-1">
+            <a href="/candidatures/<%= a.id %>" class="font-semibold hover:underline"><%= a.firstName %> <%= a.lastName %></a>
+            <p class="truncate text-sm text-gray-600"><% if (a.jobSlug) { %><a href="/mes-offres/<%= a.jobSlug %>/candidatures" class="hover:underline"><%= a.jobTitle %></a><% } else { %><%= a.jobTitle %><% } %> · <%= a.companyName %></p>
+            <p class="text-xs text-gray-400"><%= formatDate(a.sentAt || a.createdAt) %> · <%= a.sentVia === 'platform' ? 'via SenTravail' : 'par email' %><%= a.candidateId ? '' : ' · sans compte' %></p>
+          </div>
+          <%- include('../../partials/applicationStatus', { app: a }) %>
+        </li>
+      <% }) %>
+    </ul>
+    <% if (result.pages > 1) { %>
+      <nav class="mt-3 flex items-center justify-between text-sm" aria-label="Pages">
+        <% const link = (p) => '/admin/candidatures' + queryString({ q: filters.q || undefined, statut: filters.status || undefined, mode: filters.mode || undefined, page: p }); %>
+        <% if (page > 1) { %><a href="<%= link(page - 1) %>" class="btn-light !py-1.5">← Précédent</a><% } else { %><span></span><% } %>
+        <span class="text-gray-500">Page <%= page %> / <%= result.pages %></span>
+        <% if (page < result.pages) { %><a href="<%= link(page + 1) %>" class="btn-light !py-1.5">Suivant →</a><% } else { %><span></span><% } %>
+      </nav>
+    <% } %>
+  <% } %>
+</section>

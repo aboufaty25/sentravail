@@ -15,7 +15,7 @@
 <a href="/mes-candidatures" <%- L('Connectez-vous pour suivre vos candidatures.') %> class="menu-item"><span class="text-brand-600"><%- icon('inbox') %></span> Mes candidatures</a>
 <a href="/enregistrements" <%- L('Connectez-vous pour retrouver les offres enregistrées.') %> class="menu-item"><span class="text-brand-600"><%- icon('bookmark') %></span> Offres enregistrées</a>
 <% if (u && u.hasRole('recruiter', 'admin')) { %>
-  <a href="/mes-offres" class="menu-item"><span class="text-brand-600"><%- icon('briefcase') %></span> Mes offres et candidatures reçues</a>
+  <a href="/mes-offres" class="menu-item"><span class="text-brand-600"><%- icon('briefcase') %></span> Tableau de recrutement</a>
 <% } %>
 <% if (u && u.role === 'recruiter') { %>
   <a href="/parametres/verification" class="menu-item"><span class="text-brand-600"><%- icon('check') %></span> Badge vérifié <%= u.isVerified ? '✓' : '' %></a>
