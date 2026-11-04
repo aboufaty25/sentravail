@@ -85,7 +85,20 @@ app.get('/manifest.webmanifest', branding.refresh, (req, res) => {
 });
 app.use(express.static(path.join(root, 'public'), staticOpts));
 // Uploaded files have random, never-reused names: cache them for a long time.
-const uploadOpts = { maxAge: env.isProd ? '30d' : 0, immutable: env.isProd };
+const uploadOpts = {
+  maxAge: env.isProd ? '30d' : 0,
+  immutable: env.isProd,
+  // Site icon, logo and share image stay PNG/JPEG: a CDN converting them to WebP breaks the
+  // iPhone home-screen icon and some link previews (WhatsApp, Facebook).
+  setHeaders: (res, filePath) => {
+    if (/[\\/]branding[\\/]/.test(filePath)) res.set('Cache-Control', `public, max-age=${env.isProd ? 2592000 : 0}, no-transform`);
+  },
+};
+// Browsers and search engines also ask for /favicon.ico: send the current site icon.
+app.get('/favicon.ico', branding.refresh, (req, res) => {
+  res.set('Cache-Control', 'public, max-age=3600');
+  res.redirect(302, branding.current().favicon);
+});
 app.use('/uploads', express.static(env.uploadDir, uploadOpts));
 app.use('/vendor/htmx', express.static(path.join(root, 'node_modules/htmx.org/dist'), staticOpts));
 app.use('/vendor/alpine', express.static(path.join(root, 'node_modules/alpinejs/dist'), staticOpts));

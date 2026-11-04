@@ -1,18 +1,15 @@
 /* AdSense loader, viewability-first.
  * - The Google script loads right away (no consent banner; Google's own consent message
  *   handles visitors from Europe/UK, see AdSense > Privacy & messaging).
- * - Units are requested as soon as the page loads (sidebars, offer page, first feed ad),
- *   never in a hidden column (desktop sidebars on a phone).
- * - Lazy units ([data-ad-lazy]: feed ads after the first one) are requested about two screens
- *   before they scroll into view, so they are ready even when the visitor scrolls fast.
+ * - Every unit is requested as soon as it is on the page (page load, or feed pages added by
+ *   infinite scroll), with no lazy loading; never in a hidden column (desktop sidebars on a
+ *   phone: Google cannot size a hidden unit).
  * - A unit stays folded until Google has actually filled it: no empty box while loading,
  *   and an unfilled unit never shows at all. */
 (function () {
   const me = document.currentScript;
   const client = me && me.dataset.client;
   if (!client) return;
-
-  let observer = null;
 
   // Unfold a unit once Google reports it filled; drop it if unfilled. Applied to every unit
   // on the page (whichever ins Google fills), so a filled ad is never left folded.
@@ -45,10 +42,7 @@
   function watch(root) {
     (root || document).querySelectorAll('[data-ad-slot-wrapper]:not([data-ad-watched])').forEach((w) => {
       w.dataset.adWatched = '1';
-      if (!w.hasAttribute('data-ad-lazy')) {
-        if (w.offsetParent) request(w); // hidden column: never requested
-      } else if (observer) observer.observe(w);
-      else request(w); // very old browsers
+      if (w.offsetParent) request(w); // hidden column: never requested
     });
   }
 
@@ -58,16 +52,6 @@
   s.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${encodeURIComponent(client)}`;
   s.onerror = () => document.querySelectorAll('[data-ad-slot-wrapper]').forEach((w) => w.remove()); // blocked: no empty boxes
   document.head.appendChild(s);
-
-  if ('IntersectionObserver' in window) {
-    observer = new IntersectionObserver((entries) => {
-      entries.forEach((e) => {
-        if (!e.isIntersecting || !e.target.offsetParent) return; // hidden column: never requested
-        observer.unobserve(e.target);
-        request(e.target);
-      });
-    }, { rootMargin: '50% 0px 200% 0px', threshold: 0 }); // two screens ahead (fast scrolling), half a screen behind
-  }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => watch(document));
   else watch(document);

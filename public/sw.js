@@ -4,7 +4,7 @@
  * - Pages: always from the network (never cached: they contain personal data),
  *   with an offline page when the network is unavailable.
  * - Never cached: POST requests, Socket.io, CV downloads, admin. */
-const VERSION = 'v2';
+const VERSION = 'v3'; // bump to empty old caches (e.g. after a branding change)
 const STATIC_CACHE = `st-static-${VERSION}`;
 const IMAGE_CACHE = `st-images-${VERSION}`;
 const MAX_IMAGES = 150;
@@ -16,7 +16,6 @@ const PRECACHE = [
   '/vendor/alpine/cdn.min.js',
   '/icons/logo.svg',
   '/icons/icon-192.png',
-  '/manifest.webmanifest',
 ];
 
 self.addEventListener('install', (event) => {
@@ -69,7 +68,8 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(fetch(request).catch(() => caches.match('/offline.html')));
     return;
   }
-  if (/^\/(css|js|vendor|icons)\//.test(url.pathname) || url.pathname === '/manifest.webmanifest') {
+  if (url.pathname === '/manifest.webmanifest' || url.pathname === '/favicon.ico') return; // always fresh (admin branding)
+  if (/^\/(css|js|vendor|icons)\//.test(url.pathname)) {
     event.respondWith(staleWhileRevalidate(request));
     return;
   }

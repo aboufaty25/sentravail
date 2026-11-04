@@ -57,11 +57,10 @@ test('ad placements: feed after the 1st offer then every 3 offers, both side col
     html += page;
     next = page.match(/hx-get="(\/fil\?[^"]+)"/);
   }
-  const ads = [...html.matchAll(/<div data-ad-slot-wrapper data-ad-place="feed"( data-ad-lazy)?/g)];
+  const ads = [...html.matchAll(/<div data-ad-slot-wrapper data-ad-place="feed"/g)];
   const offersBefore = ads.map((m) => (html.slice(0, m.index).match(/data-post-type="job"/g) || []).length);
   expect(offersBefore).toEqual([1, 4, 7, 10]);
-  // The first feed ad loads with the page, the next ones lazily.
-  expect(ads.map((m) => !!m[1])).toEqual([false, true, true, true]);
+  expect(html).not.toContain('data-ad-lazy'); // no lazy loading
   const jobPage = (await request(app).get(`/offres/${job.slug}`)).text;
   expect((jobPage.match(/data-ad-slot="3333333333"/g) || []).length).toBe(2);
   expect(jobPage.indexOf('data-ad-place="jobTop"')).toBeGreaterThan(jobPage.indexOf('id="job-title"'));
@@ -69,14 +68,11 @@ test('ad placements: feed after the 1st offer then every 3 offers, both side col
   expect(jobPage.indexOf('data-ad-place="jobBottom"')).toBeGreaterThan(jobPage.indexOf('id="postuler"'));
 });
 
-test('only later feed ads are lazy (two screens ahead); no empty box: unfolded only once filled', async () => {
+test('no lazy loading: every unit is requested at once (not in hidden columns); no empty box', async () => {
   const js = (await request(app).get('/js/ads.js')).text;
-  expect(js).toContain("hasAttribute('data-ad-lazy')");
-  const jobPage = (await request(app).get(`/offres/${job.slug}`)).text;
-  expect(jobPage).not.toContain('data-ad-lazy'); // offer page units load with the page
-  expect(js).toContain('IntersectionObserver');
+  expect(js).not.toContain('IntersectionObserver');
+  expect(js).not.toContain('data-ad-lazy');
   expect(js).toContain('offsetParent');
-  expect(js).toContain("'50% 0px 200% 0px'");
   expect(js).toContain('ad-filled');
   const css = (await request(app).get('/css/app.css')).text;
   expect(css).toMatch(/\.ad-unit:not\(\.ad-filled\)\{[^}]*max-height:0/);

@@ -65,6 +65,15 @@ test('app icon must be PNG; updates favicon and manifest', async () => {
   expect((await request(app).get('/')).text).toContain(`<link rel="icon" href="${b.icon192}" type="image/png">`);
   const manifest = (await request(app).get('/manifest.webmanifest')).body;
   expect(manifest.icons.map((i) => i.src)).toEqual([b.icon192, b.icon512, b.icon512]);
+  // /favicon.ico (asked for by browsers and search engines) points to the current icon.
+  const ico = await request(app).get('/favicon.ico');
+  expect(ico.status).toBe(302);
+  expect(ico.headers.location).toBe(b.icon192);
+  // Branding files must not be converted (WebP) by a CDN.
+  const file = await request(app).get(b.icon512);
+  expect(file.status).toBe(200);
+  expect(file.headers['content-type']).toBe('image/png');
+  expect(file.headers['cache-control']).toContain('no-transform');
 });
 
 test('default share image is used for pages without their own image', async () => {
