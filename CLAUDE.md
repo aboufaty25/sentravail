@@ -78,6 +78,11 @@ docs/DEPLOIEMENT.md
 - **Signalements** : à partir de **3** (`REPORT_AUTOHIDE`), la publication ou le commentaire est masqué en attendant la décision de l'admin.
 - **Administration** : file de modération `/admin/moderation` avec 2 onglets — Bloqués par le filtre, Signalés — plus `/admin/verifications` et `/admin/filtre`.
 
+## Profils : photo et couverture
+
+- `POST /parametres/photo` et `/parametres/couverture` (champ `image`, `action=remove` pour retirer) ; boutons appareil photo sur le profil (propriétaire seulement) et rubrique « Photos » dans `/parametres/profil`. Recadrage et compression dans le navigateur (`input[data-crop="avatar|cover"]` : carré 480 px, 3:1 1500×500, JPEG), puis envoi automatique.
+- Pour un recruteur, la photo de profil est le **logo de l'entreprise** (copié dans `companyLogo`, repris par les nouvelles offres). Une ancienne image n'est supprimée du disque que si aucune offre ni aucun compte ne l'utilise encore.
+
 ## Apparence (`/admin/apparence`, `src/services/branding.js`)
 
 - L'admin change le **logo** (en-tête, connexion/inscription ; PNG conservé pour la transparence), l'**icône de l'application** (favicon + écran d'accueil ; recadrée au carré en PNG 512 et 192 px dans le navigateur) et l'**image de partage par défaut** (`og:image`). « Rétablir l'original » revient aux fichiers de `public/icons/`.

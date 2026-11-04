@@ -68,6 +68,9 @@ router.post('/reinitialiser/:token', authLimiter, auth.reset);
 router.get('/profil/:username', profile.show);
 router.get('/parametres/profil', requireAuth, profile.editForm);
 router.post('/parametres/profil', requireAuth, profile.update);
+for (const kind of ['photo', 'couverture']) {
+  router.post(`/parametres/${kind}`, requireAuth, actionLimiter, handleUploadErrors(imageUpload.single('image')), (req, res, next) => { req.params.kind = kind; next(); }, profile.updatePhoto);
+}
 
 // Feed & posts
 router.get('/fil', post.feed);

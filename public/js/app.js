@@ -97,6 +97,35 @@
     input.dispatchEvent(new CustomEvent('brand-ready', { detail: { url: URL.createObjectURL(file) } }));
   });
 
+  // Profile photo / cover (input[data-crop="avatar|cover"]): centre-cropped and compressed in
+  // the browser (square 480 px / 3:1 1500×500 px JPEG), then the form is sent right away.
+  document.addEventListener('change', async (e) => {
+    const input = e.target;
+    if (!input.matches || !input.matches('input[type=file][data-crop]') || !input.files[0]) return;
+    const kind = input.dataset.crop;
+    const original = input.files[0];
+    let file = original;
+    try {
+      const bitmap = await createImageBitmap(original, { imageOrientation: 'from-image' });
+      const [ratio, outW] = kind === 'cover' ? [3, 1500] : [1, 480];
+      let sw = bitmap.width;
+      let sh = sw / ratio;
+      if (sh > bitmap.height) { sh = bitmap.height; sw = sh * ratio; }
+      const w = Math.min(outW, Math.round(sw));
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = Math.round(w / ratio);
+      canvas.getContext('2d').drawImage(bitmap, (bitmap.width - sw) / 2, (bitmap.height - sh) / 2, sw, sh, 0, 0, canvas.width, canvas.height);
+      const blob = await new Promise((r) => canvas.toBlob(r, 'image/jpeg', 0.86));
+      if (blob && window.DataTransfer) {
+        file = new File([blob], `${kind}.jpg`, { type: 'image/jpeg' });
+        const dt = new DataTransfer(); dt.items.add(file); input.files = dt.files;
+      }
+    } catch (_) { /* old browsers: send the original */ }
+    if (file.size > 2 * 1024 * 1024) { toast("L'image doit faire moins de 2 Mo.", 'error'); input.value = ''; return; }
+    const form = input.form;
+    if (form) { form.classList.add('opacity-60', 'pointer-events-none'); form.submit(); }
+  });
+
   // ---------- PWA ----------
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));

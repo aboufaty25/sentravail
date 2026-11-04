@@ -88,3 +88,49 @@ async function update(req, res) {
 }
 
 module.exports = { show, editForm, update };
+
+// ---------- Profile photo and cover ----------
+const { saveImage, removeLocalMedia } = require('../services/storage');
+const { safeReturn } = require('../utils/returnTo');
+const { Job } = require('../models');
+const { Op } = require('sequelize');
+
+const PHOTO_FIELDS = { photo: 'avatarUrl', couverture: 'coverUrl' };
+
+// Deletes an old local image unless it is still used (offers keep a copy of the logo URL).
+async function removeIfUnused(url) {
+  if (!url || !url.startsWith('/uploads/')) return;
+  const inJobs = await Job.count({ where: { [Op.or]: [{ companyLogo: url }, { image: url }] } });
+  const inUsers = await User.count({ where: { [Op.or]: [{ avatarUrl: url }, { coverUrl: url }, { companyLogo: url }] } });
+  if (!inJobs && !inUsers) await removeLocalMedia([url]);
+}
+
+async function updatePhoto(req, res) {
+  const field = PHOTO_FIELDS[req.params.kind];
+  if (!field) return res.status(404).end();
+  const back = safeReturn(req.body?.retour) || `/profil/${req.user.username}`;
+  const u = req.user;
+  const old = u[field];
+  if (req.body?.action === 'remove') {
+    const changes = { [field]: null };
+    if (field === 'avatarUrl' && u.role === 'recruiter' && u.companyLogo === old) changes.companyLogo = null;
+    await u.update(changes);
+    await removeIfUnused(old);
+    req.flash('success', field === 'avatarUrl' ? 'Photo de profil retirée.' : 'Photo de couverture retirée.');
+    return res.redirect(back);
+  }
+  if (!req.file) {
+    req.flash('error', 'Choisissez une image (JPEG, PNG ou WebP, 2 Mo maximum).');
+    return res.redirect(back);
+  }
+  const url = await saveImage(req.file.buffer, field === 'avatarUrl' ? 'avatars' : 'covers');
+  const changes = { [field]: url };
+  // For a recruiter, the profile photo is the company logo shown on new offers.
+  if (field === 'avatarUrl' && u.role === 'recruiter' && (!u.companyLogo || u.companyLogo === old)) changes.companyLogo = url;
+  await u.update(changes);
+  await removeIfUnused(old);
+  req.flash('success', field === 'avatarUrl' ? 'Photo de profil mise à jour.' : 'Photo de couverture mise à jour.');
+  return res.redirect(back);
+}
+
+module.exports.updatePhoto = updatePhoto;

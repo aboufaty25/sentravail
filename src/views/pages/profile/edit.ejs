@@ -3,6 +3,50 @@
     <a href="/menu" class="icon-btn lg:hidden" aria-label="Retour"><%- icon('arrowLeft', 'w-5 h-5') %></a>
     <h1 class="text-xl font-semibold">Modifier mon profil</h1>
   </div>
+  <% const me = currentUser; const isRec = me.role === 'recruiter'; %>
+  <section class="mb-5 space-y-3 rounded-lg border border-gray-200 p-3" aria-labelledby="photos-title">
+    <h2 id="photos-title" class="font-semibold">Photos</h2>
+    <div class="flex items-center gap-3">
+      <%- avatar(me, 'w-16 h-16', 'text-xl') %>
+      <div class="min-w-0 flex-1">
+        <p class="text-sm font-medium"><%= isRec ? 'Logo de l\'entreprise' : 'Photo de profil' %></p>
+        <p class="text-xs text-gray-500"><%= isRec ? 'Affiché sur votre profil et sur vos nouvelles offres.' : 'Une photo nette, de face : les recruteurs vous reconnaissent.' %></p>
+        <div class="mt-1.5 flex flex-wrap gap-2">
+          <form method="post" action="/parametres/photo?_csrf=<%= csrfToken %>" enctype="multipart/form-data">
+            <input type="hidden" name="retour" value="/parametres/profil">
+            <label class="btn-light cursor-pointer !py-1.5 text-sm"><%- icon('camera', 'w-4 h-4') %> <%= me.avatarUrl ? 'Changer' : 'Ajouter' %>
+              <input type="file" name="image" accept="image/jpeg,image/png,image/webp" data-crop="avatar" class="sr-only"></label>
+          </form>
+          <% if (me.avatarUrl) { %>
+            <form method="post" action="/parametres/photo?_csrf=<%= csrfToken %>" enctype="multipart/form-data" x-data @submit="confirm('Retirer cette photo ?') || $event.preventDefault()">
+              <input type="hidden" name="retour" value="/parametres/profil"><input type="hidden" name="action" value="remove">
+              <button class="btn !py-1.5 text-sm text-red-600 hover:bg-red-50">Retirer</button>
+            </form>
+          <% } %>
+        </div>
+      </div>
+    </div>
+    <div>
+      <p class="text-sm font-medium">Photo de couverture</p>
+      <div class="mt-1 aspect-[3/1] w-full overflow-hidden rounded-md bg-gradient-to-br from-brand-600 via-brand-500 to-senegal-green">
+        <% if (me.coverUrl) { %><img src="<%= me.coverUrl %>" alt="" class="h-full w-full object-cover" loading="lazy"><% } %>
+      </div>
+      <div class="mt-1.5 flex flex-wrap gap-2">
+        <form method="post" action="/parametres/couverture?_csrf=<%= csrfToken %>" enctype="multipart/form-data">
+          <input type="hidden" name="retour" value="/parametres/profil">
+          <label class="btn-light cursor-pointer !py-1.5 text-sm"><%- icon('camera', 'w-4 h-4') %> <%= me.coverUrl ? 'Changer' : 'Ajouter' %>
+            <input type="file" name="image" accept="image/jpeg,image/png,image/webp" data-crop="cover" class="sr-only"></label>
+        </form>
+        <% if (me.coverUrl) { %>
+          <form method="post" action="/parametres/couverture?_csrf=<%= csrfToken %>" enctype="multipart/form-data" x-data @submit="confirm('Retirer la photo de couverture ?') || $event.preventDefault()">
+            <input type="hidden" name="retour" value="/parametres/profil"><input type="hidden" name="action" value="remove">
+            <button class="btn !py-1.5 text-sm text-red-600 hover:bg-red-50">Retirer</button>
+          </form>
+        <% } %>
+      </div>
+      <p class="mt-1 text-xs text-gray-500">Format large conseillé (1500 × 500). L'image est recadrée et allégée automatiquement.</p>
+    </div>
+  </section>
   <form method="post" action="/parametres/profil" class="space-y-4" novalidate>
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
     <% if (currentUser.role === 'recruiter') { %>
