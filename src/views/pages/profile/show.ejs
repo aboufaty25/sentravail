@@ -37,10 +37,11 @@
         <% if (p.companyName) { %><span class="inline-flex items-center gap-1"><%- icon('building', 'w-4 h-4') %> <%= p.companyName %></span><% } %>
         <% if (p.city) { %><span class="inline-flex items-center gap-1"><%- icon('pin', 'w-4 h-4') %> <%= p.city %></span><% } %>
       </p>
+      <% const hideFollowers = p.role === 'admin' && currentUser?.role !== 'admin'; /* team: no public follower count */ %>
       <p class="mt-2 text-sm">
-        <a href="/profil/<%= p.username %>/abonnes" class="hover:underline"><span class="font-semibold" id="followers-count-<%= p.id %>"
+        <% if (!hideFollowers) { %><a href="/profil/<%= p.username %>/abonnes" class="hover:underline"><span class="font-semibold" id="followers-count-<%= p.id %>"
           x-data="{ n: <%= p.followersCount %> }" @follow-changed-<%= p.id %>.window="n = $event.detail.followersCount" x-text="n"><%= p.followersCount %></span> <span class="text-gray-500">abonnés</span></a> ·
-        <a href="/profil/<%= p.username %>/abonnements" class="hover:underline"><span class="font-semibold"><%= formatCount(p.followingCount) %></span> <span class="text-gray-500">abonnements</span></a>
+        <% } %><a href="/profil/<%= p.username %>/abonnements" class="hover:underline"><span class="font-semibold"><%= formatCount(p.followingCount) %></span> <span class="text-gray-500">abonnements</span></a>
       </p>
 
       <div class="mt-4 flex gap-2">

@@ -105,14 +105,14 @@ async function suggestions(viewer, limit = 12) {
   add(bySector.slice(0, Math.ceil(limit / 3)), (u) => `Secteur : ${u.sector}`);
   add(byCity, (u) => `Habite aussi à ${u.city}`);
   add(bySector, (u) => `Secteur : ${u.sector}`);
-  add(popular, (u) => (u.followersCount ? `${u.followersCount} abonné${u.followersCount > 1 ? 's' : ''}` : u.role === 'recruiter' ? 'Recruteur sur SenTravail' : 'Nouveau sur SenTravail'));
+  add(popular, (u) => (u.role === 'admin' ? 'Compte officiel SenTravail' : u.followersCount ? `${u.followersCount} abonné${u.followersCount > 1 ? 's' : ''}` : u.role === 'recruiter' ? 'Recruteur sur SenTravail' : 'Nouveau sur SenTravail'));
   return out;
 }
 
 // Most followed accounts (suggestions for visitors).
 async function popular(limit = 4) {
   const list = await User.findAll({ where: { isBanned: false }, attributes: CARD_ATTRS, order: [['followersCount', 'DESC'], ['id', 'DESC']], limit });
-  for (const u of list) u.reason = u.followersCount ? `${u.followersCount} abonné${u.followersCount > 1 ? 's' : ''}` : u.role === 'recruiter' ? 'Recruteur sur SenTravail' : 'Sur SenTravail';
+  for (const u of list) u.reason = u.role === 'admin' ? 'Compte officiel SenTravail' : u.followersCount ? `${u.followersCount} abonné${u.followersCount > 1 ? 's' : ''}` : u.role === 'recruiter' ? 'Recruteur sur SenTravail' : 'Sur SenTravail';
   return list;
 }
 

@@ -12,9 +12,10 @@ async function renderButton(req, res, targetId, { changed = false } = {}) {
   const following = await follows.isFollowing(req.user.id, targetId);
   const variant = VARIANTS.has(req.query.v || req.body?.v) ? req.query.v || req.body.v : 'button';
   if (changed) {
-    const target = await User.findByPk(targetId, { attributes: ['followersCount'] });
-    // Other buttons for the same account refresh themselves; counters update.
-    hxTrigger(res, { [`follow-changed-${targetId}`]: { followersCount: target.followersCount } });
+    const target = await User.findByPk(targetId, { attributes: ['followersCount', 'role'] });
+    // Other buttons for the same account refresh themselves; counters update
+    // (never for the SenTravail team, whose follower count is not public).
+    hxTrigger(res, { [`follow-changed-${targetId}`]: target.role === 'admin' ? {} : { followersCount: target.followersCount } });
   }
   return res.render('partials/followButton', { layout: false, targetId, following, variant });
 }
@@ -57,6 +58,8 @@ async function lists(req, res, next) {
     return next(err);
   }
   const which = req.params.list === 'abonnes' ? 'followers' : 'following';
+  // The SenTravail team's followers (every member) are visible to administrators only.
+  if (which === 'followers' && user.role === 'admin' && req.user?.role !== 'admin') return res.redirect(`/profil/${user.username}`);
   const people = which === 'followers' ? await follows.listFollowers(user.id, req.user) : await follows.listFollowing(user.id, req.user);
   return res.render('pages/network/list', {
     title: `${which === 'followers' ? 'Abonnés' : 'Abonnements'} de ${user.firstName} ${user.lastName}`,

@@ -62,3 +62,19 @@ test('backfill: existing members follow the team once; admins and banned account
   expect(fresh.followersCount).toBe(await Follow.count({ where: { followingId: admin.id } }));
   expect((await User.findByPk(a.id)).followingCount).toBe(2);
 });
+
+test('the team follower count is never shown to members or visitors (admins still see it)', async () => {
+  const cand = await loginAs(await createUser({ email: 'viewer@ex.com' }));
+  for (const agent of [request(app), cand.agent]) {
+    const profile = await agent.get('/profil/moussa-diop');
+    expect(profile.status).toBe(200);
+    expect(profile.text).not.toMatch(/followers-count-|<\/span> abonnés/);
+    expect(profile.text).not.toContain('/profil/moussa-diop/abonnes"');
+    const list = await agent.get('/profil/moussa-diop/abonnes');
+    expect(list.status).toBe(302);
+  }
+  const off = await cand.agent.post(`/abonnements/${admin.id}`).set('HX-Request', 'true').type('form').send({ _csrf: cand.csrf });
+  expect(off.headers['hx-trigger'] || '').not.toContain('followersCount');
+  expect((await adm.agent.get('/profil/moussa-diop')).text).toContain(`followers-count-${admin.id}`);
+  expect((await adm.agent.get('/profil/moussa-diop/abonnes')).status).toBe(200);
+});
