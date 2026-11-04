@@ -2,7 +2,7 @@
    const items = [['dashboard', '/admin', 'Tableau de bord', 0], ['ats', '/admin/candidatures', 'Recrutement', 0], ['moderation', '/admin/moderation', 'Modération', moderationCount], ['verifications', '/admin/verifications', 'Vérifications', c.verifications || 0], ['features', '/admin/offres', 'Offres à la une', 0], ['users', '/admin/utilisateurs', 'Utilisateurs', 0], ['filter', '/admin/filtre', 'Filtre anti-arnaque', 0], ['refs', '/admin/referentiels', 'Villes et secteurs', 0], ['branding', '/admin/apparence', 'Apparence', 0], ['ads', '/admin/publicites', 'Publicités', 0], ['google', '/admin/google', 'Google', 0]]; %>
 <div class="card mb-3 px-3 py-3 sm:rounded-lg">
   <div class="flex items-center gap-2"><span class="text-brand-600"><%- icon('shield', 'w-6 h-6') %></span><h1 class="text-xl font-bold">Administration</h1></div>
-  <nav class="-mx-1 mt-3 flex gap-2 overflow-x-auto px-1 text-sm font-semibold [scrollbar-width:none]" aria-label="Administration">
+  <nav class="mt-3 flex flex-wrap gap-2 text-sm font-semibold" aria-label="Administration">
     <% items.forEach(([key, href, label, n]) => { const on = section === key || (key === 'moderation' && section === 'reports'); %>
       <a href="<%= href %>" class="inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 <%= on ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' %>" <%= on ? 'aria-current=page' : '' %>><%= label %><% if (n) { %><span class="rounded-full bg-red-600 px-1.5 text-[11px] text-white"><%= n %></span><% } %></a>
     <% }) %>
