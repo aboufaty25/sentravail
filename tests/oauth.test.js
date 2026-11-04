@@ -160,7 +160,9 @@ test('Apple key accepted with real newlines, "\\n", quotes or Windows line endin
   const saved = env.APPLE_PRIVATE_KEY;
   const pem = privateKey.export({ type: 'pkcs8', format: 'pem' });
   try {
-    for (const variant of [pem, pem.replace(/\n/g, '\\n'), `"${pem.replace(/\n/g, '\\n')}"`, pem.replace(/\n/g, '\r\n')]) {
+    const body = pem.replace(/-----[A-Z ]+-----/g, '').replace(/\s+/g, '');
+    const squashed = pem.trim().replace(/\n/g, ' '); // hosting panels that turn newlines into spaces
+    for (const variant of [pem, pem.replace(/\n/g, '\\n'), `"${pem.replace(/\n/g, '\\n')}"`, pem.replace(/\n/g, '\r\n'), squashed, body]) {
       env.APPLE_PRIVATE_KEY = variant;
       expect(oauth.diagnose('apple')).toBeNull();
       expect(oauth.appleClientSecret().split('.')).toHaveLength(3);
@@ -171,4 +173,42 @@ test('Apple key accepted with real newlines, "\\n", quotes or Windows line endin
     env.APPLE_PRIVATE_KEY = '';
     expect(oauth.diagnose('apple')).toBe('missing APPLE_PRIVATE_KEY');
   } finally { env.APPLE_PRIVATE_KEY = saved; }
+});
+
+test('www and non-www: the flow starts on the APP_URL host so the state cookie comes back', async () => {
+  const res = await request(app).get('/auth/apple?retour=/offres').set('Host', 'www.localhost:3000');
+  expect(res.status).toBe(302);
+  expect(res.headers.location).toBe('http://localhost:3000/auth/apple?retour=/offres');
+});
+
+test('a refused sign-in is recorded with a hint for the admin (no secrets), cleared after a success', async () => {
+  const admin = await createUser({ email: 'boss@ex.com', role: 'admin' });
+  const agentAdm = request.agent(app);
+  const csrf = (await agentAdm.get('/connexion')).text.match(/name="_csrf" value="([a-f0-9]+)"/)[1];
+  await agentAdm.post('/connexion').type('form').send({ identifier: admin.email, password: 'password123', _csrf: csrf });
+
+  global.fetch = async () => ({ ok: false, status: 400, json: async () => ({ error: 'invalid_client' }) });
+  const { agent, state } = await begin('apple');
+  const res = await agent.post('/auth/apple/callback').type('form').send({ code: 'c', state });
+  expect(res.headers.location).toBe('/connexion');
+  let page = (await agentAdm.get('/admin/google')).text;
+  expect(page).toContain('Connexion avec Google et Apple');
+  expect(page).toContain('invalid_client');
+  expect(page).toContain('APPLE_TEAM_ID');
+  expect(page).toContain('http://localhost:3000/auth/apple/callback');
+  expect(page).not.toContain('PRIVATE KEY');
+  expect(page).not.toContain('google-secret');
+
+  // Lost state cookie (e.g. www vs non-www) is explained too.
+  await request(app).post('/auth/apple/callback').type('form').send({ code: 'c', state: 'x' });
+  page = (await agentAdm.get('/admin/google')).text;
+  expect(page).toContain('cookie de connexion a été perdu');
+
+  global.fetch = async (url, opts) => ({ ok: true, status: 200, json: async () => ({ id_token: idToken(nextClaims) }) });
+  const again = await begin('apple');
+  nextClaims = { iss: 'https://appleid.apple.com', aud: 'com.sentravail.web', exp: Math.floor(Date.now() / 1000) + 600, nonce: again.nonce, sub: 'a-001', email: 'xyz@privaterelay.appleid.com', email_verified: 'true' };
+  await again.agent.post('/auth/apple/callback').type('form').send({ code: 'c', state: again.state });
+  await new Promise((r) => setTimeout(r, 50));
+  page = (await agentAdm.get('/admin/google')).text;
+  expect(page).not.toContain('invalid_client');
 });

@@ -103,3 +103,27 @@
     </div>
   <% } %>
 </section>
+
+<section class="card mt-3 space-y-3 rounded-lg p-4" aria-labelledby="signin-title">
+  <h2 id="signin-title" class="text-lg font-semibold">Connexion avec Google et Apple</h2>
+  <p class="text-sm text-gray-500">État des boutons « Continuer avec… » et dernière erreur rencontrée. Les valeurs secrètes ne sont jamais affichées.</p>
+  <% signIn.forEach((p) => { %>
+    <div class="space-y-2 rounded-lg border border-gray-200 p-3 text-sm">
+      <div class="flex items-center justify-between gap-2">
+        <h3 class="font-semibold"><%= p.label %></h3>
+        <span class="shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold <%= p.problem ? 'bg-gray-100 text-gray-600' : 'bg-green-50 text-green-700' %>"><%= p.problem ? 'Bouton masqué' : 'Bouton affiché' %></span>
+      </div>
+      <% if (p.problem) { %><p class="text-amber-800"><%= p.problem === 'not configured' ? 'Variables non renseignées.' : p.problem %></p><% } %>
+      <p class="text-gray-700"><%= p.name === 'apple' ? 'Return URL (Services ID → Configure)' : 'URI de redirection autorisée' %> : <code class="break-all"><%= p.redirectUri %></code></p>
+      <% if (p.name === 'apple') { %><p class="text-gray-700">Domaine (Domains and Subdomains) : <code><%= p.domain %></code></p><% } %>
+      <% if (p.failure) { %>
+        <div class="rounded-lg bg-red-50 p-2.5 text-red-800">
+          <p><strong>Dernière erreur</strong> (<%= formatDateTime(p.failure.at) %>) : <code><%= p.failure.code %></code><% if (p.failure.detail) { %> — <%= p.failure.detail %><% } %></p>
+          <% if (p.failure.hint) { %><p class="mt-1"><%= p.failure.hint %></p><% } %>
+        </div>
+      <% } else if (!p.problem) { %>
+        <p class="text-gray-500">Aucune erreur enregistrée depuis la dernière connexion réussie.</p>
+      <% } %>
+    </div>
+  <% }) %>
+</section>

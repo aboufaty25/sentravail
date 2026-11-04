@@ -181,6 +181,10 @@ Les boutons « Continuer avec Google / Apple » apparaissent dès que les variab
 **Apple** (nécessite un compte Apple Developer, 99 $/an)
 1. https://developer.apple.com/account → *Identifiers* : un **App ID** avec « Sign in with Apple », puis un **Services ID** (ex. `com.sentravail.web`) → *Configure* : domaine `sentravail.com`, Return URL `https://sentravail.com/auth/apple/callback`.
 2. *Keys* → nouvelle clé avec « Sign in with Apple » → téléchargez le fichier `.p8` (une seule fois) et notez le **Key ID**.
-3. Variables : `APPLE_CLIENT_ID` = le Services ID, `APPLE_TEAM_ID` = votre Team ID (en haut à droite du compte), `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY` = contenu du `.p8` sur une seule ligne, retours à la ligne remplacés par `\n`.
+3. Variables : `APPLE_CLIENT_ID` = le Services ID, `APPLE_TEAM_ID` = votre Team ID (en haut à droite du compte), `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY` = contenu du `.p8` (avec ou sans retours à la ligne, tout est accepté).
+4. Redémarrez, puis ouvrez **`/admin/google` → « Connexion avec Google et Apple »** : état du bouton, Return URL et domaine exacts à déclarer, et la **dernière erreur** avec son explication. Erreurs fréquentes :
+   - `invalid_client` : Team ID, Key ID ou Services ID incorrect, ou clé `.p8` non liée au même App ID (`APPLE_CLIENT_ID` doit être le **Services ID**, pas l'App ID).
+   - `invalid_grant` / « Invalid web redirect url » : Return URL différente de celle affichée (https, sans `/` final, sans www si `APP_URL` est sans www).
+   - cookie de connexion perdu : le site a été ouvert sur une autre adresse que `APP_URL` (www, http).
 
 Fonctionnement : un compte Google/Apple déjà connu se connecte directement ; si l'email (vérifié) correspond à un compte existant, il y est rattaché ; sinon la personne choisit **Candidat** ou **Recruteur** (nom d'entreprise obligatoire) sur « Finaliser l'inscription ». Le rôle administrateur ne s'obtient jamais ainsi (`ADMIN_EMAILS` ou `npm run make-admin`).

@@ -34,18 +34,7 @@
     <% if (!locals.compact) { %>
       <p class="mt-2 line-clamp-2 text-[14px] text-gray-600"><%= job.description.replace(/\s+/g, ' ') %></p>
     <% } %>
-    <div class="mt-3 grid grid-cols-2 gap-2">
-      <a href="<%= job.url %>" class="btn-light !py-2">Voir l'offre</a>
-      <% if (job.isExpired) { %>
-        <span class="btn bg-gray-100 !py-2 text-gray-400" aria-disabled="true">Clôturée</span>
-      <% } else { %>
-        <% if (job.applyMode === 'link') { %>
-        <a href="<%= job.applyUrl %>" target="_blank" rel="noopener nofollow ugc" class="btn-primary !py-2">Postuler <%- icon('link', 'w-4 h-4') %></a>
-        <% } else { %>
-        <% const applyEvt = `$dispatch('open-apply', { slug: '${job.slug}', mode: '${job.applyMode}', title: ${JSON.stringify(job.title)}, company: ${JSON.stringify(job.companyName)} })`; %>
-        <a href="<%= job.url %>#postuler" class="btn-primary !py-2" @click.prevent="<%= applyEvt %>">Postuler</a>
-        <% } %>
-      <% } %>
-    </div>
+    <%# No "Postuler" on cards: the offer page carries it (full description first). %>
+    <a href="<%= job.url %>" class="btn-primary mt-3 w-full !py-2">Voir l'offre</a>
   </div>
 </div>

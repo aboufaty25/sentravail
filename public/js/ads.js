@@ -1,9 +1,10 @@
 /* AdSense loader, viewability-first.
  * - The Google script loads right away (no consent banner; Google's own consent message
  *   handles visitors from Europe/UK, see AdSense > Privacy & messaging).
- * - Each unit is requested about two screens before it scrolls into view, so it is ready
- *   even when the visitor scrolls fast (a unit just passed is still requested, in case they
- *   scroll back), and never in a hidden column (desktop sidebars on a phone).
+ * - Units are requested as soon as the page loads (sidebars, offer page, first feed ad),
+ *   never in a hidden column (desktop sidebars on a phone).
+ * - Lazy units ([data-ad-lazy]: feed ads after the first one) are requested about two screens
+ *   before they scroll into view, so they are ready even when the visitor scrolls fast.
  * - A unit stays folded until Google has actually filled it: no empty box while loading,
  *   and an unfilled unit never shows at all. */
 (function () {
@@ -44,7 +45,9 @@
   function watch(root) {
     (root || document).querySelectorAll('[data-ad-slot-wrapper]:not([data-ad-watched])').forEach((w) => {
       w.dataset.adWatched = '1';
-      if (observer) observer.observe(w);
+      if (!w.hasAttribute('data-ad-lazy')) {
+        if (w.offsetParent) request(w); // hidden column: never requested
+      } else if (observer) observer.observe(w);
       else request(w); // very old browsers
     });
   }

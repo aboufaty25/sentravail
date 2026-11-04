@@ -35,7 +35,8 @@ async function feed(req, res) {
   const page = Math.max(1, Math.min(200, Number.parseInt(req.query.page, 10) || 1));
   const since = parseSince(req.query.since);
   const { posts: list, hasMore } = await posts.feedPage({ viewer: req.user, page, since });
-  res.render('partials/feedItems', { layout: false, posts: list, hasMore, page, since: since.getTime(), startIndex: (page - 1) * env.FEED_PAGE_SIZE });
+  const offersBefore = Math.max(0, Math.min(10_000, Number.parseInt(req.query.offers, 10) || 0)); // offers shown on earlier pages
+  res.render('partials/feedItems', { layout: false, posts: list, hasMore, page, since: since.getTime(), offersBefore });
 }
 
 // ---------- Show / delete ----------

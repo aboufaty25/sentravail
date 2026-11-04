@@ -1,10 +1,12 @@
-<% posts.forEach((post, i) => { %>
+<%# Ads: after the 1st job offer, then after every 3 more offers (offers 1, 4, 7, 10…). The count
+    carries over the infinite-scroll pages (?offers=). The first unit loads at once, the others lazily. %>
+<% let offers = locals.offersBefore || 0; %>
+<% posts.forEach((post) => { %>
   <%- include('postCard', { post }) %>
-  <%# Ads: after the 1st post, then every 3 posts (after posts 1, 4, 7, 10…). %>
-  <% if ((startIndex + i + 1) % 3 === 1) { %><%- include('adSlot', { slot: 'feed' }) %><% } %>
+  <% if (post.type === 'job') { offers += 1; if (offers % 3 === 1) { %><%- include('adSlot', { slot: 'feed', lazy: offers > 1 }) %><% } } %>
 <% }) %>
 <% if (hasMore) { %>
-  <div hx-get="/fil?page=<%= page + 1 %>&since=<%= since %>" hx-trigger="revealed" hx-swap="outerHTML" class="py-6 text-center text-sm text-gray-500">
+  <div hx-get="/fil?page=<%= page + 1 %>&since=<%= since %>&offers=<%= offers %>" hx-trigger="revealed" hx-swap="outerHTML" class="py-6 text-center text-sm text-gray-500">
     <span class="inline-block h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-brand-600" aria-hidden="true"></span>
     <span class="sr-only">Chargement…</span>
   </div>

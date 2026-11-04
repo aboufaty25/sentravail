@@ -580,11 +580,12 @@ const googleConfig = require('../services/googleConfig');
 
 async function googleIndex(req, res) {
   await googleConfig.load();
-  view(res, 'google', { title: 'Google', section: 'google', g: googleConfig.current(), values: null, errors: {}, ...indexingLocals() });
+  view(res, 'google', { title: 'Google', section: 'google', g: googleConfig.current(), values: null, errors: {}, ...(await indexingLocals()) });
 }
 
-function indexingLocals() {
+async function indexingLocals() {
   return {
+    signIn: await require('../services/oauth').status(),
     appUrl: env.APP_URL,
     indexing: { enabled: indexing.enabled(), problem: indexing.diagnose(), email: indexing.serviceAccountEmail(), history: indexing.recentHistory(), limit: indexing.BULK_LIMIT },
   };
@@ -609,7 +610,7 @@ async function googleUpdate(req, res) {
   if (siteVerification && !googleConfig.GSC_RE.test(siteVerification)) errors.siteVerification = 'Code de validation invalide : collez la balise meta fournie par Search Console.';
   if (Object.keys(errors).length) {
     res.status(422);
-    return view(res, 'google', { title: 'Google', section: 'google', g: googleConfig.current(), values: { analyticsId, siteVerification: req.body?.siteVerification || '' }, errors, ...indexingLocals() });
+    return view(res, 'google', { title: 'Google', section: 'google', g: googleConfig.current(), values: { analyticsId, siteVerification: req.body?.siteVerification || '' }, errors, ...(await indexingLocals()) });
   }
   await googleConfig.save({ analyticsId, siteVerification });
   req.flash('success', 'Réglages Google enregistrés.');

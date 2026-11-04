@@ -31,9 +31,13 @@ const PROVIDERS = {
 
 const b64url = (buf) => Buffer.from(buf).toString('base64url');
 
-// The .p8 key may come with real newlines or with "\n", with quotes or Windows line endings.
+// The .p8 key may come with real newlines or "\n", quotes, Windows line endings, or squashed on
+// one line with spaces (some hosting panels), even without the BEGIN/END lines: rebuilt as PEM.
 function applePrivateKey() {
-  return env.APPLE_PRIVATE_KEY.trim().replace(/^["']|["']$/g, '').replace(/\\n/g, '\n').replace(/\r/g, '');
+  const raw = env.APPLE_PRIVATE_KEY.trim().replace(/^["']|["']$/g, '').replace(/\\n/g, '\n').replace(/\r/g, '');
+  const body = raw.replace(/-----(BEGIN|END)[A-Z ]*-----/g, '').replace(/\s+/g, '');
+  if (!/^[A-Za-z0-9+/=]+$/.test(body)) return raw;
+  return `-----BEGIN PRIVATE KEY-----\n${body.match(/.{1,64}/g).join('\n')}\n-----END PRIVATE KEY-----\n`;
 }
 
 // Why a provider is not available (shown in the startup log; never the values themselves).
@@ -95,7 +99,11 @@ async function exchange(name, code, nonce) {
     body: new URLSearchParams({ grant_type: 'authorization_code', code, redirect_uri: redirectUri(name), client_id: p.clientId(), client_secret: p.clientSecret() }),
   });
   const json = await res.json().catch(() => ({}));
-  if (!res.ok || !json.id_token) throw new Error(`token endpoint refused (${res.status})`);
+  if (!res.ok || !json.id_token) {
+    const err = new Error(`token endpoint refused (${res.status}${json.error ? ` ${json.error}` : ''})`);
+    err.code = json.error || `http_${res.status}`;
+    throw err;
+  }
   const c = decodeJwtPayload(json.id_token);
   const aud = Array.isArray(c.aud) ? c.aud : [c.aud];
   if (!p.issuers.includes(c.iss)) throw new Error('bad issuer');
@@ -110,6 +118,49 @@ async function exchange(name, code, nonce) {
     firstName: c.given_name || '',
     lastName: c.family_name || '',
   };
+}
+
+// ---- Last sign-in failure per provider, shown to the admin (/admin/google) to find a wrong
+// setting. Never contains secret values. Kept in site_settings (several processes, restarts).
+const HINTS = {
+  invalid_client: (p) => (p === 'apple'
+    ? 'Apple refuse les identifiants : vérifiez APPLE_TEAM_ID (Team ID), APPLE_KEY_ID (Key ID de la clé .p8), APPLE_CLIENT_ID (le Services ID, pas l\'App ID) et que la clé .p8 a « Sign in with Apple » activé pour ce même App ID.'
+    : 'Google refuse les identifiants : vérifiez GOOGLE_CLIENT_ID et GOOGLE_CLIENT_SECRET.'),
+  invalid_grant: () => 'Code refusé : la Return URL / URI de redirection déclarée doit être exactement celle indiquée ci-dessous, et l\'heure du serveur doit être juste.',
+  state: () => 'Le cookie de connexion a été perdu au retour : ouvrez le site à l\'adresse exacte de APP_URL (avec ou sans www, en https).',
+  token: () => 'Le jeton reçu ne correspond pas à la configuration (audience ou émetteur) : vérifiez l\'identifiant client.',
+};
+
+async function recordFailure(name, code, detail) {
+  const hint = (HINTS[code] || (() => ''))(name);
+  const value = JSON.stringify({ at: new Date().toISOString(), code: String(code).slice(0, 40), detail: String(detail || '').slice(0, 200), hint });
+  console.warn(`[oauth:${name}] ${code}${detail ? ` ${detail}` : ''}`);
+  const { SiteSetting } = require('../models');
+  await SiteSetting.upsert({ key: `oauth.lastError.${name}`, value }).catch(() => {});
+}
+
+async function lastFailures() {
+  const { SiteSetting } = require('../models');
+  const rows = await SiteSetting.findAll({ where: { key: Object.keys(PROVIDERS).map((n) => `oauth.lastError.${n}`) }, raw: true }).catch(() => []);
+  const out = {};
+  for (const r of rows) {
+    try { out[r.key.split('.').pop()] = JSON.parse(r.value); } catch (_) { /* ignore */ }
+  }
+  return out;
+}
+
+async function clearFailure(name) {
+  const { SiteSetting } = require('../models');
+  await SiteSetting.destroy({ where: { key: `oauth.lastError.${name}` } }).catch(() => {});
+}
+
+// Status of each provider for the admin page (no secret values).
+async function status() {
+  const failures = await lastFailures();
+  return Object.keys(PROVIDERS).map((name) => ({
+    name, label: PROVIDERS[name].label, problem: diagnose(name), redirectUri: redirectUri(name),
+    domain: new URL(env.APP_URL).hostname, failure: failures[name] || null,
+  }));
 }
 
 // ---- Short-lived signed cookie holding state, nonce and where to go back (cross-site safe for Apple's POST).
@@ -132,4 +183,4 @@ function readStateCookie(req, res) {
   return value.exp > Date.now() ? value : null;
 }
 
-module.exports = { diagnose, PROVIDERS, enabledProviders, authorizationUrl, exchange, appleClientSecret, decodeJwtPayload, setStateCookie, readStateCookie, redirectUri };
+module.exports = { recordFailure, clearFailure, status, applePrivateKey, diagnose, PROVIDERS, enabledProviders, authorizationUrl, exchange, appleClientSecret, decodeJwtPayload, setStateCookie, readStateCookie, redirectUri };

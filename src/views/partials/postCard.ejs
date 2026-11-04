@@ -1,5 +1,5 @@
 <% const a = post.author; const m = post.meta || {}; %>
-<article id="post-<%= post.id %>" class="card overflow-visible" x-data="{ comments: <%= locals.openComments ? 'true' : 'false' %> }"
+<article id="post-<%= post.id %>" data-post-type="<%= post.type %>" class="card overflow-visible" x-data="{ comments: <%= locals.openComments ? 'true' : 'false' %> }"
   @open-comments-<%= post.id %>="comments = true; $nextTick(() => $el.querySelector('[data-comment-input]')?.focus())">
   <header class="flex items-start gap-2 px-3 sm:px-4 pt-3 pb-2">
     <a href="/profil/<%= a.username %>" class="shrink-0"><%- avatar(a, 'w-10 h-10') %></a>

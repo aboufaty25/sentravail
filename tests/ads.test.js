@@ -13,9 +13,12 @@ beforeAll(async () => {
   await resetDb();
   user = await createUser({ email: 'u@ex.com', role: 'recruiter' });
   s = await loginAs(user);
-  for (let i = 0; i < 8; i += 1) await Post.create({ type: 'advice', title: 'Conseil', authorId: user.id, text: `Post ${i}` });
-  const post = await Post.create({ type: 'advice', title: 'Conseil', authorId: user.id, type: 'job' });
-  job = await Job.create({ postId: post.id, slug: buildSlug('Chauffeur', 'Dakar'), title: 'Chauffeur', companyName: 'Ba', location: 'Dakar', contractType: 'CDI', sector: 'Logistique & Transport', description: 'x'.repeat(40), applyEmail: 'a@b.sn' });
+  // A mixed feed: 10 offers and 4 career tips.
+  for (let i = 0; i < 14; i += 1) {
+    if (i % 4 === 1) { await Post.create({ type: 'advice', title: 'Conseil', authorId: user.id, text: `Post ${i}` }); continue; }
+    const post = await Post.create({ authorId: user.id, type: 'job' });
+    job = await Job.create({ postId: post.id, slug: buildSlug(`Chauffeur ${i}`, 'Dakar'), title: `Chauffeur ${i}`, companyName: 'Ba', location: 'Dakar', contractType: 'CDI', sector: 'Logistique & Transport', description: 'x'.repeat(40), applyEmail: 'a@b.sn' });
+  }
 });
 afterAll(closeDb);
 
@@ -42,20 +45,23 @@ test('ads load directly (no cookie banner), with early connections to Google', a
   expect(js).toContain('pagead2.googlesyndication.com/pagead/js/adsbygoogle.js');
 });
 
-test('ad placements: feed after the 1st post then every 3 posts, both side columns, job page under the title and after Postuler', async () => {
-  // FEED_PAGE_SIZE is 3 in tests: posts 1-3 on page 1 (ad after post 1), posts 4-6 on page 2 (ad after post 4).
+test('ad placements: feed after the 1st offer then every 3 offers, both side columns, job page under the title and after Postuler', async () => {
+  // Walk the whole feed (FEED_PAGE_SIZE is 3 in tests) as infinite scroll does, then count the
+  // offers shown before each feed ad.
   const home = await s.agent.get('/');
-  const feed1 = home.text.slice(home.text.indexOf('id="feed"'));
-  expect((feed1.match(/data-ad-slot="1111111111"/g) || []).length).toBe(1);
-  const firstArticleEnd = feed1.indexOf('</article>');
-  expect(feed1.indexOf('data-ad-slot="1111111111"')).toBeGreaterThan(firstArticleEnd);
-  expect(feed1.indexOf('data-ad-slot="1111111111"')).toBeLessThan(feed1.indexOf('<article', firstArticleEnd));
-  // Left and right columns.
-  expect((home.text.match(/data-ad-slot="2222222222"/g) || []).length).toBe(2);
-  const since = home.text.match(/since=(\d+)/)[1];
-  const page2 = await s.agent.get(`/fil?page=2&since=${since}`);
-  expect((page2.text.match(/data-ad-slot="1111111111"/g) || []).length).toBe(1);
-  expect(page2.text.indexOf('data-ad-slot="1111111111"')).toBeLessThan(page2.text.indexOf('<article', page2.text.indexOf('</article>')));
+  expect((home.text.match(/data-ad-slot="2222222222"/g) || []).length).toBe(2); // left and right columns
+  let html = home.text.slice(home.text.indexOf('id="feed"'));
+  let next = html.match(/hx-get="(\/fil\?[^"]+)"/);
+  while (next) {
+    const page = (await s.agent.get(next[1].replace(/&amp;/g, '&'))).text;
+    html += page;
+    next = page.match(/hx-get="(\/fil\?[^"]+)"/);
+  }
+  const ads = [...html.matchAll(/<div data-ad-slot-wrapper data-ad-place="feed"( data-ad-lazy)?/g)];
+  const offersBefore = ads.map((m) => (html.slice(0, m.index).match(/data-post-type="job"/g) || []).length);
+  expect(offersBefore).toEqual([1, 4, 7, 10]);
+  // The first feed ad loads with the page, the next ones lazily.
+  expect(ads.map((m) => !!m[1])).toEqual([false, true, true, true]);
   const jobPage = (await request(app).get(`/offres/${job.slug}`)).text;
   expect((jobPage.match(/data-ad-slot="3333333333"/g) || []).length).toBe(2);
   expect(jobPage.indexOf('data-ad-place="jobTop"')).toBeGreaterThan(jobPage.indexOf('id="job-title"'));
@@ -63,8 +69,11 @@ test('ad placements: feed after the 1st post then every 3 posts, both side colum
   expect(jobPage.indexOf('data-ad-place="jobBottom"')).toBeGreaterThan(jobPage.indexOf('id="postuler"'));
 });
 
-test('ads are lazy and never leave an empty box: requested one screen ahead, unfolded only once filled', async () => {
+test('only later feed ads are lazy (two screens ahead); no empty box: unfolded only once filled', async () => {
   const js = (await request(app).get('/js/ads.js')).text;
+  expect(js).toContain("hasAttribute('data-ad-lazy')");
+  const jobPage = (await request(app).get(`/offres/${job.slug}`)).text;
+  expect(jobPage).not.toContain('data-ad-lazy'); // offer page units load with the page
   expect(js).toContain('IntersectionObserver');
   expect(js).toContain('offsetParent');
   expect(js).toContain("'50% 0px 200% 0px'");

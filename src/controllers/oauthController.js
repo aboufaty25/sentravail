@@ -11,6 +11,7 @@ const { oauthSignupSchema, fieldErrors, accountNames } = require('../validators/
 const { generateUsername } = require('../services/username');
 const { safeReturn } = require('../utils/returnTo');
 const { queueEvent } = require('../utils/analytics');
+const env = require('../config/env');
 
 const view = { layout: 'layouts/auth', noAds: true };
 const ID_FIELD = { google: 'googleId', apple: 'appleId' };
@@ -40,6 +41,13 @@ function startSession(req, user, target) {
 function start(req, res, next) {
   const name = req.params.provider;
   if (!oauth.PROVIDERS[name] || !oauth.PROVIDERS[name].enabled()) return next(notFound());
+  // The state cookie must be set on the host the provider returns to (APP_URL): www.sentravail.com
+  // and sentravail.com do not share cookies.
+  // Only www/non-www variants are redirected (a proxy may pass another internal host: no loop).
+  const appHost = new URL(env.APP_URL).host;
+  const host = String(req.get('x-forwarded-host') || req.get('host') || '').split(',')[0].trim().toLowerCase();
+  const bare = (h) => h.replace(/^www\./, '');
+  if (host && host !== appHost && bare(host) === bare(appHost)) return res.redirect(`${env.APP_URL}${req.originalUrl}`);
   const state = crypto.randomBytes(16).toString('hex');
   const nonce = crypto.randomBytes(16).toString('hex');
   const role = ['candidate', 'recruiter'].includes(req.query.role) ? req.query.role : '';
@@ -52,17 +60,23 @@ async function callback(req, res, next) {
   if (!oauth.PROVIDERS[name] || !oauth.PROVIDERS[name].enabled()) return next(notFound());
   const params = req.method === 'POST' ? req.body || {} : req.query;
   const saved = oauth.readStateCookie(req, res);
-  if (params.error) return loginWithError(req, res, 'Connexion annulée.');
+  if (params.error) {
+    const cancelled = ['access_denied', 'user_cancelled_authorize'].includes(params.error);
+    if (!cancelled) await oauth.recordFailure(name, String(params.error), 'returned by the provider');
+    return loginWithError(req, res, cancelled ? 'Connexion annulée.' : `Connexion avec ${oauth.PROVIDERS[name].label} impossible. Réessayez.`);
+  }
   if (!saved || saved.p !== name || typeof params.state !== 'string' || params.state !== saved.state || typeof params.code !== 'string') {
+    await oauth.recordFailure(name, 'state', saved ? 'state mismatch' : `no state cookie (host ${req.get('host') || '?'})`);
     return loginWithError(req, res, 'La connexion a expiré. Réessayez.');
   }
   let identity;
   try {
     identity = await oauth.exchange(name, params.code, saved.nonce);
   } catch (err) {
-    console.warn(`[oauth:${name}] ${err.message}`);
+    await oauth.recordFailure(name, err.code || (/audience|issuer|nonce|subject|expired/.test(err.message) ? 'token' : 'error'), err.message);
     return loginWithError(req, res, `Connexion avec ${oauth.PROVIDERS[name].label} impossible. Réessayez.`);
   }
+  oauth.clearFailure(name);
   // Apple sends the name only the first time, outside the token.
   if (name === 'apple' && typeof params.user === 'string') {
     try {
