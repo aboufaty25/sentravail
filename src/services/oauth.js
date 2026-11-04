@@ -1,6 +1,10 @@
-// "Continuer avec Google / Apple" (OpenID Connect, authorization code flow).
-// The ID token is received directly from the provider's token endpoint over TLS (OIDC Core
-// 3.1.3.7), then its issuer, audience, expiry and nonce are checked.
+// "Continuer avec Google / Apple" (OpenID Connect).
+// - Google: authorization code flow; the ID token comes from Google's token endpoint over TLS
+//   (OIDC Core 3.1.3.7).
+// - Apple: hybrid flow ("code id_token", form_post): Apple posts a signed ID token, verified with
+//   Apple's public keys (RS256, https://appleid.apple.com/auth/keys). Only APPLE_CLIENT_ID (the
+//   Services ID) is needed: no .p8 key, no client secret.
+// In both cases issuer, audience, expiry and nonce are checked.
 const crypto = require('crypto');
 const env = require('../config/env');
 
@@ -19,53 +23,25 @@ const PROVIDERS = {
   apple: {
     label: 'Apple',
     authorize: 'https://appleid.apple.com/auth/authorize',
-    token: 'https://appleid.apple.com/auth/token',
+    jwks: 'https://appleid.apple.com/auth/keys',
     issuers: ['https://appleid.apple.com'],
     clientId: () => env.APPLE_CLIENT_ID,
-    enabled: () => diagnose('apple') === null,
+    enabled: () => !!env.APPLE_CLIENT_ID,
     scope: 'name email',
-    extra: { response_mode: 'form_post' }, // Apple POSTs the code back
-    clientSecret: () => appleClientSecret(),
+    extra: { response_type: 'code id_token', response_mode: 'form_post' }, // Apple POSTs the ID token back
   },
 };
 
 const b64url = (buf) => Buffer.from(buf).toString('base64url');
 
-// The .p8 key may come with real newlines or "\n", quotes, Windows line endings, or squashed on
-// one line with spaces (some hosting panels), even without the BEGIN/END lines: rebuilt as PEM.
-function applePrivateKey() {
-  const raw = env.APPLE_PRIVATE_KEY.trim().replace(/^["']|["']$/g, '').replace(/\\n/g, '\n').replace(/\r/g, '');
-  const body = raw.replace(/-----(BEGIN|END)[A-Z ]*-----/g, '').replace(/\s+/g, '');
-  if (!/^[A-Za-z0-9+/=]+$/.test(body)) return raw;
-  return `-----BEGIN PRIVATE KEY-----\n${body.match(/.{1,64}/g).join('\n')}\n-----END PRIVATE KEY-----\n`;
-}
-
-// Why a provider is not available (shown in the startup log; never the values themselves).
+// Why a provider is not available (shown in the startup log and the admin; never the values).
 function diagnose(name) {
-  const vars = name === 'google'
-    ? { GOOGLE_CLIENT_ID: env.GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET: env.GOOGLE_CLIENT_SECRET }
-    : { APPLE_CLIENT_ID: env.APPLE_CLIENT_ID, APPLE_TEAM_ID: env.APPLE_TEAM_ID, APPLE_KEY_ID: env.APPLE_KEY_ID, APPLE_PRIVATE_KEY: env.APPLE_PRIVATE_KEY };
+  if (name === 'apple') return env.APPLE_CLIENT_ID ? null : 'not configured';
+  const vars = { GOOGLE_CLIENT_ID: env.GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET: env.GOOGLE_CLIENT_SECRET };
   const missing = Object.keys(vars).filter((k) => !String(vars[k] || '').trim());
   if (missing.length === Object.keys(vars).length) return 'not configured';
   if (missing.length) return `missing ${missing.join(', ')}`;
-  if (name === 'apple') {
-    try {
-      const key = crypto.createPrivateKey(applePrivateKey());
-      if (key.asymmetricKeyType !== 'ec') return 'APPLE_PRIVATE_KEY is not an EC key (.p8 file expected)';
-    } catch (_) {
-      return 'APPLE_PRIVATE_KEY cannot be read: paste the whole .p8 file, including the BEGIN/END lines';
-    }
-  }
   return null;
-}
-
-// Apple's client secret is a short-lived JWT signed (ES256) with the .p8 key.
-function appleClientSecret(now = Math.floor(Date.now() / 1000)) {
-  const header = b64url(JSON.stringify({ alg: 'ES256', kid: env.APPLE_KEY_ID }));
-  const payload = b64url(JSON.stringify({ iss: env.APPLE_TEAM_ID, iat: now, exp: now + 300, aud: 'https://appleid.apple.com', sub: env.APPLE_CLIENT_ID }));
-  const key = applePrivateKey();
-  const signature = crypto.sign('sha256', Buffer.from(`${header}.${payload}`), { key, dsaEncoding: 'ieee-p1363' });
-  return `${header}.${payload}.${b64url(signature)}`;
 }
 
 function redirectUri(name) {
@@ -104,7 +80,45 @@ async function exchange(name, code, nonce) {
     err.code = json.error || `http_${res.status}`;
     throw err;
   }
-  const c = decodeJwtPayload(json.id_token);
+  return checkClaims(p, decodeJwtPayload(json.id_token), nonce);
+}
+
+// Apple's public keys, cached for an hour (fetched again when Apple rotates them).
+let appleKeys = { at: 0, keys: [] };
+async function appleKey(kid) {
+  const find = () => appleKeys.keys.find((k) => k.kid === kid);
+  if (!find() || Date.now() - appleKeys.at > 3600_000) {
+    const res = await fetch(PROVIDERS.apple.jwks, { headers: { Accept: 'application/json' } });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok || !Array.isArray(json.keys)) {
+      const err = new Error(`Apple keys unavailable (${res.status})`);
+      err.code = 'apple_keys';
+      throw err;
+    }
+    appleKeys = { at: Date.now(), keys: json.keys };
+  }
+  return find();
+}
+
+// Verifies the ID token Apple posted (signature with Apple's public key, then the claims).
+async function verifyAppleIdToken(idToken, nonce) {
+  const parts = String(idToken || '').split('.');
+  if (parts.length !== 3) throw Object.assign(new Error('missing id_token'), { code: 'token' });
+  const header = JSON.parse(Buffer.from(parts[0], 'base64url').toString('utf8'));
+  if (header.alg !== 'RS256') throw Object.assign(new Error('unexpected algorithm'), { code: 'token' });
+  const jwk = await appleKey(header.kid);
+  if (!jwk) throw Object.assign(new Error('unknown Apple key'), { code: 'token' });
+  const ok = crypto.verify('RSA-SHA256', Buffer.from(`${parts[0]}.${parts[1]}`), crypto.createPublicKey({ key: jwk, format: 'jwk' }), Buffer.from(parts[2], 'base64url'));
+  if (!ok) throw Object.assign(new Error('bad signature'), { code: 'token' });
+  return checkClaims(PROVIDERS.apple, decodeJwtPayload(idToken), nonce);
+}
+
+// Identity from the provider's callback parameters.
+function identify(name, params, nonce) {
+  return name === 'apple' ? verifyAppleIdToken(params.id_token, nonce) : exchange(name, params.code, nonce);
+}
+
+function checkClaims(p, c, nonce) {
   const aud = Array.isArray(c.aud) ? c.aud : [c.aud];
   if (!p.issuers.includes(c.iss)) throw new Error('bad issuer');
   if (!aud.includes(p.clientId())) throw new Error('bad audience');
@@ -124,11 +138,13 @@ async function exchange(name, code, nonce) {
 // setting. Never contains secret values. Kept in site_settings (several processes, restarts).
 const HINTS = {
   invalid_client: (p) => (p === 'apple'
-    ? 'Apple refuse les identifiants : vérifiez APPLE_TEAM_ID (Team ID), APPLE_KEY_ID (Key ID de la clé .p8), APPLE_CLIENT_ID (le Services ID, pas l\'App ID) et que la clé .p8 a « Sign in with Apple » activé pour ce même App ID.'
+    ? 'Apple refuse l\'identifiant : APPLE_CLIENT_ID doit être le Services ID (ex. com.sentravail.web), pas l\'App ID.'
     : 'Google refuse les identifiants : vérifiez GOOGLE_CLIENT_ID et GOOGLE_CLIENT_SECRET.'),
   invalid_grant: () => 'Code refusé : la Return URL / URI de redirection déclarée doit être exactement celle indiquée ci-dessous, et l\'heure du serveur doit être juste.',
   state: () => 'Le cookie de connexion a été perdu au retour : ouvrez le site à l\'adresse exacte de APP_URL (avec ou sans www, en https).',
-  token: () => 'Le jeton reçu ne correspond pas à la configuration (audience ou émetteur) : vérifiez l\'identifiant client.',
+  token: (p) => (p === 'apple'
+    ? 'Le jeton d\'Apple ne correspond pas : APPLE_CLIENT_ID doit être exactement le Services ID déclaré chez Apple.'
+    : 'Le jeton reçu ne correspond pas à la configuration (audience ou émetteur) : vérifiez l\'identifiant client.'),
 };
 
 async function recordFailure(name, code, detail) {
@@ -183,4 +199,4 @@ function readStateCookie(req, res) {
   return value.exp > Date.now() ? value : null;
 }
 
-module.exports = { recordFailure, clearFailure, status, applePrivateKey, diagnose, PROVIDERS, enabledProviders, authorizationUrl, exchange, appleClientSecret, decodeJwtPayload, setStateCookie, readStateCookie, redirectUri };
+module.exports = { recordFailure, clearFailure, status, diagnose, PROVIDERS, enabledProviders, authorizationUrl, exchange, identify, verifyAppleIdToken, decodeJwtPayload, setStateCookie, readStateCookie, redirectUri };

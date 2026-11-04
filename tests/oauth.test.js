@@ -1,13 +1,12 @@
 // "Continuer avec Google / Apple". Providers are simulated: fetch() returns the ID token.
 const crypto = require('crypto');
 
-const { privateKey, publicKey } = crypto.generateKeyPairSync('ec', { namedCurve: 'P-256' });
+// Apple signs its ID tokens (RS256); the test plays Apple with its own key pair.
+const apple = crypto.generateKeyPairSync('rsa', { modulusLength: 2048 });
+const appleJwk = { ...apple.publicKey.export({ format: 'jwk' }), kid: 'apple-kid-1', alg: 'RS256', use: 'sig' };
 process.env.GOOGLE_CLIENT_ID = 'google-client.apps.googleusercontent.com';
 process.env.GOOGLE_CLIENT_SECRET = 'google-secret';
 process.env.APPLE_CLIENT_ID = 'com.sentravail.web';
-process.env.APPLE_TEAM_ID = 'TEAM123456';
-process.env.APPLE_KEY_ID = 'KEY1234567';
-process.env.APPLE_PRIVATE_KEY = privateKey.export({ type: 'pkcs8', format: 'pem' }).replace(/\n/g, '\\n');
 
 const { app, request, resetDb, closeDb, createUser } = require('./helpers');
 const { User } = require('../src/models');
@@ -15,13 +14,21 @@ const oauth = require('../src/services/oauth');
 
 const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
 const idToken = (claims) => `${b64({ alg: 'RS256' })}.${b64(claims)}.sig`;
+function appleIdToken(claims, key = apple.privateKey, kid = 'apple-kid-1') {
+  const data = `${b64({ alg: 'RS256', kid })}.${b64(claims)}`;
+  return `${data}.${crypto.sign('RSA-SHA256', Buffer.from(data), key).toString('base64url')}`;
+}
+const appleClaims = (nonce, extra = {}) => ({ iss: 'https://appleid.apple.com', aud: 'com.sentravail.web', exp: Math.floor(Date.now() / 1000) + 600, nonce, sub: 'a-001', email: 'xyz@privaterelay.appleid.com', email_verified: 'true', ...extra });
+let fetchedUrls = [];
 let nextClaims = null;
 let lastTokenRequest = null;
 const realFetch = global.fetch;
 
 beforeAll(async () => {
   await resetDb();
-  global.fetch = async (url, opts) => {
+  global.fetch = async (url, opts = {}) => {
+    fetchedUrls.push(url);
+    if (url === 'https://appleid.apple.com/auth/keys') return { ok: true, status: 200, json: async () => ({ keys: [appleJwk] }) };
     lastTokenRequest = { url, body: new URLSearchParams(opts.body) };
     return { ok: true, status: 200, json: async () => ({ id_token: idToken(nextClaims) }) };
   };
@@ -139,40 +146,48 @@ test('refused: wrong state, wrong nonce, wrong audience, unverified email, banne
   expect((await f.agent.get('/connexion')).text).toContain('Ce compte a été suspendu');
 });
 
-test('Apple: form_post callback (no CSRF token), name sent once, ES256 client secret', async () => {
+test('Apple: only the Services ID is needed; signed ID token posted back (no CSRF token, no secret), name sent once', async () => {
   const { agent, state, nonce, url } = await begin('apple');
   expect(url.searchParams.get('response_mode')).toBe('form_post');
-  nextClaims = { iss: 'https://appleid.apple.com', aud: 'com.sentravail.web', exp: Math.floor(Date.now() / 1000) + 600, nonce, sub: 'a-001', email: 'xyz@privaterelay.appleid.com', email_verified: 'true' };
-  const res = await agent.post('/auth/apple/callback').type('form').send({ code: 'c', state, user: JSON.stringify({ name: { firstName: 'Ibrahima', lastName: 'Sow' } }) });
+  expect(url.searchParams.get('response_type')).toBe('code id_token');
+  expect(url.searchParams.get('client_id')).toBe('com.sentravail.web');
+  fetchedUrls = [];
+  const res = await agent.post('/auth/apple/callback').type('form')
+    .send({ code: 'c', id_token: appleIdToken(appleClaims(nonce)), state, user: JSON.stringify({ name: { firstName: 'Ibrahima', lastName: 'Sow' } }) });
   expect(res.headers.location).toBe('/inscription/finaliser');
   expect((await agent.get('/inscription/finaliser')).text).toContain('value="Ibrahima"');
-  // Client secret: JWT signed with the .p8 key, verifiable with Apple's copy of the public key.
-  const secret = lastTokenRequest.body.get('client_secret');
-  const [h, p, sig] = secret.split('.');
-  expect(JSON.parse(Buffer.from(h, 'base64url'))).toEqual({ alg: 'ES256', kid: 'KEY1234567' });
-  expect(JSON.parse(Buffer.from(p, 'base64url'))).toMatchObject({ iss: 'TEAM123456', sub: 'com.sentravail.web', aud: 'https://appleid.apple.com' });
-  expect(crypto.verify('sha256', Buffer.from(`${h}.${p}`), { key: publicKey, dsaEncoding: 'ieee-p1363' }, Buffer.from(sig, 'base64url'))).toBe(true);
+  // Only Apple's public keys are fetched: no token exchange, no client secret.
+  expect(fetchedUrls).toEqual(['https://appleid.apple.com/auth/keys']);
   expect(oauth.enabledProviders()).toEqual(['google', 'apple']);
+  expect(oauth.diagnose('apple')).toBeNull();
 });
 
-test('Apple key accepted with real newlines, "\\n", quotes or Windows line endings; clear diagnosis otherwise', () => {
+test('Apple: forged, altered, foreign or replayed tokens are refused', async () => {
+  const forger = crypto.generateKeyPairSync('rsa', { modulusLength: 2048 });
+  const cases = [
+    (n) => appleIdToken(appleClaims(n), forger.privateKey), // not signed by Apple
+    (n) => { const [h, , sig] = appleIdToken(appleClaims(n)).split('.'); return `${h}.${b64(appleClaims(n, { sub: 'someone-else' }))}.${sig}`; }, // altered
+    (n) => appleIdToken(appleClaims(n, { aud: 'com.other.app' })), // another site's token
+    () => appleIdToken(appleClaims('old-nonce')), // replayed
+    (n) => appleIdToken(appleClaims(n, { exp: Math.floor(Date.now() / 1000) - 3600 })), // expired
+    (n) => appleIdToken(appleClaims(n), apple.privateKey, 'unknown-kid'),
+  ];
+  for (const make of cases) {
+    const { agent, state, nonce } = await begin('apple');
+    const res = await agent.post('/auth/apple/callback').type('form').send({ code: 'c', id_token: make(nonce), state });
+    expect(res.headers.location).toBe('/connexion');
+  }
+  expect(await User.count({ where: { appleId: 'someone-else' } })).toBe(0);
+});
+
+test('Apple off without APPLE_CLIENT_ID', () => {
   const env = require('../src/config/env');
-  const saved = env.APPLE_PRIVATE_KEY;
-  const pem = privateKey.export({ type: 'pkcs8', format: 'pem' });
+  const saved = env.APPLE_CLIENT_ID;
   try {
-    const body = pem.replace(/-----[A-Z ]+-----/g, '').replace(/\s+/g, '');
-    const squashed = pem.trim().replace(/\n/g, ' '); // hosting panels that turn newlines into spaces
-    for (const variant of [pem, pem.replace(/\n/g, '\\n'), `"${pem.replace(/\n/g, '\\n')}"`, pem.replace(/\n/g, '\r\n'), squashed, body]) {
-      env.APPLE_PRIVATE_KEY = variant;
-      expect(oauth.diagnose('apple')).toBeNull();
-      expect(oauth.appleClientSecret().split('.')).toHaveLength(3);
-    }
-    env.APPLE_PRIVATE_KEY = 'MIGTAgEAMBMGByqGSM49AgEGCCqGSM49';
-    expect(oauth.diagnose('apple')).toMatch(/cannot be read/);
+    env.APPLE_CLIENT_ID = '';
+    expect(oauth.diagnose('apple')).toBe('not configured');
     expect(oauth.enabledProviders()).toEqual(['google']);
-    env.APPLE_PRIVATE_KEY = '';
-    expect(oauth.diagnose('apple')).toBe('missing APPLE_PRIVATE_KEY');
-  } finally { env.APPLE_PRIVATE_KEY = saved; }
+  } finally { env.APPLE_CLIENT_ID = saved; }
 });
 
 test('www and non-www: the flow starts on the APP_URL host so the state cookie comes back', async () => {
@@ -187,14 +202,13 @@ test('a refused sign-in is recorded with a hint for the admin (no secrets), clea
   const csrf = (await agentAdm.get('/connexion')).text.match(/name="_csrf" value="([a-f0-9]+)"/)[1];
   await agentAdm.post('/connexion').type('form').send({ identifier: admin.email, password: 'password123', _csrf: csrf });
 
-  global.fetch = async () => ({ ok: false, status: 400, json: async () => ({ error: 'invalid_client' }) });
-  const { agent, state } = await begin('apple');
-  const res = await agent.post('/auth/apple/callback').type('form').send({ code: 'c', state });
+  const { agent, state, nonce } = await begin('apple');
+  const res = await agent.post('/auth/apple/callback').type('form').send({ code: 'c', state, id_token: appleIdToken(appleClaims(nonce, { aud: 'com.sentravail.app' })) });
   expect(res.headers.location).toBe('/connexion');
   let page = (await agentAdm.get('/admin/google')).text;
   expect(page).toContain('Connexion avec Google et Apple');
-  expect(page).toContain('invalid_client');
-  expect(page).toContain('APPLE_TEAM_ID');
+  expect(page).toContain('bad audience');
+  expect(page).toContain('Services ID');
   expect(page).toContain('http://localhost:3000/auth/apple/callback');
   expect(page).not.toContain('PRIVATE KEY');
   expect(page).not.toContain('google-secret');
@@ -204,11 +218,9 @@ test('a refused sign-in is recorded with a hint for the admin (no secrets), clea
   page = (await agentAdm.get('/admin/google')).text;
   expect(page).toContain('cookie de connexion a été perdu');
 
-  global.fetch = async (url, opts) => ({ ok: true, status: 200, json: async () => ({ id_token: idToken(nextClaims) }) });
   const again = await begin('apple');
-  nextClaims = { iss: 'https://appleid.apple.com', aud: 'com.sentravail.web', exp: Math.floor(Date.now() / 1000) + 600, nonce: again.nonce, sub: 'a-001', email: 'xyz@privaterelay.appleid.com', email_verified: 'true' };
-  await again.agent.post('/auth/apple/callback').type('form').send({ code: 'c', state: again.state });
+  await again.agent.post('/auth/apple/callback').type('form').send({ code: 'c', state: again.state, id_token: appleIdToken(appleClaims(again.nonce)) });
   await new Promise((r) => setTimeout(r, 50));
   page = (await agentAdm.get('/admin/google')).text;
-  expect(page).not.toContain('invalid_client');
+  expect(page).not.toContain('bad audience');
 });

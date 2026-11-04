@@ -25,10 +25,8 @@ const schema = z.object({
   // "Continuer avec Google / Apple" (buttons shown only when configured)
   GOOGLE_CLIENT_ID: z.string().trim().optional().default(''),
   GOOGLE_CLIENT_SECRET: z.string().trim().optional().default(''),
-  APPLE_CLIENT_ID: z.string().trim().optional().default(''), // Services ID, e.g. com.sentravail.web
-  APPLE_TEAM_ID: z.string().trim().optional().default(''),
-  APPLE_KEY_ID: z.string().trim().optional().default(''),
-  APPLE_PRIVATE_KEY: z.string().optional().default(''), // content of the .p8 file (newlines as \n)
+  // Services ID, e.g. com.sentravail.web (the only Apple setting: the ID token is checked with Apple's public keys)
+  APPLE_CLIENT_ID: z.string().trim().optional().default(''),
   CLOUDINARY_CLOUD_NAME: z.string().optional().default(''),
   CLOUDINARY_API_KEY: z.string().optional().default(''),
   CLOUDINARY_API_SECRET: z.string().optional().default(''),

@@ -179,12 +179,9 @@ Les boutons « Continuer avec Google / Apple » apparaissent dès que les variab
 4. Copiez l'ID client et le code secret dans `GOOGLE_CLIENT_ID` et `GOOGLE_CLIENT_SECRET`.
 
 **Apple** (nécessite un compte Apple Developer, 99 $/an)
-1. https://developer.apple.com/account → *Identifiers* : un **App ID** avec « Sign in with Apple », puis un **Services ID** (ex. `com.sentravail.web`) → *Configure* : domaine `sentravail.com`, Return URL `https://sentravail.com/auth/apple/callback`.
-2. *Keys* → nouvelle clé avec « Sign in with Apple » → téléchargez le fichier `.p8` (une seule fois) et notez le **Key ID**.
-3. Variables : `APPLE_CLIENT_ID` = le Services ID, `APPLE_TEAM_ID` = votre Team ID (en haut à droite du compte), `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY` = contenu du `.p8` (avec ou sans retours à la ligne, tout est accepté).
-4. Redémarrez, puis ouvrez **`/admin/google` → « Connexion avec Google et Apple »** : état du bouton, Return URL et domaine exacts à déclarer, et la **dernière erreur** avec son explication. Erreurs fréquentes :
-   - `invalid_client` : Team ID, Key ID ou Services ID incorrect, ou clé `.p8` non liée au même App ID (`APPLE_CLIENT_ID` doit être le **Services ID**, pas l'App ID).
-   - `invalid_grant` / « Invalid web redirect url » : Return URL différente de celle affichée (https, sans `/` final, sans www si `APP_URL` est sans www).
-   - cookie de connexion perdu : le site a été ouvert sur une autre adresse que `APP_URL` (www, http).
+1. https://developer.apple.com/account/resources/identifiers/list : un **App ID** avec « Sign in with Apple » (« Enable as a primary App ID »).
+2. https://developer.apple.com/account/resources/identifiers/list/serviceId : un **Services ID** (ex. `com.sentravail.web`) → « Sign in with Apple » → *Configure* : Primary App ID = celui de l'étape 1, domaine `sentravail.com`, Return URL `https://sentravail.com/auth/apple/callback` → *Next*, *Done*, *Continue*, **Save**.
+3. Une seule variable : `APPLE_CLIENT_ID` = le **Services ID**. Pas de clé `.p8` : le jeton d'identité signé par Apple est vérifié avec les clés publiques d'Apple.
+4. `/admin/google` → « Connexion avec Google et Apple » : état du bouton, Return URL et domaine exacts, dernière erreur avec son explication. « Inscription non terminée » affiché par Apple = réglage chez Apple (Services ID non enregistré, App ID principal, domaine, Return URL) ; attendre jusqu'à une heure après une modification.
 
 Fonctionnement : un compte Google/Apple déjà connu se connecte directement ; si l'email (vérifié) correspond à un compte existant, il y est rattaché ; sinon la personne choisit **Candidat** ou **Recruteur** (nom d'entreprise obligatoire) sur « Finaliser l'inscription ». Le rôle administrateur ne s'obtient jamais ainsi (`ADMIN_EMAILS` ou `npm run make-admin`).

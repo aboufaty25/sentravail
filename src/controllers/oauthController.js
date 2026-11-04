@@ -65,13 +65,13 @@ async function callback(req, res, next) {
     if (!cancelled) await oauth.recordFailure(name, String(params.error), 'returned by the provider');
     return loginWithError(req, res, cancelled ? 'Connexion annulée.' : `Connexion avec ${oauth.PROVIDERS[name].label} impossible. Réessayez.`);
   }
-  if (!saved || saved.p !== name || typeof params.state !== 'string' || params.state !== saved.state || typeof params.code !== 'string') {
+  if (!saved || saved.p !== name || typeof params.state !== 'string' || params.state !== saved.state || typeof params.code !== 'string' || (name === 'apple' && typeof params.id_token !== 'string')) {
     await oauth.recordFailure(name, 'state', saved ? 'state mismatch' : `no state cookie (host ${req.get('host') || '?'})`);
     return loginWithError(req, res, 'La connexion a expiré. Réessayez.');
   }
   let identity;
   try {
-    identity = await oauth.exchange(name, params.code, saved.nonce);
+    identity = await oauth.identify(name, params, saved.nonce);
   } catch (err) {
     await oauth.recordFailure(name, err.code || (/audience|issuer|nonce|subject|expired/.test(err.message) ? 'token' : 'error'), err.message);
     return loginWithError(req, res, `Connexion avec ${oauth.PROVIDERS[name].label} impossible. Réessayez.`);
