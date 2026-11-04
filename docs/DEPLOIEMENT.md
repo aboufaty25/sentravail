@@ -115,6 +115,12 @@ Activez aussi les **sauvegardes automatiques** de hPanel, et téléchargez de te
 ## 10. Google
 
 - **Search Console** : ajoutez `sentravail.com`, puis déclarez `https://sentravail.com/sitemap.xml`. Les offres apparaissent dans Google Emplois grâce aux données structurées `JobPosting`.
+- **Google for Jobs en quelques heures (API d'indexation)** : sans elle, Google découvre les offres par le sitemap (plusieurs jours). Avec elle, chaque offre publiée, modifiée, approuvée, supprimée ou expirée est signalée immédiatement.
+  1. Google Cloud Console → *API et services → Bibliothèque* → activez **Web Search Indexing API**.
+  2. *IAM → Comptes de service → Créer* (« sentravail-indexing », aucun rôle) → *Clés → Ajouter une clé → JSON*. Ce fichier est un secret : ne le partagez pas, ne le mettez pas dans git.
+  3. Search Console → *Paramètres → Utilisateurs et autorisations → Ajouter un utilisateur* : l'adresse `…@….iam.gserviceaccount.com`, autorisation **Propriétaire**.
+  4. Déposez le JSON hors de `public_html` (ex. `~/sentravail-private/indexing.json`) et définissez `GOOGLE_INDEXING_KEY_FILE` avec son chemin (ou `GOOGLE_INDEXING_CLIENT_EMAIL` + `GOOGLE_INDEXING_PRIVATE_KEY`). Redémarrez : le journal affiche `Google Indexing API: ON`.
+  5. `/admin/google` → « Envoyer toutes les offres ouvertes à Google » une première fois (quota : 200 envois par jour). L'historique des envois et les erreurs (ex. « Failed to verify the URL ownership » = compte de service pas encore propriétaire) s'y affichent.
 - **AdSense** : demandez l'accès (les pages À propos, Contact, Confidentialité et Conditions sont en place, la modération aussi). Une fois accepté : renseignez `ADSENSE_CLIENT_ID` et les 3 blocs, redémarrez. `/ads.txt` est généré automatiquement.
 
 ## 11. Liste de contrôle sécurité

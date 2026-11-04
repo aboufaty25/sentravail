@@ -60,6 +60,7 @@ async function create(req, res) {
     if (open >= env.REPORT_AUTOHIDE) {
       const Model = d.targetType === 'post' ? Post : Comment;
       const [hidden] = await Model.update({ status: 'pending_approval', moderationReason: 'reports' }, { where: { id: d.targetId, status: 'published' } });
+      if (hidden && d.targetType === 'post') await require('../services/googleIndexing').notifyPost(d.targetId, 'URL_DELETED');
       if (hidden && d.targetType === 'comment') {
         const c = await Comment.findByPk(d.targetId, { attributes: ['postId'] });
         await require('../utils/counters').adjustCounter(Post, c.postId, 'commentsCount', -1);

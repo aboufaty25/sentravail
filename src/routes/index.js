@@ -170,6 +170,7 @@ router.get('/admin/publicites', ...adminOnly, admin.adsIndex);
 router.get('/admin/google', ...adminOnly, admin.googleIndex);
 router.get('/admin/candidatures', ...adminOnly, admin.applicationsIndex);
 router.post('/admin/google', ...adminOnly, admin.googleUpdate);
+router.post('/admin/google/indexation', ...adminOnly, admin.googleIndexAll);
 router.post('/admin/publicites', ...adminOnly, admin.adsUpdate);
 router.post('/admin/apparence/:asset', ...adminOnly, brandingUpload, admin.brandingUpdate);
 router.post('/admin/referentiels', ...adminOnly, admin.refsAdd);

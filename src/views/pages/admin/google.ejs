@@ -55,3 +55,51 @@
 
   <div class="flex justify-end"><button class="btn-primary">Enregistrer</button></div>
 </form>
+
+<section class="card mt-3 space-y-3 rounded-lg p-4" aria-labelledby="idx-title">
+  <div class="flex items-start justify-between gap-2">
+    <div>
+      <h2 id="idx-title" class="text-lg font-semibold">Google for Jobs : indexation immédiate</h2>
+      <p class="text-sm text-gray-500">Chaque offre publiée, modifiée, approuvée, supprimée ou expirée est signalée aussitôt à Google (API d'indexation). Elle apparaît ainsi dans Google for Jobs en quelques heures au lieu de plusieurs jours.</p>
+    </div>
+    <span class="shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold <%= indexing.enabled ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-600' %>"><%= indexing.enabled ? 'Actif' : 'Non configuré' %></span>
+  </div>
+  <% if (indexing.enabled) { %>
+    <p class="break-words text-sm">Compte de service : <code><%= indexing.email %></code></p>
+    <form method="post" action="/admin/google/indexation" class="flex flex-wrap items-center gap-2">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <button class="btn-soft">Envoyer toutes les offres ouvertes à Google</button>
+      <span class="text-xs text-gray-500">Jusqu'à <%= indexing.limit %> offres (quota Google : 200 par jour).</span>
+    </form>
+  <% } else { %>
+    <p class="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">Inactif : <%= indexing.problem %>. Les offres restent visibles dans Google via le sitemap, mais plus lentement.</p>
+  <% } %>
+  <details class="rounded-lg bg-gray-50 p-3 text-sm text-gray-700" <%= indexing.enabled ? '' : 'open' %>>
+    <summary class="cursor-pointer font-semibold">Comment l'activer ? (une seule fois, environ 10 minutes)</summary>
+    <ol class="mt-2 list-decimal space-y-1 pl-5">
+      <li>Ouvrez <a href="https://console.cloud.google.com/" target="_blank" rel="noopener" class="font-semibold text-brand-600 hover:underline">Google Cloud Console</a> (le même projet que la connexion Google convient).</li>
+      <li><em>API et services → Bibliothèque</em> : cherchez <strong>Web Search Indexing API</strong> (« Indexing API ») → <em>Activer</em>.</li>
+      <li><em>IAM et administration → Comptes de service → Créer</em> : nom « sentravail-indexing », aucun rôle à donner.</li>
+      <li>Ouvrez le compte de service → <em>Clés → Ajouter une clé → JSON</em> : un fichier .json est téléchargé. <strong>Gardez-le secret</strong> : ne l'envoyez à personne.</li>
+      <li>Dans <a href="https://search.google.com/search-console/users" target="_blank" rel="noopener" class="font-semibold text-brand-600 hover:underline">Search Console → Paramètres → Utilisateurs et autorisations</a> : <em>Ajouter un utilisateur</em> avec l'adresse du compte de service (…@….iam.gserviceaccount.com), autorisation <strong>Propriétaire</strong>.</li>
+      <li>Sur Hostinger, déposez le fichier JSON <strong>hors de public_html</strong> (ex. <code>/home/u…/sentravail-private/indexing.json</code>) et ajoutez la variable d'environnement <code>GOOGLE_INDEXING_KEY_FILE</code> avec ce chemin. À défaut, copiez <code>client_email</code> dans <code>GOOGLE_INDEXING_CLIENT_EMAIL</code> et <code>private_key</code> dans <code>GOOGLE_INDEXING_PRIVATE_KEY</code>.</li>
+      <li>Redémarrez l'application, revenez ici (« Actif ») et cliquez sur « Envoyer toutes les offres ouvertes à Google ».</li>
+    </ol>
+  </details>
+  <% if (indexing.history.length) { %>
+    <div>
+      <h3 class="mb-1 text-sm font-semibold">Derniers envois</h3>
+      <ul class="divide-y divide-gray-100 text-sm">
+        <% indexing.history.forEach((h) => { %>
+          <li class="flex flex-wrap items-baseline gap-x-2 py-1.5">
+            <span class="font-semibold <%= h.ok ? 'text-green-700' : 'text-red-600' %>"><%= h.ok ? 'OK' : 'Échec' %></span>
+            <span class="text-xs text-gray-500"><%= h.type === 'URL_DELETED' ? 'retrait' : 'mise à jour' %> · <%= formatDateTime(h.at) %></span>
+            <a href="<%= h.url %>" class="min-w-0 break-all text-brand-600 hover:underline"><%= h.url.replace(appUrl, '') %></a>
+            <% if (h.error) { %><span class="w-full text-xs text-red-600"><%= h.error %></span><% } %>
+          </li>
+        <% }) %>
+      </ul>
+      <p class="mt-1 text-xs text-gray-500">Historique de ce serveur depuis son dernier démarrage.</p>
+    </div>
+  <% } %>
+</section>

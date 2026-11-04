@@ -1,6 +1,7 @@
 const { Op, fn, col, literal } = require('sequelize');
 const { z } = require('zod');
 const { sequelize, User, Post, Job, Application, Report, Comment, RefItem } = require('../models');
+const indexing = require('../services/googleIndexing');
 const env = require('../config/env');
 const posts = require('../services/posts');
 const refs = require('../services/refs');
@@ -193,7 +194,10 @@ async function reportAction(req, res) {
 
   if (action === 'dismiss') {
     // False alarm: close the reports and put a held post back online.
-    if (type === 'post') await Post.update({ status: 'published', moderationReason: null }, { where: { id: targetId, status: 'pending_approval' } });
+    if (type === 'post') {
+      const [restored] = await Post.update({ status: 'published', moderationReason: null }, { where: { id: targetId, status: 'pending_approval' } });
+      if (restored) await indexing.notifyPost(targetId, 'URL_UPDATED');
+    }
     if (type === 'comment') {
       const [restored] = await Comment.update({ status: 'published', moderationReason: null }, { where: { id: targetId, status: 'pending_approval' } });
       if (restored) {
@@ -208,6 +212,7 @@ async function reportAction(req, res) {
       const post = await Post.findByPk(targetId);
       if (post) {
         if (post.sharedPostId) await adjustCounter(Post, post.sharedPostId, 'sharesCount', -1);
+        if (post.type === 'job') await indexing.notifyPost(post.id, 'URL_DELETED');
         await post.destroy();
         await removeLocalMedia(post.mediaUrls || []);
       }
@@ -575,7 +580,25 @@ const googleConfig = require('../services/googleConfig');
 
 async function googleIndex(req, res) {
   await googleConfig.load();
-  view(res, 'google', { title: 'Google', section: 'google', g: googleConfig.current(), values: null, errors: {}, appUrl: env.APP_URL });
+  view(res, 'google', { title: 'Google', section: 'google', g: googleConfig.current(), values: null, errors: {}, ...indexingLocals() });
+}
+
+function indexingLocals() {
+  return {
+    appUrl: env.APP_URL,
+    indexing: { enabled: indexing.enabled(), problem: indexing.diagnose(), email: indexing.serviceAccountEmail(), history: indexing.recentHistory(), limit: indexing.BULK_LIMIT },
+  };
+}
+
+// "Envoyer toutes les offres ouvertes à Google" (e.g. right after setting up the API).
+async function googleIndexAll(req, res) {
+  if (!indexing.enabled()) {
+    req.flash('error', "L'API d'indexation n'est pas configurée.");
+    return res.redirect('/admin/google');
+  }
+  const { sent, total } = await indexing.submitAllOpen();
+  req.flash(sent === total ? 'success' : 'error', `${sent} offre(s) sur ${total} envoyée(s) à Google.${sent < total ? ' Voir les erreurs ci-dessous.' : ''}`);
+  return res.redirect('/admin/google');
 }
 
 async function googleUpdate(req, res) {
@@ -586,14 +609,14 @@ async function googleUpdate(req, res) {
   if (siteVerification && !googleConfig.GSC_RE.test(siteVerification)) errors.siteVerification = 'Code de validation invalide : collez la balise meta fournie par Search Console.';
   if (Object.keys(errors).length) {
     res.status(422);
-    return view(res, 'google', { title: 'Google', section: 'google', g: googleConfig.current(), values: { analyticsId, siteVerification: req.body?.siteVerification || '' }, errors, appUrl: env.APP_URL });
+    return view(res, 'google', { title: 'Google', section: 'google', g: googleConfig.current(), values: { analyticsId, siteVerification: req.body?.siteVerification || '' }, errors, ...indexingLocals() });
   }
   await googleConfig.save({ analyticsId, siteVerification });
   req.flash('success', 'Réglages Google enregistrés.');
   return res.redirect('/admin/google');
 }
 
-Object.assign(module.exports, { googleIndex, googleUpdate });
+Object.assign(module.exports, { googleIndex, googleUpdate, googleIndexAll });
 
 // ======================= Recruitment (ATS) across the platform =======================
 async function applicationsIndex(req, res) {

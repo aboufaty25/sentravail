@@ -10,6 +10,7 @@ const { runMigrations } = require('./config/migrate');
 const { promoteConfiguredAdmins } = require('./services/admins');
 const branding = require('./services/branding');
 const refs = require('./services/refs');
+const indexing = require('./services/googleIndexing');
 
 const SCORE_REFRESH_MS = 15 * 60 * 1000;
 
@@ -44,6 +45,8 @@ async function start() {
       const problem = oauth.diagnose(p);
       console.log(problem ? `Sign-in with ${p}: OFF (${problem})` : `Sign-in with ${p}: ON, return URL ${oauth.redirectUri(p)}`);
     }
+    const indexingProblem = indexing.diagnose();
+    console.log(indexingProblem ? `Google Indexing API: OFF (${indexingProblem})` : 'Google Indexing API: ON');
   });
 
   // Feed scores decay with time: recompute them every 15 minutes (also available as `npm run scores`).
@@ -51,6 +54,11 @@ async function start() {
   refresh();
   const timer = setInterval(refresh, SCORE_REFRESH_MS);
   timer.unref();
+
+  // Offers that expired since yesterday: ask Google to re-read them (drops them from Google for Jobs).
+  const sweep = () => indexing.sweepExpired().catch((err) => console.error('[indexing] sweep failed:', err.message));
+  setTimeout(sweep, 60 * 1000).unref();
+  setInterval(sweep, 60 * 60 * 1000).unref();
 
   const shutdown = async () => {
     server.close();

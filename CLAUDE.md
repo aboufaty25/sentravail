@@ -32,7 +32,7 @@ src/
   controllers/   publish, post, job, event, application, cv, comment, follow, search,
                  notification, report, verification, admin, seo, page, auth, profile
   services/      feedRanking, posts, jobs, follows, notifications, moderation, moderationActions,
-                 verification, reactions, cv/ (CV PDF), cvStorage, storage, mail, refs, branding, adsConfig, googleConfig, oauth, jobImport
+                 verification, reactions, cv/ (CV PDF), cvStorage, storage, mail, refs, branding, adsConfig, googleConfig, googleIndexing, oauth, jobImport
   middlewares/   auth, roles, csrf, upload, rateLimit, errors, flash
   migrations/    001… (idempotentes)
   views/         layouts, partials (postCard, postContent, cards/*, jobCard, applyModal,
@@ -149,6 +149,7 @@ Aucun réel, aucun upload vidéo : ni onglet, ni route, ni modèle, ni code fron
 ## Google Analytics et Search Console (`/admin/google`, `src/services/googleConfig.js`)
 
 - **GA4** : ID de mesure (`G-…`) saisi dans l'admin (`.env` `GA_MEASUREMENT_ID` en repli) ; chargé par `public/js/analytics.js` (pas de script en ligne, CSP), jamais sur `/admin`. Événements : `sign_up` et `login` (mis en file côté serveur avec `queueEvent(req, …)` de `src/utils/analytics.js`, envoyés à la page suivante), `generate_lead` à chaque candidature envoyée (`window.stTrack`), plus la mesure améliorée de GA (clics sortants, recherche `?q=`). Propriété utilisateur `role`.
+- **Google for Jobs** : données `JobPosting` (description HTML, `baseSalary` déduit du texte du salaire, `identifier`, `addressRegion`, image) sur `/offres/:slug`, **absentes si l'offre est expirée ou masquée**. **API d'indexation** (`src/services/googleIndexing.js`, compte de service : `GOOGLE_INDEXING_KEY_FILE` ou `GOOGLE_INDEXING_CLIENT_EMAIL` + `GOOGLE_INDEXING_PRIVATE_KEY`, jamais dans le code ni la base) : `URL_UPDATED` à la publication, modification, approbation, restauration ; `URL_DELETED` à la suppression, au refus, au masquage (filtre, signalements) ; offres expirées renvoyées une fois par jour (`indexing.lastSweep`). Envois en arrière-plan, jamais bloquants. `/admin/google` : état, historique, envoi groupé des offres ouvertes (180 max, quota 200/jour).
 - **Search Console** : balise `google-site-verification` (collée entière ou code seul) ajoutée à la page d'accueil ; sitemap `/sitemap.xml` à déclarer dans Search Console.
 
 ## Commandes

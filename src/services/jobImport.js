@@ -41,7 +41,7 @@ async function importJobs(list, author) {
       authorId: author.id, type: 'job', text: null, visibility: 'public', status: 'published',
       featureStatus: 'approved', isFeatured: false, score: baseScore({ createdAt: now }),
     });
-    await Job.create({
+    const job = await Job.create({
       postId: post.id,
       slug: jobs.buildSlug(d.title, d.location),
       title: d.title, companyName: d.companyName, location: d.location, contractType: d.contractType, sector: d.sector,
@@ -52,6 +52,7 @@ async function importJobs(list, author) {
       deadline: d.deadline || null,
       companyLogo: null, image: null, isOfficial: false,
     });
+    require('./googleIndexing').notifyJob(job);
     report.created.push(label);
   }
   return report;

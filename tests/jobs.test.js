@@ -234,7 +234,7 @@ describe('Job page', () => {
   });
 
   test('JSON-LD cannot break out of its script tag', () => {
-    const json = jobPostingJsonLd({ createdAt: new Date(), job: { ...job.get({ plain: true }), description: '</script><b>x</b>', url: '/offres/x' } });
+    const json = jobPostingJsonLd({ status: 'published', createdAt: new Date(), job: { ...job.get({ plain: true }), description: '</script><b>x</b>', url: '/offres/x' } });
     expect(json).not.toContain('</script>');
   });
 

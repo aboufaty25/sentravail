@@ -7,6 +7,7 @@ const posts = require('../services/posts');
 const { saveImage } = require('../services/storage');
 const notifications = require('../services/notifications');
 const moderation = require('../services/moderation');
+const indexing = require('../services/googleIndexing');
 const { absoluteUrl, imageUrl } = require('../utils/viewHelpers');
 const { baseScore, refreshScore } = require('../services/feedRanking');
 const { adjustCounter } = require('../utils/counters');
@@ -122,6 +123,7 @@ async function create(req, res) {
     return res.redirect(job.url);
   }
   await notifications.notifyFollowersOfJob(req.user, post, job);
+  indexing.notifyJob(job);
   req.flash(
     'success',
     post.featureStatus === 'pending'
@@ -173,22 +175,67 @@ function jobOgImage(j) {
   return {};
 }
 
+// Region (addressRegion) of the usual cities, for Google for Jobs location matching.
+const REGIONS = {
+  Dakar: 'Dakar', Pikine: 'Dakar', 'Guédiawaye': 'Dakar', Rufisque: 'Dakar', Diamniadio: 'Dakar',
+  'Thiès': 'Thiès', Mbour: 'Thiès', 'Saint-Louis': 'Saint-Louis', Kaolack: 'Kaolack', Ziguinchor: 'Ziguinchor',
+  Touba: 'Diourbel', Diourbel: 'Diourbel', Louga: 'Louga', Tambacounda: 'Tambacounda', Kolda: 'Kolda',
+  Fatick: 'Fatick', Matam: 'Matam', Kaffrine: 'Kaffrine', 'Kédougou': 'Kédougou', 'Sédhiou': 'Sédhiou',
+};
+
+// "150 000 FCFA / mois", "200.000 - 300.000 F CFA par mois", "1,5 million FCFA"… → schema.org MonetaryAmount.
+// Returns null when the text has no usable amount ("À négocier", "Selon profil").
+function parseSalary(text) {
+  if (!text) return null;
+  const t = String(text).toLowerCase().replace(/\u00a0|\u202f/g, ' ');
+  const amounts = [];
+  const re = /(\d{1,3}(?:[ .]\d{3})+|\d+(?:,\d+)?)\s*(millions?|k\b)?/g;
+  let m;
+  while ((m = re.exec(t))) {
+    let n = Number(m[1].replace(/[ .]/g, '').replace(',', '.'));
+    if (m[2]?.startsWith('million')) n *= 1e6;
+    else if (m[2] === 'k') n *= 1e3;
+    if (n >= 1000) amounts.push(Math.round(n));
+  }
+  if (!amounts.length) return null;
+  const unit = /heure|\/\s*h\b/.test(t) ? 'HOUR' : /jour|journ/.test(t) ? 'DAY' : /semaine/.test(t) ? 'WEEK' : /\ban\b|année|annuel|\/\s*an/.test(t) ? 'YEAR' : 'MONTH';
+  const value = { '@type': 'QuantitativeValue', unitText: unit };
+  if (amounts.length > 1) Object.assign(value, { minValue: Math.min(...amounts), maxValue: Math.max(...amounts) });
+  else value.value = amounts[0];
+  return { '@type': 'MonetaryAmount', currency: /€|eur/.test(t) ? 'EUR' : 'XOF', value };
+}
+
+// Plain text → simple HTML (Google for Jobs keeps paragraphs and line breaks).
+function descriptionHtml(text) {
+  const esc = (v) => v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return String(text).trim().split(/\n\s*\n/).map((p) => `<p>${esc(p.trim()).replace(/\n/g, '<br>')}</p>`).join('');
+}
+
+// JobPosting structured data (Google for Jobs). None for an expired or hidden offer, so
+// Google drops it from job results as soon as it re-reads the page.
 function jobPostingJsonLd(post) {
   const j = post.job;
+  if (j.isExpired || post.status !== 'published') return null;
   const contractMap = { CDI: 'FULL_TIME', CDD: 'TEMPORARY', Stage: 'INTERN', Freelance: 'CONTRACTOR', 'Temps partiel': 'PART_TIME', Journalier: 'PER_DIEM' };
+  const address = { '@type': 'PostalAddress', addressLocality: j.location, addressCountry: 'SN' };
+  if (REGIONS[j.location]) address.addressRegion = REGIONS[j.location];
   const data = {
     '@context': 'https://schema.org/',
     '@type': 'JobPosting',
     title: j.title,
-    description: mergedDescription(j),
-    datePosted: new Date(post.createdAt).toISOString().slice(0, 10),
+    description: descriptionHtml(mergedDescription(j)),
+    identifier: { '@type': 'PropertyValue', name: 'SenTravail', value: String(j.id) },
+    datePosted: new Date(post.createdAt).toISOString(),
     employmentType: contractMap[j.contractType],
-    hiringOrganization: { '@type': 'Organization', name: j.companyName, ...(j.companyLogo ? { logo: j.companyLogo.startsWith('http') ? j.companyLogo : `${env.APP_URL}${j.companyLogo}` } : {}) },
-    jobLocation: { '@type': 'Place', address: { '@type': 'PostalAddress', addressLocality: j.location, addressCountry: 'SN' } },
+    hiringOrganization: { '@type': 'Organization', name: j.companyName, ...(j.companyLogo ? { logo: absoluteUrl(j.companyLogo) } : {}) },
+    jobLocation: { '@type': 'Place', address },
     industry: j.sector,
     directApply: j.applyMode !== 'link',
     url: `${env.APP_URL}${j.url}`,
   };
+  if (j.image) data.image = absoluteUrl(imageUrl(j.image, 1200));
+  const salary = parseSalary(j.salary);
+  if (salary) data.baseSalary = salary;
   if (j.deadline) data.validThrough = `${j.deadline}T23:59:59Z`;
   // Escape "<" so user text can never close the <script> tag.
   return JSON.stringify(data).replace(/</g, '\\u003c');
@@ -249,13 +296,17 @@ async function update(req, res) {
   else if (body.removeLogo === 'on') changes.companyLogo = null;
   await post.job.update(changes); // slug is kept so shared links keep working
   await post.update({ text: d.text || null });
+  // Held by the filter: the page is hidden, Google must drop it; otherwise re-read it.
+  indexing.notifyJob(post.job, post.status === 'published' ? 'URL_UPDATED' : 'URL_DELETED');
   req.flash('success', 'Offre mise à jour.');
   return res.redirect(post.job.url);
 }
 
 async function destroy(req, res) {
   const post = await loadManaged(req);
+  const slug = post.job.slug;
   await post.destroy(); // job, reactions, comments and saves cascade
+  indexing.notifyJob({ slug }, 'URL_DELETED');
   req.flash('success', 'Offre supprimée.');
   return res.redirect(req.user.role === 'admin' && req.user.id !== post.authorId ? '/offres' : '/mes-offres');
 }
@@ -307,4 +358,4 @@ async function sidebarFeatured(req, res) {
   res.render('partials/featuredSidebar', { layout: false, posts: list });
 }
 
-module.exports = { sidebarFeatured, newForm, create, show, editForm, update, destroy, index, mine, byRecruiter, jobPostingJsonLd };
+module.exports = { sidebarFeatured, newForm, create, show, editForm, update, destroy, index, mine, byRecruiter, jobPostingJsonLd, parseSalary };
