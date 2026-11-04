@@ -47,6 +47,7 @@ docs/DEPLOIEMENT.md
 - **Candidat** : profil, CV, publier (directement, sans validation préalable) « Je cherche un emploi », « Événement », « J'ai été recruté ! », postuler, s'abonner, aimer, commenter, partager.
 - **Recruteur** : inscription avec le **nom de l'entreprise seulement** (pas de prénom ni de nom : `firstName` = nom de l'entreprise, `lastName` vide, initiales tirées des deux premiers mots) ; tout sauf « Je cherche un emploi » + page entreprise, offres d'emploi, candidatures reçues, demande de badge vérifié.
 - **Admin** : tout + offres officielles, modération, vérifications, filtre anti-arnaque, utilisateurs, villes et secteurs.
+- **Équipe SenTravail** : tout compte admin s'affiche sous le nom « Équipe SenTravail » (`TEAM_NAME`, accesseurs `firstName`/`lastName` du modèle `User` ; noms réels conservés en base, non modifiables dans le profil) avec l'icône du site comme photo par défaut (`avatar()`). **Chaque membre suit l'équipe** : à l'inscription (classique et Google/Apple), à la nomination d'un admin (`make-admin`, `ADMIN_EMAILS`) et une fois pour les comptes existants (migration 015) — `followTeam()` dans `src/services/follows.js`. Désabonnement possible, jamais réabonné de force. Le nombre d'abonnés affiché est toujours le vrai.
 
 ## Types de publication (`src/config/postTypes.js`)
 

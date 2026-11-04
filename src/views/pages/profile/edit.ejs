@@ -49,7 +49,9 @@
   </section>
   <form method="post" action="/parametres/profil" class="space-y-4" novalidate>
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-    <% if (currentUser.role === 'recruiter') { %>
+    <% if (currentUser.role === 'admin') { %>
+      <p class="rounded-lg bg-brand-50 p-3 text-sm text-brand-700">Nom affiché : <strong><%= currentUser.firstName %></strong>. Les comptes administrateurs apparaissent toujours sous ce nom.</p>
+    <% } else if (currentUser.role === 'recruiter') { %>
       <%- include('../../partials/field', { name: 'companyName', label: "Nom de l'entreprise *", autocomplete: 'organization', required: true }) %>
       <p class="-mt-2 text-xs text-gray-500">Le nom affiché de votre compte.</p>
     <% } else { %>

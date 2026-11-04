@@ -144,7 +144,7 @@ async function reportsIndex(req, res) {
   const rows = await Report.findAll({
     where: { status },
     include: [
-      { model: User, as: 'reporter', attributes: ['id', 'username', 'firstName', 'lastName'] },
+      { model: User, as: 'reporter', attributes: ['id', 'username', 'firstName', 'lastName', 'role'] },
       { model: User, as: 'targetOwner', attributes: ['id', 'username', 'firstName', 'lastName', 'isBanned', 'role'] },
     ],
     order: [['createdAt', 'DESC']],

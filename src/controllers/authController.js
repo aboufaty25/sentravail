@@ -77,6 +77,8 @@ async function register(req, res) {
     companyName: data.role === 'recruiter' ? data.companyName : null,
     lastLoginAt: new Date(),
   });
+  // New members follow the SenTravail team (they can unfollow).
+  await require('../services/follows').followTeam({ userIds: [user.id] });
 
   const target = await startSession(req, user);
   queueEvent(req, 'sign_up', { method: 'email', role: user.role });

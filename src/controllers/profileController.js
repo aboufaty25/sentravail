@@ -55,10 +55,11 @@ async function update(req, res) {
   }
   const data = parsed.data;
   const isRecruiter = req.user.role === 'recruiter';
+  const isAdmin = req.user.role === 'admin'; // always shown as the SenTravail team: names unchanged
   const nameErrors = {};
   if (isRecruiter && data.companyName.length < 2) nameErrors.companyName = "Indiquez le nom de votre entreprise.";
-  if (!isRecruiter && data.firstName.length < 2) nameErrors.firstName = 'Prénom : 2 caractères minimum.';
-  if (!isRecruiter && data.lastName.length < 2) nameErrors.lastName = 'Nom : 2 caractères minimum.';
+  if (!isRecruiter && !isAdmin && data.firstName.length < 2) nameErrors.firstName = 'Prénom : 2 caractères minimum.';
+  if (!isRecruiter && !isAdmin && data.lastName.length < 2) nameErrors.lastName = 'Nom : 2 caractères minimum.';
   if (Object.keys(nameErrors).length) {
     return res.status(422).render('pages/profile/edit', { title: 'Modifier mon profil', noAds: true, values: req.body, errors: nameErrors, CITIES, SECTORS });
   }
@@ -73,8 +74,7 @@ async function update(req, res) {
   // Only whitelisted fields are written; role/isVerified/etc. can never be changed here.
   await req.user.update({
     // A recruiter account is named after the company.
-    firstName: isRecruiter ? data.companyName.slice(0, 60) : data.firstName,
-    lastName: isRecruiter ? '' : data.lastName,
+    ...(isAdmin ? {} : { firstName: isRecruiter ? data.companyName.slice(0, 60) : data.firstName, lastName: isRecruiter ? '' : data.lastName }),
     headline: data.headline || null,
     bio: data.bio || null,
     city: data.city || null,

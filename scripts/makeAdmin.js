@@ -14,8 +14,11 @@ const { sequelize, User } = require('../src/models');
       console.error(`No account with email ${email}. Sign up on the site first.`);
       process.exitCode = 1;
     } else {
+      const wasAdmin = user.role === 'admin';
       await user.update({ role: 'admin', isBanned: false, isVerified: true });
-      console.log(`${user.firstName} ${user.lastName} <${email}> is now an administrator.`);
+      // Existing members follow the SenTravail team, which now includes this account.
+      if (!wasAdmin) await require('../src/services/follows').followTeam({ adminIds: [user.id] });
+      console.log(`<${email}> is now an administrator (shown as « Équipe SenTravail »).`);
     }
   } catch (err) {
     console.error('Failed:', err.message);

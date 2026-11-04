@@ -21,6 +21,11 @@ async function promoteConfiguredAdmins() {
       console.log(`ADMIN_EMAILS: ${email} is now an administrator.`);
     }
   }
+  // Existing members follow the newly promoted administrator (the SenTravail team).
+  if (promoted.length) {
+    const ids = (await User.findAll({ where: { email: promoted }, attributes: ['id'] })).map((u) => u.id);
+    await require('./follows').followTeam({ adminIds: ids });
+  }
   return promoted;
 }
 

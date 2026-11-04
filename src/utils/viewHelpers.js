@@ -72,6 +72,11 @@ function avatar(user, size = 'w-10 h-10', text = 'text-sm') {
   if (user.avatarUrl) {
     return `<img src="${escapeHtml(user.avatarUrl)}" alt="" loading="lazy" class="${size} rounded-full object-cover bg-gray-200 shrink-0">`;
   }
+  if (user.role === 'admin') {
+    // The SenTravail team: the site's app icon until a profile photo is set.
+    const icon = require('../services/branding').current().icon192;
+    return `<img src="${escapeHtml(icon)}" alt="" loading="lazy" class="${size} rounded-full object-cover bg-white ring-1 ring-gray-200 shrink-0">`;
+  }
   const color = AVATAR_COLORS[(user.id || 0) % AVATAR_COLORS.length];
   const initials = escapeHtml(initialsOf(user.firstName, user.lastName));
   return `<span class="${size} ${text} ${color} rounded-full text-white font-semibold inline-flex items-center justify-center shrink-0" aria-hidden="true">${initials}</span>`;

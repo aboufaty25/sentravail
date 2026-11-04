@@ -142,6 +142,8 @@ async function finish(req, res) {
     [ID_FIELD[p.provider]]: p.sub,
     lastLoginAt: new Date(),
   });
+  // New members follow the SenTravail team (they can unfollow).
+  await require('../services/follows').followTeam({ userIds: [user.id] });
   const target = await startSession(req, user, p.retour);
   queueEvent(req, 'sign_up', { method: p.provider, role: user.role });
   req.flash('success', `Bienvenue sur SenTravail, ${user.firstName} !`);

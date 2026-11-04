@@ -56,6 +56,29 @@ async function unfollow(follower, targetId) {
   return removed > 0;
 }
 
+// Every member follows the SenTravail team (all administrators) from sign-up; they may unfollow.
+// Bulk SQL, no notifications. `userIds` / `adminIds` narrow it (new member / newly promoted admin).
+async function followTeam({ userIds, adminIds } = {}) {
+  const sequelize = User.sequelize;
+  const where = [];
+  const replacements = {};
+  if (userIds) { where.push('u.id IN (:userIds)'); replacements.userIds = userIds.length ? userIds : [0]; }
+  if (adminIds) { where.push('a.id IN (:adminIds)'); replacements.adminIds = adminIds.length ? adminIds : [0]; }
+  const [, meta] = await sequelize.query(
+    `INSERT IGNORE INTO follows (followerId, followingId, createdAt, updatedAt)
+     SELECT u.id, a.id, UTC_TIMESTAMP(), UTC_TIMESTAMP() FROM users u JOIN users a ON a.role = 'admin' AND a.isBanned = 0 AND a.id <> u.id
+     WHERE u.role <> 'admin' AND u.isBanned = 0 ${where.map((w) => `AND ${w}`).join(' ')}`,
+    { replacements }
+  );
+  const added = typeof meta === 'number' ? meta : meta?.affectedRows || 0;
+  if (added) {
+    // Recount only the rows that can have changed: the admins, and the given members (or all).
+    await sequelize.query("UPDATE users u SET followersCount = (SELECT COUNT(*) FROM follows f WHERE f.followingId = u.id) WHERE u.role = 'admin'");
+    await sequelize.query(`UPDATE users u SET followingCount = (SELECT COUNT(*) FROM follows f WHERE f.followerId = u.id) ${userIds ? 'WHERE u.id IN (:userIds)' : "WHERE u.role <> 'admin'"}`, { replacements });
+  }
+  return added;
+}
+
 // Suggestions: same city, same sector, then popular accounts. Each comes with a reason.
 async function suggestions(viewer, limit = 12) {
   const exclude = [...(await followedIds(viewer.id)), viewer.id];
@@ -120,4 +143,5 @@ async function withFollowState(users, viewer) {
   return users;
 }
 
-module.exports = { popular, CARD_ATTRS, followedIds, isFollowing, followingAmong, follow, unfollow, suggestions, listFollowers, listFollowing, withFollowState };
+module.exports = {
+  followTeam, popular, CARD_ATTRS, followedIds, isFollowing, followingAmong, follow, unfollow, suggestions, listFollowers, listFollowing, withFollowState };

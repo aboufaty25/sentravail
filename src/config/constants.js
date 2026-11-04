@@ -19,6 +19,9 @@ const SECTORS = [...DEFAULT_SECTORS];
 
 const CONTRACT_TYPES = ['CDI', 'CDD', 'Stage', 'Freelance', 'Temps partiel', 'Journalier'];
 
+// Public name of every administrator account: what visitors see on admin posts and profiles.
+const TEAM_NAME = 'Équipe SenTravail';
+
 const ROLE_LABELS = { candidate: 'Candidat', recruiter: 'Recruteur', admin: 'Administrateur' };
 
 const REACTIONS = {
@@ -28,4 +31,5 @@ const REACTIONS = {
   support: { emoji: '🤝', label: 'Soutien', color: 'text-senegal-green' },
 };
 
-module.exports = { DEFAULT_CITIES, DEFAULT_SECTORS, CITIES, SECTORS, CONTRACT_TYPES, ROLE_LABELS, REACTIONS };
+module.exports = {
+  TEAM_NAME, DEFAULT_CITIES, DEFAULT_SECTORS, CITIES, SECTORS, CONTRACT_TYPES, ROLE_LABELS, REACTIONS };

@@ -1,6 +1,7 @@
 const { DataTypes, Model } = require('sequelize');
 const sequelize = require('../config/db');
 const jsonColumn = require('../utils/jsonColumn');
+const { TEAM_NAME } = require('../config/constants');
 
 const ROLES = ['candidate', 'recruiter', 'admin'];
 
@@ -32,8 +33,17 @@ User.init(
   {
     id: { type: DataTypes.INTEGER.UNSIGNED, autoIncrement: true, primaryKey: true },
     username: { type: DataTypes.STRING(60), allowNull: false, unique: true },
-    firstName: { type: DataTypes.STRING(60), allowNull: false },
-    lastName: { type: DataTypes.STRING(60), allowNull: false },
+    // Administrators always appear as the SenTravail team (stored names are kept unchanged).
+    firstName: {
+      type: DataTypes.STRING(60),
+      allowNull: false,
+      get() { return this.getDataValue('role') === 'admin' ? TEAM_NAME : this.getDataValue('firstName'); },
+    },
+    lastName: {
+      type: DataTypes.STRING(60),
+      allowNull: false,
+      get() { return this.getDataValue('role') === 'admin' ? '' : this.getDataValue('lastName'); },
+    },
     email: { type: DataTypes.STRING(190), allowNull: false, unique: true },
     phone: { type: DataTypes.STRING(20), allowNull: true, unique: true },
     passwordHash: { type: DataTypes.STRING(100), allowNull: false }, // random for Google/Apple-only accounts
