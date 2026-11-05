@@ -853,6 +853,135 @@
       },
     }));
 
+    // Rich text editor (job description). The server sanitizes again: this only keeps the
+    // editing clean (allowed tags, pasted Word/Google Docs markup reduced to plain structure).
+    Alpine.data('richEditor', (cfg) => {
+      const ALLOWED = { P: 'p', BR: 'br', STRONG: 'strong', B: 'strong', EM: 'em', I: 'em', U: 'u', H1: 'h2', H2: 'h2', H3: 'h3', H4: 'h3', H5: 'h3', H6: 'h3', UL: 'ul', OL: 'ol', LI: 'li', BLOCKQUOTE: 'blockquote', A: 'a', DIV: 'p' };
+      const DROP = new Set(['STYLE', 'SCRIPT', 'META', 'LINK', 'TITLE', 'HEAD', 'XML', 'IMG', 'svg', 'IFRAME', 'OBJECT', 'TABLE']);
+      const esc = (t) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const textToHtml = (t) => t.trim().split(/\n\s*\n/).filter(Boolean).map((p) => `<p>${esc(p.trim()).replace(/\n/g, '<br>')}</p>`).join('');
+      const isRich = (v) => /^\s*<(p|h[1-6]|ul|ol|blockquote|div|strong|em|b|i|u|br)[\s>/]/i.test(v || '');
+      function clean(node, links) {
+        let out = '';
+        node.childNodes.forEach((n) => {
+          if (n.nodeType === 3) { out += esc(n.textContent.replace(/\s+/g, ' ')); return; }
+          if (n.nodeType !== 1 || DROP.has(n.nodeName)) {
+            if (n.nodeName === 'TABLE') out += `<p>${esc(n.innerText || n.textContent || '')}</p>`;
+            return;
+          }
+          const tag = ALLOWED[n.nodeName];
+          const inner = clean(n, links);
+          if (!tag || (tag === 'a' && !links)) { out += inner; return; }
+          if (tag === 'br') { out += '<br>'; return; }
+          if (tag === 'a') {
+            const href = n.getAttribute('href') || '';
+            out += /^(https?:|mailto:)/i.test(href) ? `<a href="${esc(href).replace(/"/g, '&quot;')}">${inner}</a>` : inner;
+            return;
+          }
+          // Word marks bold/italic with styles on spans.
+          out += `<${tag}>${inner}</${tag}>`;
+        });
+        return out;
+      }
+      return {
+        max: cfg.max || 8000,
+        links: !!cfg.links,
+        count: 0,
+        state: {},
+        init() {
+          const v = this.$refs.input.value;
+          this.$refs.area.innerHTML = (isRich(v) ? v : textToHtml(v)) || '<p><br></p>';
+          try { document.execCommand('defaultParagraphSeparator', false, 'p'); } catch (_) { /* old browsers */ }
+          this.update();
+        },
+        // Typing always happens inside a block (paragraph, heading, list), never as bare text.
+        ensureBlock() {
+          const area = this.$refs.area;
+          if (!area.firstElementChild || area.firstChild.nodeType === 3) {
+            const text = area.textContent;
+            area.innerHTML = text.trim() ? `<p>${esc(text)}</p>` : '<p><br></p>';
+            if (document.activeElement === area) {
+              const range = document.createRange();
+              range.selectNodeContents(area.firstElementChild);
+              range.collapse(false);
+              const sel = window.getSelection();
+              sel.removeAllRanges();
+              sel.addRange(range);
+            }
+          }
+          this.refresh();
+        },
+        update() {
+          const area = this.$refs.area;
+          const text = area.innerText.replace(/ /g, ' ').trim();
+          if (!area.firstElementChild || area.firstChild.nodeType === 3) this.ensureBlock();
+          this.count = text.length;
+          this.$refs.input.value = text ? area.innerHTML : '';
+          this.refresh();
+        },
+        // Lists and pastes can leave blocks inside a paragraph: unwrap such paragraphs.
+        normalize() {
+          this.$refs.area.querySelectorAll('p').forEach((para) => {
+            if (para.querySelector(':scope > ul, :scope > ol, :scope > p, :scope > h2, :scope > h3, :scope > blockquote')) para.replaceWith(...para.childNodes);
+          });
+        },
+        refresh() {
+          const q = (c) => { try { return document.queryCommandState(c); } catch (_) { return false; } };
+          let blockTag = '';
+          try { blockTag = String(document.queryCommandValue('formatBlock') || '').toLowerCase(); } catch (_) { /* ignore */ }
+          this.state = { bold: q('bold'), italic: q('italic'), underline: q('underline'), ul: q('insertUnorderedList'), ol: q('insertOrderedList'), h2: blockTag === 'h2', h3: blockTag === 'h3', quote: blockTag === 'blockquote' };
+        },
+        exec(cmd, value = null) {
+          this.$refs.area.focus();
+          this.ensureBlock();
+          document.execCommand(cmd, false, value);
+          this.normalize();
+          this.update();
+        },
+        block(tag) {
+          this.$refs.area.focus();
+          this.ensureBlock();
+          let current = '';
+          try { current = String(document.queryCommandValue('formatBlock') || '').toLowerCase(); } catch (_) { /* ignore */ }
+          document.execCommand('formatBlock', false, current === tag ? 'p' : tag);
+          this.normalize();
+          this.update();
+        },
+        link() {
+          const url = window.prompt('Adresse du lien (https://…)', 'https://');
+          if (!url || !/^https?:\/\/\S+\.\S+/.test(url.trim())) return;
+          this.exec('createLink', url.trim());
+        },
+        clearFormat() {
+          this.exec('removeFormat');
+          this.block('p');
+        },
+        paste(e) {
+          e.preventDefault();
+          const data = e.clipboardData;
+          const html = data && data.getData('text/html');
+          let out;
+          if (html) {
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            out = clean(doc.body, this.links);
+          } else {
+            out = textToHtml((data && data.getData('text/plain')) || '');
+          }
+          if (out) document.execCommand('insertHTML', false, out);
+          this.normalize();
+          this.update();
+        },
+        plan() {
+          const skeleton = '<h3>Missions</h3><ul><li>…</li></ul><h3>Profil recherché</h3><ul><li>Diplôme : …</li><li>Expérience : …</li><li>Compétences : …</li></ul><h3>Avantages</h3><ul><li>…</li></ul>';
+          const area = this.$refs.area;
+          if (!area.innerText.trim()) area.innerHTML = `${skeleton}<p><br></p>`;
+          else { area.focus(); document.execCommand('insertHTML', false, skeleton); }
+          this.normalize();
+          this.update();
+        },
+      };
+    });
+
     Alpine.data('toasts', () => ({
       items: [],
       push(d) {

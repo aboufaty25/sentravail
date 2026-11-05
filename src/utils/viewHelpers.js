@@ -110,6 +110,18 @@ function richText(text) {
   });
 }
 
+// Job description: rich text (sanitized HTML from the editor) or older plain text.
+function jobDescription(value) {
+  const rich = require('./richDescription');
+  if (rich.isRich(value)) return `<div class="rich-text">${rich.sanitize(value)}</div>`;
+  return `<div class="rich-text whitespace-pre-line">${richText(value)}</div>`;
+}
+
+// Plain text of a description (excerpts on cards and lists).
+function plainText(value) {
+  return require('./richDescription').toText(value);
+}
+
 // Cloudinary delivery: resize + automatic format/quality (WebP/AVIF on capable phones).
 function imageUrl(url, width = 800) {
   if (!url) return '';
@@ -178,4 +190,4 @@ function loginAttr(user, message) {
   return user ? '' : `data-login="${escapeHtml(message)}"`;
 }
 
-module.exports = { verifiedBadge, initialsOf, formatDateTime, guestAvatar, loginAttr, POST_TYPES, EVENT_KINDS, publishOptions, absoluteUrl, REPORT_REASONS, queryString, formatDate, daysLeft, icon, avatar, roleLabel, timeAgo, formatCount, escapeHtml, richText, imageUrl, reactionSummary, REACTIONS };
+module.exports = { jobDescription, plainText, verifiedBadge, initialsOf, formatDateTime, guestAvatar, loginAttr, POST_TYPES, EVENT_KINDS, publishOptions, absoluteUrl, REPORT_REASONS, queryString, formatDate, daysLeft, icon, avatar, roleLabel, timeAgo, formatCount, escapeHtml, richText, imageUrl, reactionSummary, REACTIONS };

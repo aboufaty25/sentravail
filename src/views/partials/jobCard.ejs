@@ -32,7 +32,7 @@
       <% } %>
     </ul>
     <% if (!locals.compact) { %>
-      <p class="mt-2 line-clamp-2 text-[14px] text-gray-600"><%= job.description.replace(/\s+/g, ' ') %></p>
+      <p class="mt-2 line-clamp-2 text-[14px] text-gray-600"><%= plainText(job.description).replace(/\s+/g, ' ') %></p>
     <% } %>
     <%# No "Postuler" on cards: the offer page carries it (full description first). %>
     <a href="<%= job.url %>" class="btn-primary mt-3 w-full !py-2">Voir l'offre</a>

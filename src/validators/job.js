@@ -1,5 +1,6 @@
 const { z } = require('zod');
 const { CITIES, SECTORS, CONTRACT_TYPES } = require('../config/constants');
+const rich = require('../utils/richDescription');
 
 const text = (min, max, label) =>
   z.string().trim().min(min, `${label} : ${min} caractères minimum.`).max(max, `${label} : ${max} caractères maximum.`);
@@ -16,8 +17,15 @@ const jobSchema = z.object({
   contractType: z.enum(CONTRACT_TYPES, { message: 'Choisissez un type de contrat.' }),
   sector: z.string().refine((v) => SECTORS.includes(v), 'Choisissez un secteur.'),
   salary: optional(80),
-  // One description field: missions, profile and benefits together.
-  description: text(30, 8000, 'Description'),
+  // One description field (missions, profile, benefits), written with the rich text editor:
+  // sanitized HTML; plain text (no-JS browsers, imports) is accepted too. Length = visible text.
+  description: z.string().max(60000, 'Description trop longue.')
+    .transform((v) => (rich.isRich(v) ? rich.sanitize(v) : v.trim()))
+    .superRefine((v, ctx) => {
+      const n = rich.toText(v).length;
+      if (n < 30) ctx.addIssue({ code: 'custom', message: 'Description : 30 caractères minimum.' });
+      if (n > 8000) ctx.addIssue({ code: 'custom', message: 'Description : 8000 caractères maximum.' });
+    }),
   applyMode: z.enum(['platform', 'email', 'link'], { message: 'Choisissez comment recevoir les candidatures.' }).catch('email'),
   applyEmail: z.string().trim().toLowerCase().max(190).optional().default(''),
   applyUrl: z.string().trim().max(500).optional().default(''),

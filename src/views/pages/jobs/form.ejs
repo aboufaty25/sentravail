@@ -53,8 +53,10 @@
       <%- include('../../partials/field', { name: 'deadline', type: 'date', label: 'Date limite de candidature' }) %>
     </div>
     <div>
-      <label for="f-description" class="label">Description du poste *</label>
-      <textarea id="f-description" name="description" rows="12" maxlength="8000" class="input <%= err.description ? 'input-error' : '' %>" placeholder="Missions, profil recherché (diplômes, expérience, compétences), avantages, horaires…"><%= v.description || '' %></textarea>
+      <label for="f-description" id="f-description-label" class="label">Description du poste *</label>
+      <%- include('../../partials/richEditor', { name: 'description', id: 'f-description', value: v.description, error: err.description, max: 8000,
+        links: currentUser.isVerified || currentUser.role === 'admin',
+        placeholder: 'Missions, profil recherché (diplômes, expérience, compétences), avantages, horaires…' }) %>
       <% if (err.description) { %><p class="field-error"><%= err.description %></p><% } %>
     </div>
 

@@ -46,3 +46,17 @@
 .ad-unit:has(ins[data-ad-status='unfilled']) {
   display: none !important;
 }
+
+/* Job descriptions written with the rich text editor, and the editor itself. */
+.rich-text > * + * { margin-top: .75em; }
+.rich-text h2 { font-size: 1.125rem; line-height: 1.4; font-weight: 700; color: #111827; margin-top: 1.25em; }
+.rich-text h3 { font-size: 1rem; line-height: 1.4; font-weight: 700; color: #111827; margin-top: 1.1em; }
+.rich-text > h2:first-child, .rich-text > h3:first-child { margin-top: 0; }
+.rich-text ul { list-style: disc; padding-left: 1.4em; }
+.rich-text ol { list-style: decimal; padding-left: 1.4em; }
+.rich-text li + li { margin-top: .25em; }
+.rich-text li > p { margin: 0; }
+.rich-text blockquote { border-left: 4px solid #bfdbfe; padding-left: .9em; color: #4b5563; font-style: italic; }
+.rich-text a { color: #1668e3; text-decoration: underline; word-break: break-word; }
+.rich-text strong { font-weight: 700; color: #111827; }
+.rich-editor:focus { outline: none; }

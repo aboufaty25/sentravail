@@ -164,8 +164,9 @@ describe('Description and how to apply', () => {
     expect(job.benefits).toBeNull();
     await job.update({ requirements: 'BAC+3', benefits: 'Mutuelle' });
     const edit = await rec.agent.get(`/offres/${job.slug}/modifier`);
-    expect(edit.text).toContain('Profil recherché :\nBAC+3');
-    expect(edit.text).toContain('Avantages :\nMutuelle');
+    // Merged as headings in the rich text (textarea content is HTML-escaped).
+    expect(edit.text).toContain('&lt;h3&gt;Profil recherché&lt;/h3&gt;&lt;p&gt;BAC+3&lt;/p&gt;');
+    expect(edit.text).toContain('&lt;h3&gt;Avantages&lt;/h3&gt;&lt;p&gt;Mutuelle&lt;/p&gt;');
   });
 
   test('admin form has no default application email; recruiter form has their own', async () => {

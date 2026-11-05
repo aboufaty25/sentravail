@@ -49,7 +49,7 @@
 
     <div class="space-y-5 px-4 py-5 sm:px-6">
       <% if (post.text) { %><p class="whitespace-pre-line rounded-lg border-l-4 border-brand-200 pl-3 text-[15px] text-gray-700"><%- richText(post.text) %></p><% } %>
-      <section><h2 class="mb-2 text-lg font-semibold">Description du poste</h2><div class="whitespace-pre-line text-[15px] leading-relaxed text-gray-800"><%- richText(job.description) %></div></section>
+      <section><h2 class="mb-2 text-lg font-semibold">Description du poste</h2><div class="text-[15px] leading-relaxed text-gray-800"><%- jobDescription(job.description) %></div></section>
       <% if (job.requirements) { %><section><h2 class="mb-2 text-lg font-semibold">Profil recherché</h2><div class="whitespace-pre-line text-[15px] leading-relaxed text-gray-800"><%- richText(job.requirements) %></div></section><% } %>
       <% if (job.benefits) { %><section><h2 class="mb-2 text-lg font-semibold">Avantages</h2><div class="whitespace-pre-line text-[15px] leading-relaxed text-gray-800"><%- richText(job.benefits) %></div></section><% } %>
 

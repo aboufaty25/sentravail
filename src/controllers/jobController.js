@@ -8,6 +8,7 @@ const { saveImage } = require('../services/storage');
 const notifications = require('../services/notifications');
 const moderation = require('../services/moderation');
 const indexing = require('../services/googleIndexing');
+const rich = require('../utils/richDescription');
 const { absoluteUrl, imageUrl } = require('../utils/viewHelpers');
 const { baseScore, refreshScore } = require('../services/feedRanking');
 const { adjustCounter } = require('../utils/counters');
@@ -74,7 +75,8 @@ async function create(req, res) {
   }
   const d = parsed.data;
   const isAdmin = req.user.role === 'admin';
-  const texts = [d.title, d.companyName, d.description, d.salary, d.text];
+  // Description: its visible text and its link targets (anti-scam filter, link rule).
+  const texts = [d.title, d.companyName, rich.toText(d.description), ...rich.hrefs(d.description), d.salary, d.text];
   if (!moderation.canPostLinks(req.user) && moderation.hasExternalLink(texts)) {
     return res.status(422).render('pages/jobs/form', { ...formLocals, title: 'Publier une offre', mode: 'create', errors: { description: moderation.MESSAGES.link }, values: body });
   }
@@ -158,7 +160,7 @@ async function show(req, res, next) {
     pendingApplicationId,
     autoApply: req.query.postuler === '1' && !pendingApplicationId,
     title: `${j.title} — ${j.companyName} (${j.location})`,
-    metaDescription: `${j.contractType} · ${j.location} · ${j.companyName}. ${j.description.replace(/\s+/g, ' ').slice(0, 120)}`,
+    metaDescription: `${j.contractType} · ${j.location} · ${j.companyName}. ${rich.toText(j.description).replace(/\s+/g, ' ').slice(0, 120)}`,
     ogType: 'article',
     canonical: `${env.APP_URL}${j.url}`,
     post,
@@ -206,12 +208,6 @@ function parseSalary(text) {
   return { '@type': 'MonetaryAmount', currency: /€|eur/.test(t) ? 'EUR' : 'XOF', value };
 }
 
-// Plain text → simple HTML (Google for Jobs keeps paragraphs and line breaks).
-function descriptionHtml(text) {
-  const esc = (v) => v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  return String(text).trim().split(/\n\s*\n/).map((p) => `<p>${esc(p.trim()).replace(/\n/g, '<br>')}</p>`).join('');
-}
-
 // JobPosting structured data (Google for Jobs). None for an expired or hidden offer, so
 // Google drops it from job results as soon as it re-reads the page.
 function jobPostingJsonLd(post) {
@@ -224,7 +220,7 @@ function jobPostingJsonLd(post) {
     '@context': 'https://schema.org/',
     '@type': 'JobPosting',
     title: j.title,
-    description: descriptionHtml(mergedDescription(j)),
+    description: mergedDescription(j),
     identifier: { '@type': 'PropertyValue', name: 'SenTravail', value: String(j.id) },
     datePosted: new Date(post.createdAt).toISOString(),
     employmentType: contractMap[j.contractType],
@@ -251,9 +247,11 @@ async function loadManaged(req) {
   return post;
 }
 
-// Older offers had separate "profile" and "benefits" fields: shown together in the single description.
+// Older offers had separate "profile" and "benefits" fields: shown together in the single
+// description, as HTML (what the editor and the offer page use).
 function mergedDescription(j) {
-  return [j.description, j.requirements && `Profil recherché :\n${j.requirements}`, j.benefits && `Avantages :\n${j.benefits}`].filter(Boolean).join('\n\n');
+  const extra = [j.requirements && `<h3>Profil recherché</h3>${rich.textToHtml(j.requirements)}`, j.benefits && `<h3>Avantages</h3>${rich.textToHtml(j.benefits)}`].filter(Boolean).join('');
+  return rich.toHtml(j.description) + extra;
 }
 
 async function editForm(req, res) {
@@ -278,7 +276,8 @@ async function update(req, res) {
     });
   }
   const d = parsed.data;
-  const texts = [d.title, d.companyName, d.description, d.salary, d.text];
+  // Description: its visible text and its link targets (anti-scam filter, link rule).
+  const texts = [d.title, d.companyName, rich.toText(d.description), ...rich.hrefs(d.description), d.salary, d.text];
   if (!moderation.canPostLinks(req.user) && moderation.hasExternalLink(texts)) {
     return res.status(422).render('pages/jobs/form', { ...formLocals, title: "Modifier l'offre", mode: 'edit', job: post.job, errors: { description: moderation.MESSAGES.link }, values: body });
   }

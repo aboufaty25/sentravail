@@ -1,0 +1,50 @@
+<%# Rich text editor (job description): toolbar + editable area; the HTML goes into the
+    textarea, which stays the plain field without JavaScript. Sanitized again on the server.
+    Locals: name, id, value, error, placeholder, links (link button allowed), max (visible characters). %>
+<% const tb = 'inline-flex h-9 min-w-9 shrink-0 items-center justify-center rounded-md px-2 text-sm font-semibold text-gray-700 hover:bg-gray-200'; %>
+<div x-data="richEditor({ max: <%= max || 8000 %>, links: <%= !!links %> })" class="relative">
+  <div x-cloak class="overflow-hidden rounded-md border bg-white focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-200 <%= error ? 'border-red-500' : 'border-gray-300' %>">
+    <div role="toolbar" aria-label="Mise en forme" class="flex items-center gap-0.5 overflow-x-auto border-b border-gray-200 bg-gray-50 p-1 [scrollbar-width:none]">
+      <button type="button" class="<%= tb %>" :class="state.bold && '!bg-brand-100 !text-brand-700'" :aria-pressed="state.bold" @mousedown.prevent @click="exec('bold')" title="Gras (Ctrl+B)" aria-label="Gras"><span class="font-extrabold">G</span></button>
+      <button type="button" class="<%= tb %>" :class="state.italic && '!bg-brand-100 !text-brand-700'" :aria-pressed="state.italic" @mousedown.prevent @click="exec('italic')" title="Italique (Ctrl+I)" aria-label="Italique"><span class="font-serif italic">I</span></button>
+      <button type="button" class="<%= tb %>" :class="state.underline && '!bg-brand-100 !text-brand-700'" :aria-pressed="state.underline" @mousedown.prevent @click="exec('underline')" title="Souligné (Ctrl+U)" aria-label="Souligné"><span class="underline">S</span></button>
+      <span class="mx-1 h-6 w-px shrink-0 bg-gray-300"></span>
+      <button type="button" class="<%= tb %>" :class="state.h2 && '!bg-brand-100 !text-brand-700'" :aria-pressed="state.h2" @mousedown.prevent @click="block('h2')" title="Titre" aria-label="Titre">Titre</button>
+      <button type="button" class="<%= tb %>" :class="state.h3 && '!bg-brand-100 !text-brand-700'" :aria-pressed="state.h3" @mousedown.prevent @click="block('h3')" title="Sous-titre" aria-label="Sous-titre">Sous-titre</button>
+      <span class="mx-1 h-6 w-px shrink-0 bg-gray-300"></span>
+      <button type="button" class="<%= tb %>" :class="state.ul && '!bg-brand-100 !text-brand-700'" :aria-pressed="state.ul" @mousedown.prevent @click="exec('insertUnorderedList')" title="Liste à puces" aria-label="Liste à puces">
+        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1.2" fill="currentColor"/><circle cx="4.5" cy="12" r="1.2" fill="currentColor"/><circle cx="4.5" cy="18" r="1.2" fill="currentColor"/></svg>
+      </button>
+      <button type="button" class="<%= tb %>" :class="state.ol && '!bg-brand-100 !text-brand-700'" :aria-pressed="state.ol" @mousedown.prevent @click="exec('insertOrderedList')" title="Liste numérotée" aria-label="Liste numérotée">
+        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" d="M10 6h10M10 12h10M10 18h10"/><text x="2" y="8" font-size="7" fill="currentColor" stroke="none">1</text><text x="2" y="14" font-size="7" fill="currentColor" stroke="none">2</text><text x="2" y="20" font-size="7" fill="currentColor" stroke="none">3</text></svg>
+      </button>
+      <button type="button" class="<%= tb %>" :class="state.quote && '!bg-brand-100 !text-brand-700'" :aria-pressed="state.quote" @mousedown.prevent @click="block('blockquote')" title="Citation / encadré" aria-label="Citation">
+        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7.5 6C5 6 3 8 3 10.5S5 15 7.5 15c.3 0 .5 0 .8-.1-.5 1.3-1.6 2.3-3.1 2.7l.5 1.4C9 18.2 12 15.3 12 10.5 12 8 10 6 7.5 6zm9 0C14 6 12 8 12 10.5s2 4.5 4.5 4.5c.3 0 .5 0 .8-.1-.5 1.3-1.6 2.3-3.1 2.7l.5 1.4c3.3-.8 6.3-3.7 6.3-8.5C21 8 19 6 16.5 6z"/></svg>
+      </button>
+      <% if (links) { %>
+        <button type="button" class="<%= tb %>" @mousedown.prevent @click="link()" title="Lien" aria-label="Insérer un lien"><%- icon('link', 'w-5 h-5') %></button>
+      <% } %>
+      <span class="mx-1 h-6 w-px shrink-0 bg-gray-300"></span>
+      <button type="button" class="<%= tb %>" @mousedown.prevent @click="exec('undo')" title="Annuler (Ctrl+Z)" aria-label="Annuler">
+        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3"/></svg>
+      </button>
+      <button type="button" class="<%= tb %>" @mousedown.prevent @click="exec('redo')" title="Rétablir" aria-label="Rétablir">
+        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 15l6-6m0 0l-6-6m6 6H9a6 6 0 000 12h3"/></svg>
+      </button>
+      <button type="button" class="<%= tb %>" @mousedown.prevent @click="clearFormat()" title="Effacer la mise en forme" aria-label="Effacer la mise en forme">
+        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" d="M6 5h12M12 5l-3 14M4 20l16-16"/></svg>
+      </button>
+    </div>
+    <div class="relative">
+    <span x-show="!count" class="pointer-events-none absolute left-3 top-3 text-[15px] text-gray-500"><%= placeholder %></span>
+    <div x-ref="area" contenteditable="true" role="textbox" aria-multiline="true" aria-labelledby="<%= id %>-label" spellcheck="true"
+      class="rich-editor rich-text min-h-[240px] max-h-[65vh] overflow-y-auto px-3 py-3 text-[15px] leading-relaxed text-gray-800"
+      @input="update()" @paste="paste($event)" @keyup="refresh()" @mouseup="refresh()" @focus="ensureBlock()"></div>
+    </div>
+    <div class="flex items-center justify-between gap-2 border-t border-gray-100 px-2 py-1.5 text-xs text-gray-500">
+      <button type="button" class="rounded-md px-2 py-1 font-semibold text-brand-600 hover:bg-brand-50" @click="plan()">+ Insérer un plan (Missions, Profil, Avantages)</button>
+      <span :class="count > max && 'font-semibold text-red-600'"><span x-text="count"></span> / <%= max || 8000 %></span>
+    </div>
+  </div>
+  <textarea id="<%= id %>" name="<%= name %>" x-ref="input" x-init="$el.style.display = 'none'" rows="12" class="input <%= error ? 'input-error' : '' %>" placeholder="<%= placeholder %>"><%= value || '' %></textarea>
+</div>
