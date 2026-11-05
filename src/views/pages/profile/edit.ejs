@@ -86,8 +86,8 @@
     </div>
     <% if (currentUser.role === 'candidate') { %>
       <label class="flex items-start gap-3 rounded-lg border border-gray-200 p-3 text-sm">
-        <input type="checkbox" name="cvShowcase" class="mt-0.5 h-5 w-5 shrink-0 rounded border-gray-300 text-brand-600" <%= values.cvShowcase === true || values.cvShowcase === 'on' ? 'checked' : '' %>>
-        <span><strong>Vitrine des CV</strong> — j'accepte que l'équipe SenTravail affiche mon CV dans la vitrine visible par tous (recruteurs et visiteurs). Pour un CV créé sur SenTravail, mon email, mon téléphone et mon adresse sont masqués ; un CV importé (PDF) est affiché tel quel. Je peux retirer mon accord à tout moment : mon CV est alors retiré aussitôt.</span>
+        <input type="checkbox" name="cvShowcaseRefused" class="mt-0.5 h-5 w-5 shrink-0 rounded border-gray-300 text-brand-600" <%= values.cvShowcaseRefused === true || values.cvShowcaseRefused === 'on' ? 'checked' : '' %>>
+        <span><strong>Ne pas afficher mon CV dans la vitrine des CV</strong> — l'équipe SenTravail peut mettre en avant les CV créés ou importés sur le site dans la vitrine visible par tous, pour aider les candidats à être repérés par les recruteurs (<a href="/conditions#vitrine" class="font-semibold text-brand-600 hover:underline">en savoir plus</a>). Cochez cette case pour refuser : votre CV est alors retiré aussitôt.</span>
       </label>
     <% } %>
     <div class="flex justify-end gap-2 pt-2">

@@ -37,7 +37,7 @@ const cvLink = (key, name) => (key ? cvStorage.signedPath(key, name || 'CV.pdf',
 async function adminShowcase(req, res) {
   const { CvShowcase } = require('../models');
   const items = await CvShowcase.findAll({
-    include: [{ model: User, as: 'user', attributes: ['id', 'username', 'cvShowcase', 'isBanned'], required: false }],
+    include: [{ model: User, as: 'user', attributes: ['id', 'username', 'cvShowcaseRefused', 'isBanned'], required: false }],
     order: [['sortOrder', 'ASC'], ['id', 'DESC']],
   });
   view(res, 'cvShowcase', { title: 'CV — Vitrine', tab: 'vitrine', items, errors: {}, values: {} });
@@ -74,7 +74,7 @@ async function showcaseUserIds() {
   return new Set(rows.map((r) => r.userId).filter(Boolean));
 }
 
-// Adds a member's CV (their consent is checked by the service).
+// Adds a member's CV (a member who refused is rejected by the service).
 async function adminAddMember(req, res) {
   const userId = parseId(req.body?.userId);
   try {
@@ -92,7 +92,6 @@ const uploadSchema = z.object({
   name: z.string().trim().min(2, 'Indiquez le nom de la personne.').max(120),
   title: z.string().trim().max(120).optional().default(''),
   city: z.string().trim().max(80).optional().default(''),
-  consent: z.literal('on', { message: 'Confirmez que la personne a accepté que son CV soit affiché.' }),
 });
 
 async function adminUpload(req, res) {
@@ -102,7 +101,7 @@ async function adminUpload(req, res) {
   else if (cvStorage.detectCvType(req.file.buffer) !== 'pdf') errors.cv = 'Le CV doit être un fichier PDF.';
   if (Object.keys(errors).length) {
     const { CvShowcase } = require('../models');
-    const items = await CvShowcase.findAll({ include: [{ model: User, as: 'user', attributes: ['id', 'username', 'cvShowcase', 'isBanned'], required: false }], order: [['sortOrder', 'ASC'], ['id', 'DESC']] });
+    const items = await CvShowcase.findAll({ include: [{ model: User, as: 'user', attributes: ['id', 'username', 'cvShowcaseRefused', 'isBanned'], required: false }], order: [['sortOrder', 'ASC'], ['id', 'DESC']] });
     res.status(422);
     return view(res, 'cvShowcase', { title: 'CV — Vitrine', tab: 'vitrine', items, errors, values: req.body || {} });
   }

@@ -1,10 +1,10 @@
 // "Vitrine des CV" (CV slider): CVs the admin puts forward, shown in the feed (after the 3rd
 // offer), at the bottom of offer pages and in the full-screen viewer (/cv/vitrine).
-// Privacy rules (checked here, server-side):
-// - a member's CV is shown only with the member's consent (users.cvShowcase), never when the
-//   account is suspended; withdrawing consent deletes the member's items;
-// - a CV made with the builder is published WITHOUT email, phone, address or website;
-// - a CV uploaded by the admin requires the admin to confirm the person agreed.
+// Rules (checked here, server-side), announced in the Terms and the Privacy policy:
+// - the admin may show any CV created or imported on the site, unless the member refused
+//   (users.cvShowcaseRefused, profile settings): refusing deletes the member's items at once;
+// - a suspended account is never shown;
+// - a CV made with the builder is published WITHOUT email, phone, address or website.
 const fs = require('fs/promises');
 const { Op } = require('sequelize');
 const { CvShowcase, User } = require('../models');
@@ -33,9 +33,9 @@ function invalidate() {
   cache = { at: 0, items: null };
 }
 
-const USER_ATTRS = ['id', 'username', 'firstName', 'lastName', 'role', 'avatarUrl', 'isBanned', 'cvShowcase', 'isVerified'];
+const USER_ATTRS = ['id', 'username', 'firstName', 'lastName', 'role', 'avatarUrl', 'isBanned', 'cvShowcaseRefused', 'isVerified'];
 
-// Items that may be shown publicly right now (consent still given, account not suspended).
+// Items that may be shown publicly right now (member did not refuse, account not suspended).
 async function visibleItems() {
   const rows = await CvShowcase.findAll({
     where: { isActive: true },
@@ -43,7 +43,7 @@ async function visibleItems() {
     order: [['sortOrder', 'ASC'], ['id', 'DESC']],
     limit: MAX_ITEMS * 2,
   });
-  return rows.filter((r) => !r.userId || (r.user && r.user.cvShowcase && !r.user.isBanned)).slice(0, MAX_ITEMS);
+  return rows.filter((r) => !r.userId || (r.user && !r.user.cvShowcaseRefused && !r.user.isBanned)).slice(0, MAX_ITEMS);
 }
 
 // Cached list for the slider (one query per minute per process).
@@ -57,7 +57,7 @@ async function slider() {
 async function findVisible(id) {
   const item = await CvShowcase.findByPk(id, { include: [{ model: User, as: 'user', attributes: USER_ATTRS, required: false }] });
   if (!item || !item.isActive) return null;
-  if (item.userId && (!item.user || !item.user.cvShowcase || item.user.isBanned)) return null;
+  if (item.userId && (!item.user || item.user.cvShowcaseRefused || item.user.isBanned)) return null;
   return item;
 }
 
@@ -74,7 +74,7 @@ function displayName(user) {
 async function addMemberCv(userId, admin) {
   const user = await User.findByPk(userId);
   if (!user || user.isBanned) throw fail(404, 'Compte introuvable ou suspendu.');
-  if (!user.cvShowcase) throw fail(422, "Ce membre n'a pas accepté que son CV soit affiché dans la vitrine.");
+  if (user.cvShowcaseRefused) throw fail(422, 'Ce membre a refusé que son CV soit affiché dans la vitrine.');
   if (await CvShowcase.findOne({ where: { userId: user.id } })) throw fail(422, 'Ce CV est déjà dans la vitrine.');
   let source;
   let stored;
@@ -102,7 +102,7 @@ async function addMemberCv(userId, admin) {
   return item;
 }
 
-// A PDF CV uploaded by the admin (for someone who agreed to be shown).
+// A PDF CV uploaded by the admin (e.g. received by the team).
 async function addUpload(buffer, { name, title, city }, admin) {
   if (cvStorage.detectCvType(buffer) !== 'pdf') throw fail(422, 'Le CV doit être un fichier PDF.');
   const stored = await cvStorage.saveCv(buffer, `CV ${name}.pdf`);
@@ -126,7 +126,7 @@ async function remove(item) {
   invalidate();
 }
 
-// Consent withdrawn (or account deleted): the member's CV leaves the showcase at once.
+// The member refused (or the account was deleted): their CV leaves the showcase at once.
 async function removeForUser(userId) {
   const items = await CvShowcase.findAll({ where: { userId } });
   for (const item of items) await remove(item);
@@ -137,7 +137,7 @@ async function removeForUser(userId) {
 async function refresh(item) {
   if (item.source !== 'built' || !item.userId) throw fail(422, 'Seul un CV créé sur SenTravail peut être mis à jour.');
   const user = await User.findByPk(item.userId);
-  if (!user?.cvBuilt || !user.cvShowcase) throw fail(422, "Ce CV n'est plus disponible.");
+  if (!user?.cvBuilt || user.cvShowcaseRefused) throw fail(422, "Ce CV n'est plus disponible.");
   const cv = maskCv(user.cvBuilt);
   const stored = await cvStorage.saveCv(await buildCvPdf(cv), `CV ${displayName(user)}.pdf`);
   const old = { cvKey: item.cvKey, thumbnail: item.thumbnail, image: item.image };
@@ -179,7 +179,7 @@ async function builtCvs({ q = '', limit = 100 } = {}) {
   if (q) where[Op.or] = [{ firstName: { [Op.like]: `%${q}%` } }, { lastName: { [Op.like]: `%${q}%` } }, { email: { [Op.like]: `%${q}%` } }, { headline: { [Op.like]: `%${q}%` } }];
   return User.findAll({
     where,
-    attributes: ['id', 'username', 'firstName', 'lastName', 'email', 'role', 'headline', 'city', 'cvUrl', 'cvName', 'cvBuilt', 'cvShowcase', 'isBanned', 'updatedAt'],
+    attributes: ['id', 'username', 'firstName', 'lastName', 'email', 'role', 'headline', 'city', 'cvUrl', 'cvName', 'cvBuilt', 'cvShowcaseRefused', 'isBanned', 'updatedAt'],
     order: [['updatedAt', 'DESC']],
     limit,
   });
@@ -190,7 +190,7 @@ async function importedCvs({ q = '', limit = 100 } = {}) {
   if (q) where[Op.or] = [{ firstName: { [Op.like]: `%${q}%` } }, { lastName: { [Op.like]: `%${q}%` } }, { email: { [Op.like]: `%${q}%` } }];
   return User.findAll({
     where,
-    attributes: ['id', 'username', 'firstName', 'lastName', 'email', 'role', 'headline', 'city', 'cvUrl', 'cvName', 'cvShowcase', 'isBanned', 'updatedAt'],
+    attributes: ['id', 'username', 'firstName', 'lastName', 'email', 'role', 'headline', 'city', 'cvUrl', 'cvName', 'cvShowcaseRefused', 'isBanned', 'updatedAt'],
     order: [['updatedAt', 'DESC']],
     limit,
   });

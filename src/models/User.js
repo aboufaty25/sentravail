@@ -63,8 +63,8 @@ User.init(
     cvUrl: { type: DataTypes.STRING(500) }, // key of the imported CV (private storage)
     cvName: { type: DataTypes.STRING(160) },
     cvBuilt: jsonColumn('cvBuilt', null),
-    // Consent to appear in the CV showcase (slider); withdrawing it removes the member's items.
-    cvShowcase: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+    // The member refuses to appear in the CV showcase (slider); refusing removes their items.
+    cvShowcaseRefused: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
     companyName: { type: DataTypes.STRING(120) },
     companyLogo: { type: DataTypes.STRING(500) },
     isVerified: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },

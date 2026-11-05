@@ -7,7 +7,7 @@
 </form>
 
 <% const addForm = (u) => `<form method="post" action="/admin/cv/vitrine"><input type="hidden" name="_csrf" value="${csrfToken}"><input type="hidden" name="userId" value="${u.id}"><input type="hidden" name="from" value="${tab}"><button class="btn-soft !px-2.5 !py-1 text-xs">Ajouter à la vitrine</button></form>`; %>
-<% const showcaseState = (u) => inShowcase.has(u.id) ? '<span class="rounded-full bg-green-50 px-2 py-0.5 text-[11px] font-semibold text-green-700">Dans la vitrine</span>' : u.cvShowcase ? '<span class="rounded-full bg-brand-50 px-2 py-0.5 text-[11px] font-semibold text-brand-700">Accord vitrine</span>' : '<span class="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-semibold text-gray-500">Pas d’accord vitrine</span>'; %>
+<% const showcaseState = (u) => inShowcase.has(u.id) ? '<span class="rounded-full bg-green-50 px-2 py-0.5 text-[11px] font-semibold text-green-700">Dans la vitrine</span>' : u.cvShowcaseRefused ? '<span class="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-semibold text-gray-500">Refuse la vitrine</span>' : ''; %>
 
 <section class="card rounded-lg" aria-labelledby="list-title">
   <h2 id="list-title" class="border-b border-gray-100 px-4 py-3 font-semibold">
@@ -32,7 +32,7 @@
           <div class="flex flex-wrap items-center gap-1.5 sm:justify-end">
             <%- showcaseState(u) %>
             <% if (link) { %><a href="<%= link %>" class="btn-light !px-2.5 !py-1 text-xs"><%- icon('download', 'w-3.5 h-3.5') %> Télécharger</a><% } %>
-            <% if (!inShowcase.has(u.id) && u.cvShowcase && !u.isBanned && (cv || isPdf)) { %><%- addForm(u) %><% } %>
+            <% if (!inShowcase.has(u.id) && !u.cvShowcaseRefused && !u.isBanned && (cv || isPdf)) { %><%- addForm(u) %><% } %>
           </div>
         </li>
       <% }) %>
@@ -57,7 +57,7 @@
         </li>
       <% }) %>
     </ul>
-    <p class="px-4 pb-3 text-xs text-gray-500">Ces CV sont privés : ils ne peuvent pas être mis dans la vitrine sans l'accord de la personne (ajoutez-les par le formulaire de la vitrine si elle accepte).</p>
+    <p class="px-4 pb-3 text-xs text-gray-500">Ces CV ont été envoyés aux recruteurs avec une candidature ; pour en afficher un dans la vitrine, téléchargez-le puis ajoutez-le avec le formulaire de la vitrine.</p>
   <% } %>
 </section>
 <% } %>

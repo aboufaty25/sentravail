@@ -24,8 +24,8 @@ let adm; let cand; let candidate; let other;
 beforeAll(async () => {
   await resetDb();
   const admin = await createUser({ email: 'adm@ex.com', role: 'admin' });
-  candidate = await createUser({ email: 'awa@ex.com', firstName: 'Awa', lastName: 'Ndiaye', cvBuilt: builtCv, cvShowcase: false });
-  other = await createUser({ email: 'other@ex.com', firstName: 'Moussa', lastName: 'Sarr', cvBuilt: builtCv, cvShowcase: true });
+  candidate = await createUser({ email: 'awa@ex.com', firstName: 'Awa', lastName: 'Ndiaye', cvBuilt: builtCv, cvShowcaseRefused: true });
+  other = await createUser({ email: 'other@ex.com', firstName: 'Moussa', lastName: 'Sarr', cvBuilt: builtCv });
   [adm, cand] = await Promise.all([loginAs(admin), loginAs(candidate)]);
   // Feed with 5 offers.
   const recruiter = await createUser({ email: 'rec@ex.com', role: 'recruiter' });
@@ -47,15 +47,15 @@ test('admin only: every CV page and action', async () => {
   expect(await CvShowcase.count()).toBe(0);
 });
 
-test('the admin lists the CVs created on the site, with consent state', async () => {
+test('the admin lists the CVs created on the site; members who refused are marked', async () => {
   const page = (await adm.agent.get('/admin/cv/crees')).text;
   expect(page).toContain('Awa Ndiaye');
   expect(page).toContain('Moussa Sarr');
-  expect(page).toContain('Pas d’accord vitrine');
-  expect(page).toContain('Accord vitrine');
+  expect(page).toContain('Refuse la vitrine');
+  expect((page.match(/name="userId"/g) || []).length).toBe(1); // only Moussa can be added
 });
 
-test('no consent, no showcase; with consent the published copy has no email, phone or address', async () => {
+test('no prior consent needed, refusal respected; the published copy has no email, phone or address', async () => {
   const refused = await addMember(candidate.id);
   expect(refused.status).toBe(302);
   expect(await CvShowcase.count()).toBe(0);
@@ -103,16 +103,16 @@ test('thumbnails: uploaded by the admin page (images only), shown on the cards',
   expect((await request(app).get('/')).text).toContain(fresh.thumbnail);
 });
 
-test('admin upload: PDF only and consent required', async () => {
+test('admin upload: PDF only, name required', async () => {
   const pdf = await pdfBuffer();
   const post = (fields, file = pdf, name = 'cv.pdf') => {
     let req = adm.agent.post(`/admin/cv/vitrine/ajouter?_csrf=${adm.csrf}`);
     for (const [k, v] of Object.entries(fields)) req = req.field(k, v);
     return file ? req.attach('cv', file, name) : req;
   };
-  expect((await post({ name: 'Fatou Sow' })).status).toBe(422); // no consent
-  expect((await post({ name: 'Fatou Sow', consent: 'on' }, Buffer.from('not a pdf'), 'cv.pdf')).status).toBe(422);
-  expect((await post({ name: 'Fatou Sow', consent: 'on', title: 'Commerciale' })).status).toBe(302);
+  expect((await post({ title: 'Commerciale' })).status).toBe(422); // name required
+  expect((await post({ name: 'Fatou Sow' }, Buffer.from('not a pdf'), 'cv.pdf')).status).toBe(422);
+  expect((await post({ name: 'Fatou Sow', title: 'Commerciale' })).status).toBe(302);
   expect(await CvShowcase.findOne({ where: { name: 'Fatou Sow', userId: null } })).not.toBeNull();
 });
 
@@ -129,7 +129,7 @@ test('order, hide and remove', async () => {
   expect(first).toBeTruthy();
 });
 
-test('withdrawing consent removes the CV at once; a suspended account is never shown', async () => {
+test('refusing from the profile removes the CV at once; a suspended account is never shown', async () => {
   const otherSession = await loginAs(other);
   if (!(await CvShowcase.findOne({ where: { userId: other.id } }))) await addMember(other.id);
   const item = await CvShowcase.findOne({ where: { userId: other.id } });
@@ -139,16 +139,17 @@ test('withdrawing consent removes the CV at once; a suspended account is never s
   expect((await showcase.slider()).map((i) => i.id)).not.toContain(item.id);
   await User.update({ isBanned: false }, { where: { id: other.id } });
 
-  const res = await otherSession.agent.post('/parametres/profil').type('form').send({ _csrf: otherSession.csrf, firstName: 'Moussa', lastName: 'Sarr' });
+  const res = await otherSession.agent.post('/parametres/profil').type('form').send({ _csrf: otherSession.csrf, firstName: 'Moussa', lastName: 'Sarr', cvShowcaseRefused: 'on' });
   expect(res.status).toBe(302);
-  expect((await User.findByPk(other.id)).cvShowcase).toBe(false);
+  expect((await User.findByPk(other.id)).cvShowcaseRefused).toBe(true);
   expect(await CvShowcase.count({ where: { userId: other.id } })).toBe(0);
 });
 
-test('a candidate gives consent from the profile settings', async () => {
-  const res = await cand.agent.post('/parametres/profil').type('form').send({ _csrf: cand.csrf, firstName: 'Awa', lastName: 'Ndiaye', cvShowcase: 'on' });
+test('a candidate who changes their mind (box unticked) can be shown again; the rule is in the legal pages', async () => {
+  const res = await cand.agent.post('/parametres/profil').type('form').send({ _csrf: cand.csrf, firstName: 'Awa', lastName: 'Ndiaye' });
   expect(res.status).toBe(302);
-  expect((await User.findByPk(candidate.id)).cvShowcase).toBe(true);
+  expect((await User.findByPk(candidate.id)).cvShowcaseRefused).toBe(false);
+  for (const path of ['/conditions', '/confidentialite']) expect((await request(app).get(path)).text).toContain('id="vitrine"');
   expect((await addMember(candidate.id)).status).toBe(302);
   expect(await CvShowcase.count({ where: { userId: candidate.id } })).toBe(1);
 });
