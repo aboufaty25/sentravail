@@ -162,8 +162,9 @@ async function sendFile(res, { key, name }, cacheControl) {
   return res.type(cvStorage.mimeOf(key) || 'application/pdf').send(data);
 }
 
-// Contact details (email, phone) are shown to recruiters and admins only.
-const seesContacts = (user) => !!user && ['recruiter', 'admin'].includes(user.role);
+// Contact details (email, phone) are shown to admins and to recruiters with the verified badge
+// only (anyone can open a recruiter account; the badge is checked by the team).
+const seesContacts = (user) => !!user && !user.isBanned && (user.role === 'admin' || (user.role === 'recruiter' && !!user.isVerified));
 
 // ---------- Public ----------
 
@@ -196,7 +197,7 @@ async function publicPdf(req, res, next) {
 
 // Complete CV with contact details: recruiters and admins (checked here, server-side).
 async function fullPdf(req, res, next) {
-  if (!seesContacts(req.user)) return next(fail(403, 'Le CV complet, avec les coordonnées, est réservé aux recruteurs.'));
+  if (!seesContacts(req.user)) return next(fail(403, 'Le CV complet, avec les coordonnées, est réservé aux recruteurs vérifiés (badge bleu).'));
   const item = await showcase.findVisible(parseId(req.params.id));
   if (!item) return next(fail(404, "Ce CV n'est plus disponible."));
   await showcase.countView(item.id);

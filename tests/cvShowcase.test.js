@@ -88,7 +88,7 @@ test('slider: at the top of the home feed (before the first offer), at the botto
   expect(viewer.text).toContain('data-reels-viewer');
   expect(viewer.text).toContain('<meta name="robots" content="noindex, nofollow">');
   expect(viewer.text).not.toContain('awa@example.com');
-  expect(viewer.text).toContain('Email et téléphone visibles par les recruteurs.');
+  expect(viewer.text).toContain('Email et téléphone visibles par les recruteurs vérifiés.');
   expect((await CvShowcase.findByPk(item.id)).viewsCount).toBe(1);
   // Builder CV: the public copy (no contact details) can be opened.
   const pdf = await request(app).get(`/cv/vitrine/${item.id}/cv.pdf`);
@@ -96,11 +96,17 @@ test('slider: at the top of the home feed (before the first offer), at the botto
   expect(pdf.headers['content-type']).toBe('application/pdf');
 });
 
-test('complete CV with contact details: recruiters and admins only', async () => {
+test('complete CV with contact details: verified recruiters and admins only', async () => {
   const item = await CvShowcase.findOne();
   expect((await request(app).get(`/cv/vitrine/${item.id}/complet`)).status).toBe(302); // guest: login
   expect((await cand.agent.get(`/cv/vitrine/${item.id}/complet`)).status).toBe(403);
-  const rec = await loginAs(await createUser({ email: 'rh@ex.com', role: 'recruiter' }));
+  // A recruiter account without the verified badge does not see contact details.
+  const unverified = await loginAs(await createUser({ email: 'rh2@ex.com', role: 'recruiter', isVerified: false }));
+  expect((await unverified.agent.get(`/cv/vitrine/${item.id}/complet`)).status).toBe(403);
+  const page = (await unverified.agent.get(`/cv/vitrine?id=${item.id}`)).text;
+  expect(page).not.toContain(`/cv/vitrine/${item.id}/complet`);
+  expect(page).toContain('Obtenir le badge vérifié');
+  const rec = await loginAs(await createUser({ email: 'rh@ex.com', role: 'recruiter', isVerified: true }));
   const full = await rec.agent.get(`/cv/vitrine/${item.id}/complet`);
   expect(full.status).toBe(200);
   expect(full.headers['content-type']).toBe('application/pdf');
