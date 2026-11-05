@@ -1,0 +1,154 @@
+// CV showcase ("Vitrine des CV"): admin management, consent, masking, slider placement.
+const PDFDocument = require('pdfkit');
+const { app, request, resetDb, closeDb, createUser, loginAs } = require('./helpers');
+const { Post, Job, CvShowcase, User } = require('../src/models');
+const { buildSlug } = require('../src/services/jobs');
+const showcase = require('../src/services/cvShowcase');
+
+const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
+const pdfBuffer = () => new Promise((resolve) => {
+  const doc = new PDFDocument();
+  const chunks = [];
+  doc.on('data', (c) => chunks.push(c));
+  doc.on('end', () => resolve(Buffer.concat(chunks)));
+  doc.text('CV de test');
+  doc.end();
+});
+const builtCv = {
+  template: 'classique',
+  personal: { firstName: 'Awa', lastName: 'Ndiaye', email: 'awa@example.com', phone: '77 123 45 67', address: 'Rue 10, Dakar', website: 'awa.sn', nationality: 'Sénégalaise' },
+  title: 'Comptable', summary: 'Rigoureuse.', experiences: [], educations: [], skills: [{ name: 'Sage', level: 4 }],
+};
+
+let adm; let cand; let candidate; let other;
+beforeAll(async () => {
+  await resetDb();
+  const admin = await createUser({ email: 'adm@ex.com', role: 'admin' });
+  candidate = await createUser({ email: 'awa@ex.com', firstName: 'Awa', lastName: 'Ndiaye', cvBuilt: builtCv, cvShowcase: false });
+  other = await createUser({ email: 'other@ex.com', firstName: 'Moussa', lastName: 'Sarr', cvBuilt: builtCv, cvShowcase: true });
+  [adm, cand] = await Promise.all([loginAs(admin), loginAs(candidate)]);
+  // Feed with 5 offers.
+  const recruiter = await createUser({ email: 'rec@ex.com', role: 'recruiter' });
+  for (let i = 0; i < 5; i += 1) {
+    const post = await Post.create({ authorId: recruiter.id, type: 'job' });
+    await Job.create({ postId: post.id, slug: buildSlug(`Poste ${i}`, 'Dakar'), title: `Poste ${i}`, companyName: 'Ba', location: 'Dakar', contractType: 'CDI', sector: 'Comptabilité', description: 'x'.repeat(40), applyEmail: 'a@b.sn' });
+  }
+});
+afterAll(closeDb);
+
+const addMember = (userId) => adm.agent.post('/admin/cv/vitrine').type('form').send({ _csrf: adm.csrf, userId });
+
+test('admin only: every CV page and action', async () => {
+  for (const path of ['/admin/cv', '/admin/cv/crees', '/admin/cv/importes']) {
+    expect((await cand.agent.get(path)).status).toBe(403);
+    expect((await adm.agent.get(path)).status).toBe(200);
+  }
+  expect((await cand.agent.post('/admin/cv/vitrine').type('form').send({ _csrf: cand.csrf, userId: other.id })).status).toBe(403);
+  expect(await CvShowcase.count()).toBe(0);
+});
+
+test('the admin lists the CVs created on the site, with consent state', async () => {
+  const page = (await adm.agent.get('/admin/cv/crees')).text;
+  expect(page).toContain('Awa Ndiaye');
+  expect(page).toContain('Moussa Sarr');
+  expect(page).toContain('Pas d’accord vitrine');
+  expect(page).toContain('Accord vitrine');
+});
+
+test('no consent, no showcase; with consent the published copy has no email, phone or address', async () => {
+  const refused = await addMember(candidate.id);
+  expect(refused.status).toBe(302);
+  expect(await CvShowcase.count()).toBe(0);
+
+  expect((await addMember(other.id)).status).toBe(302);
+  const item = await CvShowcase.findOne({ where: { userId: other.id } });
+  expect(item).toMatchObject({ source: 'built', name: 'Moussa Sarr', title: 'Comptable', isActive: true });
+  expect((await addMember(other.id)).status).toBe(302); // already there: not duplicated
+  expect(await CvShowcase.count()).toBe(1);
+
+  const masked = showcase.maskCv(builtCv);
+  expect(masked.personal).toMatchObject({ email: '', phone: '', address: '', website: '', firstName: 'Awa', nationality: 'Sénégalaise' });
+});
+
+test('slider: once after the 3rd offer of the feed, at the bottom of offer pages; viewer and PDF public', async () => {
+  const home = (await request(app).get('/')).text;
+  const feed = home.slice(home.indexOf('id="feed"'));
+  expect((feed.match(/data-reels>/g) || []).length).toBe(1);
+  const before = feed.slice(0, feed.indexOf('data-reels>'));
+  expect((before.match(/data-post-type="job"/g) || []).length).toBe(3);
+  expect(feed).toContain('Moussa Sarr');
+
+  const job = await Job.findOne();
+  expect((await request(app).get(`/offres/${job.slug}`)).text).toContain('data-reels>');
+
+  const item = await CvShowcase.findOne();
+  const viewer = await request(app).get(`/cv/vitrine?id=${item.id}`);
+  expect(viewer.status).toBe(200);
+  expect(viewer.text).toContain('data-reels-viewer');
+  expect(viewer.text).toContain('<meta name="robots" content="noindex, nofollow">');
+  expect(viewer.text).not.toContain('awa@example.com');
+  expect((await CvShowcase.findByPk(item.id)).viewsCount).toBe(1);
+  const pdf = await request(app).get(`/cv/vitrine/${item.id}/cv.pdf`);
+  expect(pdf.status).toBe(200);
+  expect(pdf.headers['content-type']).toBe('application/pdf');
+});
+
+test('thumbnails: uploaded by the admin page (images only), shown on the cards', async () => {
+  const item = await CvShowcase.findOne();
+  expect((await cand.agent.post(`/admin/cv/vitrine/${item.id}/images`).set('X-CSRF-Token', cand.csrf).attach('small', PNG, 's.png').attach('large', PNG, 'l.png')).status).toBe(403);
+  const res = await adm.agent.post(`/admin/cv/vitrine/${item.id}/images`).set('X-CSRF-Token', adm.csrf).attach('small', PNG, 's.png').attach('large', PNG, 'l.png');
+  expect(res.status).toBe(200);
+  const fresh = await CvShowcase.findByPk(item.id);
+  expect(fresh.thumbnail).toMatch(/^\/uploads\/cv-showcase\//);
+  expect((await request(app).get('/')).text).toContain(fresh.thumbnail);
+});
+
+test('admin upload: PDF only and consent required', async () => {
+  const pdf = await pdfBuffer();
+  const post = (fields, file = pdf, name = 'cv.pdf') => {
+    let req = adm.agent.post(`/admin/cv/vitrine/ajouter?_csrf=${adm.csrf}`);
+    for (const [k, v] of Object.entries(fields)) req = req.field(k, v);
+    return file ? req.attach('cv', file, name) : req;
+  };
+  expect((await post({ name: 'Fatou Sow' })).status).toBe(422); // no consent
+  expect((await post({ name: 'Fatou Sow', consent: 'on' }, Buffer.from('not a pdf'), 'cv.pdf')).status).toBe(422);
+  expect((await post({ name: 'Fatou Sow', consent: 'on', title: 'Commerciale' })).status).toBe(302);
+  expect(await CvShowcase.findOne({ where: { name: 'Fatou Sow', userId: null } })).not.toBeNull();
+});
+
+test('order, hide and remove', async () => {
+  const [first, second] = await CvShowcase.findAll({ order: [['sortOrder', 'ASC'], ['id', 'DESC']] });
+  const act = (id, action) => adm.agent.post(`/admin/cv/vitrine/${id}`).type('form').send({ _csrf: adm.csrf, action });
+  await act(second.id, 'up');
+  expect((await showcase.visibleItems())[0].id).toBe(second.id);
+  await act(second.id, 'toggle');
+  expect((await showcase.visibleItems()).map((i) => i.id)).not.toContain(second.id);
+  expect((await request(app).get(`/cv/vitrine/${second.id}/cv.pdf`)).status).toBe(404);
+  await act(second.id, 'remove');
+  expect(await CvShowcase.findByPk(second.id)).toBeNull();
+  expect(first).toBeTruthy();
+});
+
+test('withdrawing consent removes the CV at once; a suspended account is never shown', async () => {
+  const otherSession = await loginAs(other);
+  if (!(await CvShowcase.findOne({ where: { userId: other.id } }))) await addMember(other.id);
+  const item = await CvShowcase.findOne({ where: { userId: other.id } });
+  expect(item).not.toBeNull();
+  await User.update({ isBanned: true }, { where: { id: other.id } });
+  showcase.invalidate();
+  expect((await showcase.slider()).map((i) => i.id)).not.toContain(item.id);
+  await User.update({ isBanned: false }, { where: { id: other.id } });
+
+  const res = await otherSession.agent.post('/parametres/profil').type('form').send({ _csrf: otherSession.csrf, firstName: 'Moussa', lastName: 'Sarr' });
+  expect(res.status).toBe(302);
+  expect((await User.findByPk(other.id)).cvShowcase).toBe(false);
+  expect(await CvShowcase.count({ where: { userId: other.id } })).toBe(0);
+});
+
+test('a candidate gives consent from the profile settings', async () => {
+  const res = await cand.agent.post('/parametres/profil').type('form').send({ _csrf: cand.csrf, firstName: 'Awa', lastName: 'Ndiaye', cvShowcase: 'on' });
+  expect(res.status).toBe(302);
+  expect((await User.findByPk(candidate.id)).cvShowcase).toBe(true);
+  expect((await addMember(candidate.id)).status).toBe(302);
+  expect(await CvShowcase.count({ where: { userId: candidate.id } })).toBe(1);
+});

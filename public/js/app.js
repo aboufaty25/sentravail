@@ -175,6 +175,117 @@
     window.dispatchEvent(new CustomEvent('require-login', { detail: { message: el.dataset.login, retour: el.dataset.loginRetour } }));
   }, true);
 
+
+  // ---------- CV showcase ("Vitrine des CV") ----------
+  // Slider (feed, offer page): round arrows on a computer scroll the tray by a screenful.
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest && e.target.closest('[data-reels-prev],[data-reels-next]');
+    if (!btn) return;
+    const track = btn.closest('[data-reels]')?.querySelector('[data-reels-track]');
+    if (!track) return;
+    const dir = btn.hasAttribute('data-reels-next') ? 1 : -1;
+    track.scrollBy({ left: dir * Math.max(200, track.clientWidth * 0.8), behavior: 'smooth' });
+  });
+  function updateReelArrows(track) {
+    const root = track.closest('[data-reels]');
+    if (!root) return;
+    const prev = root.querySelector('[data-reels-prev]');
+    const next = root.querySelector('[data-reels-next]');
+    if (prev) prev.classList.toggle('invisible', track.scrollLeft < 8);
+    if (next) next.classList.toggle('invisible', track.scrollLeft + track.clientWidth >= track.scrollWidth - 8);
+  }
+  function watchReels(root) {
+    (root || document).querySelectorAll('[data-reels-track]:not([data-reels-ready])').forEach((track) => {
+      track.dataset.reelsReady = '1';
+      track.addEventListener('scroll', () => updateReelArrows(track), { passive: true });
+      updateReelArrows(track);
+    });
+  }
+  document.addEventListener('DOMContentLoaded', () => watchReels(document));
+  document.addEventListener('htmx:afterSettle', (e) => watchReels(e.target));
+
+  // Full-screen viewer: start on the chosen CV, arrows and keyboard on a computer.
+  document.addEventListener('DOMContentLoaded', () => {
+    const viewer = document.querySelector('[data-reels-viewer]');
+    const scroller = viewer && viewer.querySelector('[data-reels-scroller]');
+    if (!scroller) return;
+    const start = viewer.dataset.start && document.getElementById(`cv-${viewer.dataset.start}`);
+    if (start) scroller.scrollTop = start.offsetTop;
+    const step = (dir) => scroller.scrollBy({ top: dir * scroller.clientHeight, behavior: 'smooth' });
+    viewer.querySelector('[data-reels-up]')?.addEventListener('click', () => step(-1));
+    viewer.querySelector('[data-reels-down]')?.addEventListener('click', () => step(1));
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowDown' || e.key === 'PageDown') { e.preventDefault(); step(1); }
+      if (e.key === 'ArrowUp' || e.key === 'PageUp') { e.preventDefault(); step(-1); }
+      if (e.key === 'Escape') viewer.querySelector('[data-reels-close]')?.click();
+    });
+    // Close: back to the page the visitor came from on this site.
+    viewer.querySelector('[data-reels-close]')?.addEventListener('click', (e) => {
+      if (document.referrer.startsWith(location.origin) && history.length > 1) { e.preventDefault(); history.back(); }
+    });
+  });
+
+  // Native share sheet on phones, WhatsApp otherwise.
+  document.addEventListener('click', async (e) => {
+    const btn = e.target.closest && e.target.closest('[data-share-native]');
+    if (!btn) return;
+    const url = btn.dataset.shareNative;
+    if (navigator.share) {
+      try { await navigator.share({ url, title: btn.dataset.shareTitle || document.title }); } catch (_) { /* cancelled */ }
+      return;
+    }
+    window.open(`https://wa.me/?text=${encodeURIComponent(url)}`, '_blank', 'noopener');
+  });
+
+  // Admin: first-page images of showcase CVs, rendered here with pdf.js (the server cannot
+  // rasterise PDFs on shared hosting): a small one for the cards, a large one for the viewer.
+  document.addEventListener('DOMContentLoaded', async () => {
+    const pending = [...document.querySelectorAll('[data-cv-thumb]')];
+    if (!pending.length) return;
+    let lib;
+    try {
+      lib = await import('/vendor/pdfjs/pdf.min.mjs');
+      lib.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.min.mjs';
+    } catch (_) { return; }
+    const render = async (page, width) => {
+      const base = page.getViewport({ scale: 1 });
+      const viewport = page.getViewport({ scale: width / base.width });
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(viewport.width);
+      canvas.height = Math.round(viewport.height);
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      await page.render({ canvasContext: ctx, viewport }).promise;
+      return new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.82));
+    };
+    for (const el of pending) {
+      try {
+        el.dataset.state = 'working';
+        const data = await (await fetch(el.dataset.cvThumb, { credentials: 'same-origin' })).arrayBuffer();
+        const doc = await lib.getDocument({ data }).promise;
+        const page = await doc.getPage(1);
+        const [small, large] = await Promise.all([render(page, 320), render(page, 960)]);
+        const body = new FormData();
+        body.append('small', small, 'small.jpg');
+        body.append('large', large, 'large.jpg');
+        const res = await fetch(el.dataset.upload, { method: 'POST', body, headers: { 'X-CSRF-Token': csrf(), Accept: 'application/json' } });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || 'upload');
+        const img = el.querySelector('img') || document.createElement('img');
+        img.src = json.thumbnail;
+        img.alt = '';
+        img.className = 'h-full w-full object-cover object-top';
+        el.replaceChildren(img);
+        el.dataset.state = 'done';
+      } catch (_) {
+        el.dataset.state = 'failed';
+        const msg = el.querySelector('[data-thumb-msg]');
+        if (msg) msg.textContent = 'Miniature impossible';
+      }
+    }
+  });
+
   document.addEventListener('alpine:init', () => {
     const Alpine = window.Alpine;
 

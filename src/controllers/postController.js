@@ -36,7 +36,9 @@ async function feed(req, res) {
   const since = parseSince(req.query.since);
   const { posts: list, hasMore } = await posts.feedPage({ viewer: req.user, page, since });
   const offersBefore = Math.max(0, Math.min(10_000, Number.parseInt(req.query.offers, 10) || 0)); // offers shown on earlier pages
-  res.render('partials/feedItems', { layout: false, posts: list, hasMore, page, since: since.getTime(), offersBefore });
+  // The CV slider comes once, right after the 3rd offer of the feed.
+  const cvSlider = offersBefore < 3 ? await require('../services/cvShowcase').slider() : [];
+  res.render('partials/feedItems', { layout: false, posts: list, hasMore, page, since: since.getTime(), offersBefore, cvSlider });
 }
 
 // ---------- Show / delete ----------

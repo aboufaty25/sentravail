@@ -30,6 +30,13 @@ const jobImagesUpload = multer({
   fileFilter: imageFileFilter,
 });
 
+// CV showcase: the two first-page images rendered in the admin's browser.
+const showcaseImagesUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: IMAGE_MAX_BYTES, files: 2, fields: 5 },
+  fileFilter: imageFileFilter,
+});
+
 // Turns multer errors into user-facing 4xx errors.
 function handleUploadErrors(mw) {
   return (req, res, next) =>
@@ -50,7 +57,7 @@ function handleUploadErrors(mw) {
     });
 }
 
-module.exports = { imageUpload, brandingImageUpload, jobImagesUpload, handleUploadErrors };
+module.exports = { imageUpload, brandingImageUpload, jobImagesUpload, showcaseImagesUpload, handleUploadErrors };
 
 const CV_TYPES = new Set([
   'application/pdf',

@@ -1,0 +1,50 @@
+<%# CV slider ("Vitrine des CV"), shaped like Facebook's Reels tray: tall 9:16 cards scrolled
+    sideways (swipe on a phone, round arrows on a computer). Static CV images, never video.
+    items: services/cvShowcase.slider(). Each card opens the full-screen viewer /cv/vitrine. %>
+<% const reels = locals.items || []; %>
+<% if (reels.length) { %>
+<section class="card py-3 sm:rounded-lg" aria-label="Vitrine des CV" data-reels>
+  <div class="flex items-center justify-between px-4 pb-2.5">
+    <h2 class="flex items-center gap-2 text-[17px] font-semibold">
+      <span class="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-brand-600 to-senegal-green text-white"><%- icon('document', 'w-4 h-4') %></span>
+      Vitrine des CV
+    </h2>
+    <a href="/cv/vitrine" class="rounded-md px-2 py-1 text-sm font-semibold text-brand-600 hover:bg-gray-100">Voir tout</a>
+  </div>
+  <div class="relative">
+    <div class="flex snap-x snap-mandatory gap-2 overflow-x-auto scroll-smooth px-4 scroll-px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" data-reels-track>
+      <%# First card: "Créer mon CV" (like "Créer un reel"). %>
+      <a href="/cv/creer" <%- loginAttr(currentUser, 'Connectez-vous pour créer votre CV.') %>
+        class="relative block aspect-[9/16] w-[118px] shrink-0 snap-start overflow-hidden rounded-xl border border-gray-200 bg-white sm:w-[140px]">
+        <span class="absolute inset-x-0 top-0 flex h-[62%] items-center justify-center bg-gray-100">
+          <% if (currentUser) { %><%- avatar(currentUser, 'w-full h-full !rounded-none', 'text-3xl') %><% } else { %><span class="text-gray-400"><%- icon('document', 'w-12 h-12') %></span><% } %>
+        </span>
+        <span class="absolute left-1/2 top-[62%] flex h-9 w-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-4 border-white bg-brand-600 text-white"><%- icon('plus', 'w-4 h-4') %></span>
+        <span class="absolute inset-x-0 bottom-0 px-2 pb-3 text-center text-[13px] font-semibold leading-tight text-gray-900">Créer mon CV</span>
+      </a>
+      <% reels.forEach((r) => { %>
+        <a href="/cv/vitrine?id=<%= r.id %>" class="group relative block aspect-[9/16] w-[118px] shrink-0 snap-start overflow-hidden rounded-xl bg-gray-900 sm:w-[140px]" aria-label="CV de <%= r.name %><%= r.title ? `, ${r.title}` : '' %>">
+          <% if (r.thumbnail) { %>
+            <img src="<%= r.thumbnail %>" alt="" loading="lazy" decoding="async" class="absolute inset-0 h-full w-full bg-white object-cover object-top transition duration-300 group-hover:scale-[1.03]">
+          <% } else { %>
+            <span class="absolute inset-0" style="background: linear-gradient(160deg, <%= /^#[0-9a-fA-F]{6}$/.test(r.color || '') ? r.color : '#1668e3' %>, #111827)"></span>
+            <span class="absolute inset-x-3 top-10 space-y-1.5 opacity-60" aria-hidden="true">
+              <span class="block h-1.5 w-3/4 rounded bg-white"></span><span class="block h-1.5 w-1/2 rounded bg-white"></span>
+              <span class="block h-1.5 w-2/3 rounded bg-white/70"></span><span class="block h-1.5 w-5/6 rounded bg-white/70"></span>
+            </span>
+          <% } %>
+          <% if (r.user) { %><span class="absolute left-2 top-2 rounded-full ring-[3px] ring-brand-600"><%- avatar(r.user, 'w-8 h-8', 'text-[11px]') %></span><% } %>
+          <span class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/45 to-transparent px-2 pb-2 pt-10 text-white">
+            <span class="block truncate text-[13px] font-semibold leading-tight"><%= r.name %></span>
+            <% if (r.title) { %><span class="mt-0.5 block line-clamp-2 text-[11px] leading-tight text-white/85"><%= r.title %></span><% } %>
+            <span class="mt-1 flex items-center gap-1 text-[11px] font-semibold text-white/90"><%- icon('eye', 'w-3.5 h-3.5') %> <%= formatCount(r.viewsCount) %></span>
+          </span>
+        </a>
+      <% }) %>
+    </div>
+    <%# Computer: round arrows over the edges, like Facebook. %>
+    <button type="button" class="absolute left-2 top-1/2 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white text-gray-700 shadow-md ring-1 ring-black/5 hover:bg-gray-50 sm:flex invisible" data-reels-prev aria-label="CV précédents"><span class="rotate-180"><%- icon('chevronRight', 'w-5 h-5') %></span></button>
+    <button type="button" class="absolute right-2 top-1/2 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white text-gray-700 shadow-md ring-1 ring-black/5 hover:bg-gray-50 sm:flex" data-reels-next aria-label="CV suivants"><%- icon('chevronRight', 'w-5 h-5') %></button>
+  </div>
+</section>
+<% } %>

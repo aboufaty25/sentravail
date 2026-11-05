@@ -84,6 +84,12 @@
       <textarea id="f-bio" name="bio" rows="5" maxlength="2000" class="input <%= errors.bio ? 'input-error' : '' %>" placeholder="Présentez-vous en quelques lignes"><%= values.bio || '' %></textarea>
       <% if (errors.bio) { %><p class="field-error"><%= errors.bio %></p><% } %>
     </div>
+    <% if (currentUser.role === 'candidate') { %>
+      <label class="flex items-start gap-3 rounded-lg border border-gray-200 p-3 text-sm">
+        <input type="checkbox" name="cvShowcase" class="mt-0.5 h-5 w-5 shrink-0 rounded border-gray-300 text-brand-600" <%= values.cvShowcase === true || values.cvShowcase === 'on' ? 'checked' : '' %>>
+        <span><strong>Vitrine des CV</strong> — j'accepte que l'équipe SenTravail affiche mon CV dans la vitrine visible par tous (recruteurs et visiteurs). Pour un CV créé sur SenTravail, mon email, mon téléphone et mon adresse sont masqués ; un CV importé (PDF) est affiché tel quel. Je peux retirer mon accord à tout moment : mon CV est alors retiré aussitôt.</span>
+      </label>
+    <% } %>
     <div class="flex justify-end gap-2 pt-2">
       <a href="/profil/<%= currentUser.username %>" class="btn-light">Annuler</a>
       <button type="submit" class="btn-primary">Enregistrer</button>

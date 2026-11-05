@@ -91,4 +91,6 @@
       <p class="mt-3 text-center"><a href="/offres<%= queryString({ secteur: job.sector }) %>" class="text-sm font-semibold text-brand-600 hover:underline">Voir toutes les offres <%= job.sector %></a></p>
     </section>
   <% } %>
+  <%# CV slider at the bottom of the offer page. %>
+  <%- include('../../partials/cvReels', { items: cvSlider }) %>
 </div>

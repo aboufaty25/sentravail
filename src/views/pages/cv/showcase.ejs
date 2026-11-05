@@ -1,0 +1,54 @@
+<%# Full-screen CV viewer, like Facebook Reels: one CV per screen, swipe up/down on a phone,
+    arrows (and keyboard) on a computer; actions in a column on the right. %>
+<div class="fixed inset-0 bg-black text-white" data-reels-viewer data-start="<%= startId || '' %>">
+  <div class="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-center justify-between bg-gradient-to-b from-black/70 to-transparent px-3 pb-6 pt-[max(0.75rem,env(safe-area-inset-top))]">
+    <a href="/" class="pointer-events-auto inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/10 hover:bg-white/20" aria-label="Fermer" data-reels-close><%- icon('x', 'w-6 h-6') %></a>
+    <h1 class="text-lg font-bold">Vitrine des CV</h1>
+    <a href="/cv/creer" <%- loginAttr(currentUser, 'Connectez-vous pour créer votre CV.') %> class="pointer-events-auto inline-flex h-10 items-center gap-1 rounded-full bg-white/10 px-3 text-sm font-semibold hover:bg-white/20"><%- icon('plus', 'w-4 h-4') %> Mon CV</a>
+  </div>
+
+  <% if (!items.length) { %>
+    <div class="flex h-full flex-col items-center justify-center px-6 text-center">
+      <span class="text-white/60"><%- icon('document', 'w-14 h-14') %></span>
+      <p class="mt-3 text-lg font-semibold">Aucun CV dans la vitrine pour le moment.</p>
+      <a href="/cv/creer" class="btn-primary mt-4">Créer mon CV</a>
+    </div>
+  <% } else { %>
+  <div class="h-full snap-y snap-mandatory overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" data-reels-scroller>
+    <% items.forEach((r, i) => { const pdf = `/cv/vitrine/${r.id}/cv.pdf`; const share = `${appUrl}/cv/vitrine?id=${r.id}`; %>
+    <section id="cv-<%= r.id %>" class="relative flex h-[100dvh] snap-start snap-always items-center justify-center sm:py-4" aria-label="CV de <%= r.name %>">
+      <div class="relative h-full w-full overflow-hidden bg-neutral-900 sm:aspect-[9/16] sm:w-auto sm:rounded-xl">
+        <% if (r.image || r.thumbnail) { %>
+          <img src="<%= r.image || r.thumbnail %>" alt="CV de <%= r.name %>" <%= i < 2 ? '' : 'loading=lazy' %> decoding="async" class="absolute inset-0 h-full w-full object-contain">
+        <% } else { %>
+          <div class="absolute inset-0 flex items-center justify-center" style="background: linear-gradient(160deg, <%= /^#[0-9a-fA-F]{6}$/.test(r.color || '') ? r.color : '#1668e3' %>, #111827)">
+            <span class="text-white/70"><%- icon('document', 'w-20 h-20') %></span>
+          </div>
+        <% } %>
+        <%# Actions column (right), like the like/comment/share column of a reel. %>
+        <div class="absolute bottom-28 right-2 z-10 flex flex-col items-center gap-5 text-[12px] font-semibold [text-shadow:0_1px_3px_rgba(0,0,0,.9)] sm:bottom-24">
+          <% if (r.user) { %>
+            <a href="/profil/<%= r.user.username %>" class="flex flex-col items-center gap-1"><span class="rounded-full ring-2 ring-white"><%- avatar(r.user, 'w-11 h-11', 'text-sm') %></span>Profil</a>
+          <% } %>
+          <a href="<%= pdf %>" target="_blank" rel="noopener" class="flex flex-col items-center gap-1"><span class="inline-flex h-11 w-11 items-center justify-center rounded-full bg-black/60 backdrop-blur"><%- icon('document', 'w-6 h-6') %></span>Voir le CV</a>
+          <button type="button" class="flex flex-col items-center gap-1" data-share-native="<%= share %>" data-share-title="CV de <%= r.name %> — SenTravail"><span class="inline-flex h-11 w-11 items-center justify-center rounded-full bg-black/60 backdrop-blur"><%- icon('share', 'w-6 h-6') %></span>Partager</button>
+          <span class="flex flex-col items-center gap-1"><span class="inline-flex h-11 w-11 items-center justify-center rounded-full bg-black/60 backdrop-blur"><%- icon('eye', 'w-6 h-6') %></span><%= formatCount(r.viewsCount) %></span>
+        </div>
+        <%# Caption (bottom left). %>
+        <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-16 pr-20">
+          <p class="flex items-center gap-1.5 text-[15px] font-bold"><%= r.name %><% if (r.user && r.user.isVerified) { %> <%- verifiedBadge('w-4 h-4') %><% } %></p>
+          <% if (r.title) { %><p class="mt-0.5 text-sm text-white/90"><%= r.title %></p><% } %>
+          <% if (r.city) { %><p class="mt-0.5 flex items-center gap-1 text-xs text-white/75"><%- icon('pin', 'w-3.5 h-3.5') %> <%= r.city %></p><% } %>
+          <a href="<%= pdf %>" target="_blank" rel="noopener" class="mt-3 inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-gray-900 hover:bg-gray-100"><%- icon('document', 'w-4 h-4') %> Voir le CV complet</a>
+        </div>
+      </div>
+    </section>
+    <% }) %>
+  </div>
+  <%# Computer: previous / next buttons on the right, like Facebook Reels. %>
+  <div class="absolute right-6 top-1/2 z-20 hidden -translate-y-1/2 flex-col gap-3 sm:flex">
+    <button type="button" class="inline-flex h-12 w-12 items-center justify-center rounded-full bg-white/15 hover:bg-white/25" data-reels-up aria-label="CV précédent"><span class="-rotate-90"><%- icon('chevronRight', 'w-6 h-6') %></span></button>
+    <button type="button" class="inline-flex h-12 w-12 items-center justify-center rounded-full bg-white/15 hover:bg-white/25" data-reels-down aria-label="CV suivant"><span class="rotate-90"><%- icon('chevronRight', 'w-6 h-6') %></span></button>
+  </div>
+  <% } %>
+</div>

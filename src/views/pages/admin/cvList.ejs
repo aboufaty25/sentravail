@@ -1,0 +1,63 @@
+<%- include('../../partials/adminNav') %>
+<%- include('../../partials/admin/cvTabs') %>
+
+<form method="get" class="mb-3 flex gap-2" role="search">
+  <input name="q" value="<%= q %>" class="input" placeholder="Rechercher un nom, un email, un métier…" aria-label="Rechercher">
+  <button class="btn-light shrink-0"><%- icon('search', 'w-4 h-4') %> Chercher</button>
+</form>
+
+<% const addForm = (u) => `<form method="post" action="/admin/cv/vitrine"><input type="hidden" name="_csrf" value="${csrfToken}"><input type="hidden" name="userId" value="${u.id}"><input type="hidden" name="from" value="${tab}"><button class="btn-soft !px-2.5 !py-1 text-xs">Ajouter à la vitrine</button></form>`; %>
+<% const showcaseState = (u) => inShowcase.has(u.id) ? '<span class="rounded-full bg-green-50 px-2 py-0.5 text-[11px] font-semibold text-green-700">Dans la vitrine</span>' : u.cvShowcase ? '<span class="rounded-full bg-brand-50 px-2 py-0.5 text-[11px] font-semibold text-brand-700">Accord vitrine</span>' : '<span class="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-semibold text-gray-500">Pas d’accord vitrine</span>'; %>
+
+<section class="card rounded-lg" aria-labelledby="list-title">
+  <h2 id="list-title" class="border-b border-gray-100 px-4 py-3 font-semibold">
+    <%= tab === 'crees' ? 'CV créés avec le créateur de CV' : 'CV importés sur les profils' %> <span class="text-gray-400">(<%= rows.length %><%= rows.length >= 100 ? '+' : '' %>)</span>
+  </h2>
+  <% if (!rows.length) { %>
+    <p class="px-4 py-8 text-center text-gray-500">Aucun CV<%= q ? ' pour cette recherche' : '' %>.</p>
+  <% } else { %>
+    <ul class="divide-y divide-gray-100">
+      <% rows.forEach(({ user: u, cv, link, isPdf }) => { %>
+        <li class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center">
+          <div class="flex min-w-0 flex-1 items-center gap-3">
+            <%- avatar(u, 'w-10 h-10') %>
+            <div class="min-w-0">
+              <p class="truncate font-semibold"><a href="/profil/<%= u.username %>" class="hover:underline"><%= u.firstName %> <%= u.lastName %></a><% if (u.isBanned) { %> <span class="text-xs font-normal text-red-600">(suspendu)</span><% } %></p>
+              <p class="truncate text-xs text-gray-500"><%= u.email %> · <%= (cv && cv.title) || u.headline || '—' %></p>
+              <p class="text-xs text-gray-500">
+                <% if (cv) { %>Modèle <%= (TEMPLATES[cv.template] || {}).label || cv.template %> · <% } else { %><%= u.cvName || 'CV' %> · <% } %>mis à jour <%= timeAgo(u.updatedAt) %>
+              </p>
+            </div>
+          </div>
+          <div class="flex flex-wrap items-center gap-1.5 sm:justify-end">
+            <%- showcaseState(u) %>
+            <% if (link) { %><a href="<%= link %>" class="btn-light !px-2.5 !py-1 text-xs"><%- icon('download', 'w-3.5 h-3.5') %> Télécharger</a><% } %>
+            <% if (!inShowcase.has(u.id) && u.cvShowcase && !u.isBanned && (cv || isPdf)) { %><%- addForm(u) %><% } %>
+          </div>
+        </li>
+      <% }) %>
+    </ul>
+  <% } %>
+</section>
+
+<% if (tab === 'importes') { %>
+<section class="card mt-3 rounded-lg" aria-labelledby="apps-title">
+  <h2 id="apps-title" class="border-b border-gray-100 px-4 py-3 font-semibold">CV envoyés avec les candidatures <span class="text-gray-400">(<%= apps.length %><%= apps.length >= 100 ? '+' : '' %>)</span></h2>
+  <% if (!apps.length) { %>
+    <p class="px-4 py-8 text-center text-gray-500">Aucune candidature<%= q ? ' pour cette recherche' : '' %>.</p>
+  <% } else { %>
+    <ul class="divide-y divide-gray-100">
+      <% apps.forEach(({ app: a, link }) => { %>
+        <li class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center">
+          <div class="min-w-0 flex-1">
+            <p class="truncate font-semibold"><a href="/candidatures/<%= a.id %>" class="hover:underline"><%= a.firstName %> <%= a.lastName %></a> <span class="text-xs font-normal text-gray-500"><%= a.candidateId ? 'membre' : 'sans compte' %></span></p>
+            <p class="truncate text-xs text-gray-500"><%= a.email %> · <%= a.jobTitle %> — <%= a.companyName %> · <%= timeAgo(a.createdAt) %></p>
+          </div>
+          <% if (link) { %><a href="<%= link %>" class="btn-light shrink-0 !px-2.5 !py-1 text-xs"><%- icon('download', 'w-3.5 h-3.5') %> <%= a.cvName || 'CV' %></a><% } %>
+        </li>
+      <% }) %>
+    </ul>
+    <p class="px-4 pb-3 text-xs text-gray-500">Ces CV sont privés : ils ne peuvent pas être mis dans la vitrine sans l'accord de la personne (ajoutez-les par le formulaire de la vitrine si elle accepte).</p>
+  <% } %>
+</section>
+<% } %>

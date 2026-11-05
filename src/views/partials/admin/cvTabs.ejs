@@ -1,0 +1,6 @@
+<% const cvTabs = [['vitrine', '/admin/cv', 'Vitrine (slider)'], ['crees', '/admin/cv/crees', 'Créés sur le site'], ['importes', '/admin/cv/importes', 'Importés']]; %>
+<nav class="mb-3 grid grid-cols-3 gap-1 rounded-lg bg-white p-1 text-center text-sm font-semibold shadow-card" aria-label="CV">
+  <% cvTabs.forEach(([key, href, label]) => { %>
+    <a href="<%= href %>" class="rounded-md px-2 py-2 <%= tab === key ? 'bg-gray-900 text-white' : 'text-gray-700 hover:bg-gray-100' %>" <%= tab === key ? 'aria-current=page' : '' %>><%= label %></a>
+  <% }) %>
+</nav>

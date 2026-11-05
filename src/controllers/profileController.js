@@ -82,7 +82,10 @@ async function update(req, res) {
     skills: data.skills,
     phone: data.phone,
     companyName: isRecruiter ? data.companyName : req.user.companyName,
+    // Consent to the CV showcase (candidates); withdrawing it removes their CV from it at once.
+    ...(req.user.role === 'candidate' ? { cvShowcase: req.body.cvShowcase === 'on' } : {}),
   });
+  if (req.user.role === 'candidate' && !req.user.cvShowcase) await require('../services/cvShowcase').removeForUser(req.user.id);
   req.flash('success', 'Profil mis à jour.');
   return res.redirect(`/profil/${req.user.username}`);
 }

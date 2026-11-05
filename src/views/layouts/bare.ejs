@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <%- include('../partials/head') %>
+</head>
+<%# Full-screen pages without the site header (CV showcase viewer). %>
+<body class="bg-black" hx-headers='{"X-CSRF-Token": "<%= csrfToken %>"}'>
+  <main id="main"><%- body %></main>
+  <%- include('../partials/overlays') %>
+  <%- script %>
+</body>
+</html>

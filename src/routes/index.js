@@ -20,7 +20,8 @@ const seo = require('../controllers/seoController');
 const publish = require('../controllers/publishController');
 const events = require('../controllers/eventController');
 const { authLimiter, postLimiter, commentLimiter, actionLimiter, applyLimiter, serverMailLimiter, cvBuildLimiter, cvPreviewLimiter } = require('../middlewares/rateLimit');
-const { imageUpload, brandingImageUpload, jobImagesUpload, cvUpload, handleUploadErrors } = require('../middlewares/upload');
+const { imageUpload, brandingImageUpload, jobImagesUpload, showcaseImagesUpload, cvUpload, handleUploadErrors } = require('../middlewares/upload');
+const cvShowcase = require('../controllers/cvShowcaseController');
 
 const recruiterOnly = [requireAuth, requireRole('recruiter', 'admin')];
 // Job form: the offer image and the company logo (one file each).
@@ -113,6 +114,9 @@ router.get('/cv', requireAuth, application.myCv);
 router.post('/cv/importer', requireAuth, cvFile, application.uploadMyCv);
 router.post('/cv/retirer', requireAuth, application.removeMyCv);
 router.get('/cv/telecharger', application.downloadCv);
+// CV showcase (public viewer, PDFs of the CVs currently shown)
+router.get('/cv/vitrine', cvShowcase.viewer);
+router.get('/cv/vitrine/:id/cv.pdf', require('../middlewares/rateLimit').showcasePdfLimiter, cvShowcase.publicPdf);
 // CV builder: members only (the apply modal asks guests to log in)
 router.get('/cv/creer', requireAuth, cv.builder);
 router.post('/cv/creer', requireAuth, cvBuildLimiter, cv.save);
@@ -171,6 +175,14 @@ router.get('/admin/google', ...adminOnly, admin.googleIndex);
 router.get('/admin/candidatures', ...adminOnly, admin.applicationsIndex);
 router.post('/admin/google', ...adminOnly, admin.googleUpdate);
 router.post('/admin/google/indexation', ...adminOnly, admin.googleIndexAll);
+router.get('/admin/cv', ...adminOnly, cvShowcase.adminShowcase);
+router.get('/admin/cv/crees', ...adminOnly, cvShowcase.adminBuilt);
+router.get('/admin/cv/importes', ...adminOnly, cvShowcase.adminImported);
+router.post('/admin/cv/vitrine', ...adminOnly, cvShowcase.adminAddMember);
+router.post('/admin/cv/vitrine/ajouter', ...adminOnly, cvFile, cvShowcase.adminUpload);
+router.get('/admin/cv/vitrine/:id/cv.pdf', ...adminOnly, cvShowcase.adminPdf);
+router.post('/admin/cv/vitrine/:id/images', ...adminOnly, handleUploadErrors(showcaseImagesUpload.fields([{ name: 'small', maxCount: 1 }, { name: 'large', maxCount: 1 }])), cvShowcase.adminImages);
+router.post('/admin/cv/vitrine/:id', ...adminOnly, cvShowcase.adminItemAction);
 router.post('/admin/publicites', ...adminOnly, admin.adsUpdate);
 router.post('/admin/apparence/:asset', ...adminOnly, brandingUpload, admin.brandingUpdate);
 router.post('/admin/referentiels', ...adminOnly, admin.refsAdd);

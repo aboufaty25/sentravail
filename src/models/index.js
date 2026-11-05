@@ -6,6 +6,7 @@ const Comment = require('./Comment');
 const CommentLike = require('./CommentLike');
 const Save = require('./Save');
 const Job = require('./Job');
+const CvShowcase = require('./CvShowcase');
 const Application = require('./Application');
 const Follow = require('./Follow');
 const Report = require('./Report');
@@ -67,4 +68,7 @@ Notification.belongsTo(User, { foreignKey: 'actorId', as: 'actor', ...cascade })
 Notification.belongsTo(Post, { foreignKey: 'postId', as: 'post', ...cascade });
 Notification.belongsTo(Application, { foreignKey: 'applicationId', as: 'application', ...cascade });
 
-module.exports = { sequelize, User, Post, Reaction, Comment, CommentLike, Save, Job, Application, Follow, Report, RefItem, Notification, BannedTerm, SiteSetting };
+User.hasMany(CvShowcase, { foreignKey: 'userId', as: 'showcases', ...cascade });
+CvShowcase.belongsTo(User, { foreignKey: 'userId', as: 'user', ...cascade });
+
+module.exports = { CvShowcase, sequelize, User, Post, Reaction, Comment, CommentLike, Save, Job, Application, Follow, Report, RefItem, Notification, BannedTerm, SiteSetting };

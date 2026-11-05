@@ -95,3 +95,13 @@ module.exports.cvPreviewLimiter = rateLimit({
   keyGenerator: (req) => (req.session?.userId ? `u${req.session.userId}` : ipKeyGenerator(req.ip)),
   message: { error: "Trop d'aperçus en peu de temps. Patientez quelques secondes." },
 });
+
+// Public CV showcase PDFs (anyone): per account when logged in, else per IP.
+module.exports.showcasePdfLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  limit: env.isTest ? 10000 : 120,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  keyGenerator: (req) => (req.session?.userId ? `u${req.session.userId}` : ipKeyGenerator(req.ip)),
+  message: 'Trop de CV ouverts en peu de temps. Patientez quelques minutes.',
+});

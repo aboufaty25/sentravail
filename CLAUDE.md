@@ -28,11 +28,11 @@ src/
   app.js, server.js
   config/        env (zod), db, session, mailer, socket, migrate, constants, postTypes
   models/        User, Post, Job, Application, Reaction, Comment, CommentLike, Save, Follow,
-                 Notification, Report, RefItem, BannedTerm, SiteSetting
+                 Notification, Report, RefItem, BannedTerm, SiteSetting, CvShowcase
   controllers/   publish, post, job, event, application, cv, comment, follow, search,
-                 notification, report, verification, admin, seo, page, auth, profile
+                 notification, report, verification, admin, seo, page, auth, profile, cvShowcase
   services/      feedRanking, posts, jobs, follows, notifications, moderation, moderationActions,
-                 verification, reactions, cv/ (CV PDF), cvStorage, storage, mail, refs, branding, adsConfig, googleConfig, googleIndexing, oauth, jobImport
+                 verification, reactions, cv/ (CV PDF), cvStorage, storage, mail, refs, branding, adsConfig, googleConfig, googleIndexing, oauth, jobImport, cvShowcase
   middlewares/   auth, roles, csrf, upload, rateLimit, errors, flash
   migrations/    001… (idempotentes)
   views/         layouts, partials (postCard, postContent, cards/*, jobCard, applyModal,
@@ -124,6 +124,14 @@ Aucun réel, aucun upload vidéo : ni onglet, ni route, ni modèle, ni code fron
 - **Aperçu en direct = le vrai PDF** : `POST /cv/apercu` (souple, rien n'est stocké, limité) affiché avec **pdf.js** (`/vendor/pdfjs/`, chargé à la demande) ; ordinateur : colonne à droite ; mobile : vignette en direct dans la barre du bas + aperçu plein écran. Brouillon dans `localStorage`.
 - **Téléchargement en un clic** : `POST /cv/creer` (strict, `src/validators/cv.js`) enregistre le CV (`users.cvBuilt`, format normalisé par `normalize.js`, anciens CV compris), le rend CV de candidature et déclenche le téléchargement.
 - Vignettes des modèles : `public/img/cv/*.jpg`, régénérées par `npm run cv:thumbs` (développement, Playwright).
+
+## Vitrine des CV (slider) et gestion des CV (`/admin/cv`, `src/services/cvShowcase.js`)
+
+- **Slider façon « Reels » Facebook** (`partials/cvReels.ejs`) : cartes verticales 9:16 qui défilent de côté (glisser sur mobile, flèches rondes sur ordinateur), 1ʳᵉ carte « Créer mon CV », nom/métier/vues en bas. Placé **une fois dans le fil, juste après la 3ᵉ offre**, et **en bas de chaque page offre**. Ce sont des **images de CV, jamais de la vidéo** (la règle « Pas de vidéo » reste valable).
+- **Lecteur plein écran** `/cv/vitrine?id=` (layout `bare`, `noindex`) : un CV par écran, défilement vertical aimanté, boutons Profil / Voir le CV / Partager / vues à droite, flèches et clavier sur ordinateur. PDF public `/cv/vitrine/:id/cv.pdf` seulement tant que le CV est affiché.
+- **Consentement obligatoire** (vérifié côté serveur) : case « Vitrine des CV » dans `/parametres/profil` (`users.cvShowcase`, migration 016) ; la retirer supprime aussitôt le CV de la vitrine ; compte suspendu jamais affiché. CV créé sur le site : copie publiée **sans email, téléphone, adresse ni site** (`maskCv`). PDF ajouté par l'admin : case « la personne a accepté » obligatoire.
+- **Admin** `/admin/cv` : onglets **Vitrine** (ordre ↑↓, afficher/masquer, mettre à jour, retirer, ajout d'un PDF), **Créés sur le site** (tous les CV du créateur, téléchargement, état du consentement, « Ajouter à la vitrine ») et **Importés** (CV des profils et des candidatures, téléchargement par lien signé). Table `cv_showcase` (PDF en stockage privé `cvKey`, miniatures publiques).
+- **Miniatures** : l'hébergement ne peut pas convertir un PDF en image ; la page admin les génère dans le navigateur avec pdf.js (`[data-cv-thumb]`, 320 px pour les cartes, 960 px pour le lecteur) et les envoie à `/admin/cv/vitrine/:id/images`. Liste du slider en cache 60 s (`slider()`), 20 CV au maximum.
 
 ## Recrutement sur la plateforme (ATS)
 

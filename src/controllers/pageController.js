@@ -19,6 +19,7 @@ async function home(req, res) {
     metaDescription: "Offres d'emploi, candidats disponibles, salons de recrutement et conseils carrière au Sénégal. Postulez gratuitement, même sans compte.",
     canonical: `${require('../config/env').APP_URL}/`,
     activeTab: 'home', fresh, posts: feedPosts, hasMore, page: 1, since: since.getTime(),
+    cvSlider: await require('../services/cvShowcase').slider(),
   });
 }
 
