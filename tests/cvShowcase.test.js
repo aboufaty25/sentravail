@@ -72,15 +72,15 @@ test('no prior consent needed, refusal respected; the published copy has no emai
 
 test('slider: at the top of the home feed (before the first offer), at the bottom of offer pages; viewer public', async () => {
   const home = (await request(app).get('/')).text;
-  expect((home.match(/data-reels /g) || []).length).toBe(1);
-  expect(home.indexOf('data-reels ')).toBeLessThan(home.indexOf('data-post-type="job"'));
+  expect((home.match(/data-reels>/g) || []).length).toBe(1);
+  expect(home.indexOf('data-reels>')).toBeLessThan(home.indexOf('data-post-type="job"'));
   expect(home).toContain('Moussa Sarr');
   expect(home).toContain('Créer un CV');
   const since = home.match(/since=(\d+)/)[1];
-  expect((await request(app).get(`/fil?page=2&since=${since}`)).text).not.toContain('data-reels ');
+  expect((await request(app).get(`/fil?page=2&since=${since}`)).text).not.toContain('data-reels>');
 
   const job = await Job.findOne();
-  expect((await request(app).get(`/offres/${job.slug}`)).text).toContain('data-reels ');
+  expect((await request(app).get(`/offres/${job.slug}`)).text).toContain('data-reels>');
 
   const item = await CvShowcase.findOne();
   const viewer = await request(app).get(`/cv/vitrine?id=${item.id}`);
@@ -199,5 +199,8 @@ test('the first card imports an existing CV and comes back to the page', async (
   expect(res.status).toBe(302);
   expect(res.headers.location).toBe('/offres');
   expect((await User.findByPk(candidate.id)).cvName).toBe('mon-cv.pdf');
-  expect((await cand.agent.get('/')).text).toContain('/cv/importer?_csrf=');
+  const home = (await cand.agent.get('/')).text;
+  expect(home).toContain('/cv/importer?_csrf=');
+  expect(home).toContain('Importer un CV');
+  expect((await request(app).get('/')).text).toContain('data-login="Connectez-vous pour importer votre CV."');
 });

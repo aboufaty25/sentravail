@@ -1,10 +1,10 @@
 <%# CV slider ("Vitrine des CV"), shaped like Facebook's Reels tray: tall 9:16 cards scrolled
     sideways (swipe on a phone, round arrows on a computer). Static CV images, never video.
     items: services/cvShowcase.slider(). Each card opens the full-screen viewer /cv/vitrine.
-    The first card ("+ Créer un CV") offers to create a CV or import an existing one. %>
+    The first card has two buttons: "Créer un CV" and "Importer un CV" (direct upload). %>
 <% const reels = locals.items || []; %>
 <% if (reels.length) { %>
-<section class="card py-3 sm:rounded-lg" aria-label="Vitrine des CV" data-reels x-data="{ sheet: false }" @keydown.escape.window="sheet = false">
+<section class="card py-3 sm:rounded-lg" aria-label="Vitrine des CV" data-reels>
   <div class="flex items-center justify-between px-4 pb-2.5">
     <h2 class="flex items-center gap-2 text-[17px] font-semibold">
       <span class="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-brand-600 to-senegal-green text-white"><%- icon('document', 'w-4 h-4') %></span>
@@ -14,15 +14,29 @@
   </div>
   <div class="relative">
     <div class="flex snap-x snap-mandatory gap-2 overflow-x-auto scroll-smooth px-4 scroll-px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" data-reels-track>
-      <%# First card, like "Créer un reel": "+" and "Créer un CV" (create or import). %>
-      <button type="button" <% if (currentUser) { %>@click="sheet = true"<% } else { %><%- loginAttr(null, 'Connectez-vous pour créer ou importer votre CV.') %><% } %>
-        class="relative block aspect-[9/16] w-[118px] shrink-0 snap-start overflow-hidden rounded-xl border border-gray-200 bg-white text-left sm:w-[140px]" aria-label="Créer ou importer un CV">
-        <span class="absolute inset-x-0 top-0 flex h-[62%] items-center justify-center overflow-hidden bg-gray-100">
-          <% if (currentUser && currentUser.avatarUrl) { %><img src="<%= currentUser.avatarUrl %>" alt="" loading="lazy" class="h-full w-full object-cover"><% } else { %><span class="text-gray-300"><%- icon('document', 'w-14 h-14') %></span><% } %>
-        </span>
-        <span class="absolute left-1/2 top-[62%] flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-4 border-white bg-brand-600 text-white"><%- icon('plus', 'w-5 h-5') %></span>
-        <span class="absolute inset-x-0 bottom-0 px-2 pb-3 text-center text-[13px] font-semibold leading-tight text-gray-900">Créer un CV</span>
-      </button>
+      <%# First card, split in two like Facebook's create card: "Créer un CV" / "Importer un CV". %>
+      <div class="flex aspect-[9/16] w-[118px] shrink-0 snap-start flex-col overflow-hidden rounded-xl border border-gray-200 bg-white sm:w-[140px]">
+        <a href="/cv/creer" <%- loginAttr(currentUser, 'Connectez-vous pour créer votre CV.') %> class="group flex flex-1 flex-col items-center justify-center gap-2 bg-gradient-to-b from-brand-50 to-white px-2 text-center hover:from-brand-100">
+          <span class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-brand-600 text-white shadow-sm transition group-hover:scale-105"><%- icon('plus', 'w-5 h-5') %></span>
+          <span class="text-[13px] font-semibold leading-tight text-gray-900">Créer un CV</span>
+        </a>
+        <div class="h-px bg-gray-200"></div>
+        <% if (currentUser) { %>
+          <form method="post" action="/cv/importer?_csrf=<%= csrfToken %>" enctype="multipart/form-data" class="flex flex-1" x-data="{ busy: false }">
+            <input type="hidden" name="retour" value="<%= currentPath %>">
+            <label class="group flex flex-1 cursor-pointer flex-col items-center justify-center gap-2 px-2 text-center hover:bg-gray-50">
+              <span class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-senegal-green text-white shadow-sm transition group-hover:scale-105"><%- icon('document', 'w-5 h-5') %></span>
+              <span class="text-[13px] font-semibold leading-tight text-gray-900" x-text="busy ? 'Import…' : 'Importer un CV'">Importer un CV</span>
+              <input type="file" name="cv" accept=".pdf,.doc,.docx,application/pdf" class="sr-only" @change="if ($event.target.files.length) { busy = true; $el.form.submit(); }">
+            </label>
+          </form>
+        <% } else { %>
+          <button type="button" <%- loginAttr(null, 'Connectez-vous pour importer votre CV.') %> class="group flex flex-1 flex-col items-center justify-center gap-2 px-2 text-center hover:bg-gray-50">
+            <span class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-senegal-green text-white shadow-sm transition group-hover:scale-105"><%- icon('document', 'w-5 h-5') %></span>
+            <span class="text-[13px] font-semibold leading-tight text-gray-900">Importer un CV</span>
+          </button>
+        <% } %>
+      </div>
       <% reels.forEach((r) => { const thumb = r.source === 'built' || r.masked ? r.thumbnail : null; %>
         <a href="/cv/vitrine?id=<%= r.id %>" class="group relative block aspect-[9/16] w-[118px] shrink-0 snap-start overflow-hidden rounded-xl bg-neutral-800 sm:w-[140px]" aria-label="CV de <%= r.name %><%= r.title ? `, ${r.title}` : '' %>">
           <% if (thumb) { %>
@@ -35,9 +49,12 @@
               <span class="block h-1.5 w-2/3 rounded bg-white/70"></span><span class="block h-1.5 w-5/6 rounded bg-white/70"></span>
             </span>
           <% } %>
-          <% if (r.user) { %><span class="absolute left-2 top-2 rounded-full ring-[3px] ring-brand-600"><%- avatar(r.user, 'w-8 h-8', 'text-[11px]') %></span><% } %>
           <span class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/85 to-transparent px-2 pb-2 pt-6 text-white">
-            <span class="block truncate text-[13px] font-semibold leading-tight"><%= r.name %></span>
+            <%# The member's photo sits in the caption, never over the CV. %>
+            <span class="flex items-center gap-1.5">
+              <% if (r.user && r.user.avatarUrl) { %><img src="<%= r.user.avatarUrl %>" alt="" loading="lazy" class="h-5 w-5 shrink-0 rounded-full object-cover ring-1 ring-white/70"><% } %>
+              <span class="truncate text-[13px] font-semibold leading-tight"><%= r.name %></span>
+            </span>
             <% if (r.title) { %><span class="mt-0.5 block truncate text-[11px] leading-tight text-white/85"><%= r.title %></span><% } %>
             <span class="mt-1 flex items-center gap-1 text-[11px] font-semibold text-white/90"><%- icon('eye', 'w-3.5 h-3.5') %> <%= formatCount(r.viewsCount) %></span>
           </span>
@@ -49,33 +66,5 @@
     <button type="button" class="absolute right-2 top-1/2 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white text-gray-700 shadow-md ring-1 ring-black/5 hover:bg-gray-50 sm:flex" data-reels-next aria-label="CV suivants"><%- icon('chevronRight', 'w-5 h-5') %></button>
   </div>
 
-  <% if (currentUser) { %>
-  <%# "Créer un CV" sheet: build one with SenTravail, or import an existing file. %>
-  <div x-cloak x-show="sheet" x-transition.opacity class="fixed inset-0 z-50 bg-black/50" @click="sheet = false"></div>
-  <div x-cloak x-show="sheet" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="translate-y-full sm:translate-y-4 sm:opacity-0" x-transition:enter-end="translate-y-0 sm:opacity-100"
-    class="fixed inset-x-0 bottom-0 z-50 rounded-t-2xl bg-white pb-[env(safe-area-inset-bottom)] shadow-2xl sm:inset-x-auto sm:left-1/2 sm:top-1/2 sm:bottom-auto sm:w-[440px] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-xl"
-    role="dialog" aria-modal="true" aria-label="Créer un CV">
-    <div class="mx-auto mt-2 h-1.5 w-10 rounded-full bg-gray-300 sm:hidden"></div>
-    <div class="flex items-center justify-between border-b border-gray-200 px-4 py-3">
-      <h3 class="text-lg font-semibold">Votre CV</h3>
-      <button type="button" class="icon-btn" aria-label="Fermer" @click="sheet = false"><%- icon('x', 'w-5 h-5') %></button>
-    </div>
-    <div class="space-y-1 p-2">
-      <a href="/cv/creer" class="flex items-center gap-3 rounded-lg p-3 hover:bg-gray-100">
-        <span class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600"><%- icon('plus', 'w-6 h-6') %></span>
-        <span><span class="block font-semibold">Créer un CV</span><span class="block text-sm text-gray-500">7 modèles, aperçu en direct, PDF en un clic</span></span>
-      </a>
-      <form method="post" action="/cv/importer?_csrf=<%= csrfToken %>" enctype="multipart/form-data" x-data="{ busy: false }">
-        <input type="hidden" name="retour" value="<%= currentPath %>">
-        <label class="flex cursor-pointer items-center gap-3 rounded-lg p-3 hover:bg-gray-100">
-          <span class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-green-50 text-senegal-green"><%- icon('document', 'w-6 h-6') %></span>
-          <span><span class="block font-semibold" x-text="busy ? 'Import en cours…' : 'Importer mon CV'">Importer mon CV</span><span class="block text-sm text-gray-500">Un CV que vous avez déjà : PDF ou Word, 5 Mo maximum</span></span>
-          <input type="file" name="cv" accept=".pdf,.doc,.docx,application/pdf" class="sr-only" @change="if ($event.target.files.length) { busy = true; $el.form.submit(); }">
-        </label>
-      </form>
-      <p class="px-3 pb-2 text-xs text-gray-500">Votre CV est proposé quand vous postulez et peut être mis en avant dans la vitrine (<a href="/conditions#vitrine" class="underline">en savoir plus</a>).</p>
-    </div>
-  </div>
-  <% } %>
 </section>
 <% } %>
