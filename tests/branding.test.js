@@ -102,3 +102,18 @@ test('missing file and unknown asset', async () => {
   expect((await upload(adm, 'logo', null, null, { note: '' })).status).toBe(422);
   expect((await upload(adm, 'favicon')).status).toBe(404);
 });
+
+test('/logo and /icone always point to the current logo and app icon', async () => {
+  const b = branding.current();
+  for (const path of ['/logo', '/logo-sentravail']) {
+    const res = await request(app).get(path);
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toBe(b.logo);
+  }
+  const icon = await request(app).get('/icone');
+  expect(icon.status).toBe(302);
+  expect(icon.headers.location).toBe(b.icon512);
+  const target = await request(app).get(b.logo);
+  expect(target.status).toBe(200);
+  expect(target.headers['content-type']).toMatch(/^image\//);
+});

@@ -89,7 +89,7 @@ docs/DEPLOIEMENT.md
 ## Apparence (`/admin/apparence`, `src/services/branding.js`)
 
 - L'admin change le **logo** (en-tête, connexion/inscription ; PNG conservé pour la transparence), l'**icône de l'application** (favicon + écran d'accueil ; recadrée au carré en PNG 512 et 192 px dans le navigateur) et l'**image de partage par défaut** (`og:image`). « Rétablir l'original » revient aux fichiers de `public/icons/`.
-- Fichiers servis avec `Cache-Control: no-transform` (le CDN de Hostinger ne doit pas les convertir en WebP : icône iPhone, aperçus WhatsApp/Facebook) ; `/favicon.ico` redirige vers l'icône actuelle ; le service worker ne met jamais en cache le manifeste ni `/favicon.ico`. Après un changement, les anciennes images peuvent rester dans les caches extérieurs (onglet du navigateur, application installée, aperçus Facebook/WhatsApp, Google).
+- Fichiers servis avec `Cache-Control: no-transform` (le CDN de Hostinger ne doit pas les convertir en WebP : icône iPhone, aperçus WhatsApp/Facebook) ; `/favicon.ico` redirige vers l'icône actuelle ; **liens publics stables** `/logo` (ou `/logo-sentravail`) → logo actuel et `/icone` → icône 512 px (redirection 302, à donner aux partenaires) ; le service worker ne met jamais en cache le manifeste ni `/favicon.ico`. Après un changement, les anciennes images peuvent rester dans les caches extérieurs (onglet du navigateur, application installée, aperçus Facebook/WhatsApp, Google).
 - Valeurs dans la table `site_settings`, gardées en mémoire et exposées aux vues dans `brand` ; le manifeste PWA est généré par la route `/manifest.webmanifest`. Ne pas coder en dur `/icons/logo.svg` ou `/icons/icon-192.png` dans les vues : utiliser `brand.*`.
 
 ## Pas de vidéo

@@ -94,6 +94,16 @@ const uploadOpts = {
     if (/[\\/]branding[\\/]/.test(filePath)) res.set('Cache-Control', `public, max-age=${env.isProd ? 2592000 : 0}, no-transform`);
   },
 };
+// Stable public links to the current logo and app icon (shared with partners, press, Google…):
+// they always show what is set in /admin/apparence.
+app.get(['/logo', '/logo-sentravail'], branding.refresh, (req, res) => {
+  res.set('Cache-Control', 'public, max-age=300');
+  res.redirect(302, branding.current().logo);
+});
+app.get('/icone', branding.refresh, (req, res) => {
+  res.set('Cache-Control', 'public, max-age=300');
+  res.redirect(302, branding.current().icon512);
+});
 // Browsers and search engines also ask for /favicon.ico: send the current site icon.
 app.get('/favicon.ico', branding.refresh, (req, res) => {
   res.set('Cache-Control', 'public, max-age=3600');
