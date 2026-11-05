@@ -19,6 +19,7 @@ CvShowcase.init(
     cvKey: { type: DataTypes.STRING(120), allowNull: false },
     thumbnail: { type: DataTypes.STRING(500) }, // small first-page image (cards)
     image: { type: DataTypes.STRING(500) }, // large first-page image (viewer)
+    masked: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false }, // images rendered with contact details blacked out
     color: { type: DataTypes.STRING(7) }, // fallback card colour (template colour)
     isActive: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
     sortOrder: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },

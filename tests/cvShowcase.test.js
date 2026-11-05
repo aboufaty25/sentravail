@@ -70,16 +70,17 @@ test('no prior consent needed, refusal respected; the published copy has no emai
   expect(masked.personal).toMatchObject({ email: '', phone: '', address: '', website: '', firstName: 'Awa', nationality: 'Sénégalaise' });
 });
 
-test('slider: once after the 3rd offer of the feed, at the bottom of offer pages; viewer and PDF public', async () => {
+test('slider: at the top of the home feed (before the first offer), at the bottom of offer pages; viewer public', async () => {
   const home = (await request(app).get('/')).text;
-  const feed = home.slice(home.indexOf('id="feed"'));
-  expect((feed.match(/data-reels>/g) || []).length).toBe(1);
-  const before = feed.slice(0, feed.indexOf('data-reels>'));
-  expect((before.match(/data-post-type="job"/g) || []).length).toBe(3);
-  expect(feed).toContain('Moussa Sarr');
+  expect((home.match(/data-reels /g) || []).length).toBe(1);
+  expect(home.indexOf('data-reels ')).toBeLessThan(home.indexOf('data-post-type="job"'));
+  expect(home).toContain('Moussa Sarr');
+  expect(home).toContain('Créer un CV');
+  const since = home.match(/since=(\d+)/)[1];
+  expect((await request(app).get(`/fil?page=2&since=${since}`)).text).not.toContain('data-reels ');
 
   const job = await Job.findOne();
-  expect((await request(app).get(`/offres/${job.slug}`)).text).toContain('data-reels>');
+  expect((await request(app).get(`/offres/${job.slug}`)).text).toContain('data-reels ');
 
   const item = await CvShowcase.findOne();
   const viewer = await request(app).get(`/cv/vitrine?id=${item.id}`);
@@ -87,19 +88,34 @@ test('slider: once after the 3rd offer of the feed, at the bottom of offer pages
   expect(viewer.text).toContain('data-reels-viewer');
   expect(viewer.text).toContain('<meta name="robots" content="noindex, nofollow">');
   expect(viewer.text).not.toContain('awa@example.com');
+  expect(viewer.text).toContain('Email et téléphone visibles par les recruteurs.');
   expect((await CvShowcase.findByPk(item.id)).viewsCount).toBe(1);
+  // Builder CV: the public copy (no contact details) can be opened.
   const pdf = await request(app).get(`/cv/vitrine/${item.id}/cv.pdf`);
   expect(pdf.status).toBe(200);
   expect(pdf.headers['content-type']).toBe('application/pdf');
 });
 
+test('complete CV with contact details: recruiters and admins only', async () => {
+  const item = await CvShowcase.findOne();
+  expect((await request(app).get(`/cv/vitrine/${item.id}/complet`)).status).toBe(302); // guest: login
+  expect((await cand.agent.get(`/cv/vitrine/${item.id}/complet`)).status).toBe(403);
+  const rec = await loginAs(await createUser({ email: 'rh@ex.com', role: 'recruiter' }));
+  const full = await rec.agent.get(`/cv/vitrine/${item.id}/complet`);
+  expect(full.status).toBe(200);
+  expect(full.headers['content-type']).toBe('application/pdf');
+  expect((await rec.agent.get(`/cv/vitrine?id=${item.id}`)).text).toContain(`/cv/vitrine/${item.id}/complet`);
+  expect((await adm.agent.get(`/cv/vitrine/${item.id}/complet`)).status).toBe(200);
+});
+
 test('thumbnails: uploaded by the admin page (images only), shown on the cards', async () => {
   const item = await CvShowcase.findOne();
   expect((await cand.agent.post(`/admin/cv/vitrine/${item.id}/images`).set('X-CSRF-Token', cand.csrf).attach('small', PNG, 's.png').attach('large', PNG, 'l.png')).status).toBe(403);
-  const res = await adm.agent.post(`/admin/cv/vitrine/${item.id}/images`).set('X-CSRF-Token', adm.csrf).attach('small', PNG, 's.png').attach('large', PNG, 'l.png');
+  const res = await adm.agent.post(`/admin/cv/vitrine/${item.id}/images`).set('X-CSRF-Token', adm.csrf).field('masked', '1').attach('small', PNG, 's.png').attach('large', PNG, 'l.png');
   expect(res.status).toBe(200);
   const fresh = await CvShowcase.findByPk(item.id);
   expect(fresh.thumbnail).toMatch(/^\/uploads\/cv-showcase\//);
+  expect(fresh.masked).toBe(true);
   expect((await request(app).get('/')).text).toContain(fresh.thumbnail);
 });
 
@@ -113,7 +129,24 @@ test('admin upload: PDF only, name required', async () => {
   expect((await post({ title: 'Commerciale' })).status).toBe(422); // name required
   expect((await post({ name: 'Fatou Sow' }, Buffer.from('not a pdf'), 'cv.pdf')).status).toBe(422);
   expect((await post({ name: 'Fatou Sow', title: 'Commerciale' })).status).toBe(302);
-  expect(await CvShowcase.findOne({ where: { name: 'Fatou Sow', userId: null } })).not.toBeNull();
+  const item = await CvShowcase.findOne({ where: { name: 'Fatou Sow', userId: null } });
+  expect(item).not.toBeNull();
+  // An imported PDF keeps its contact details: never served to the public, images only once masked.
+  expect((await request(app).get(`/cv/vitrine/${item.id}/cv.pdf`)).status).toBe(404);
+  const upload = (masked) => {
+    let req = adm.agent.post(`/admin/cv/vitrine/${item.id}/images`).set('X-CSRF-Token', adm.csrf);
+    if (masked) req = req.field('masked', '1');
+    return req.attach('small', PNG, 's.png').attach('large', PNG, 'l.png');
+  };
+  await upload(false);
+  showcase.invalidate();
+  const unmasked = await CvShowcase.findByPk(item.id);
+  expect((await request(app).get('/')).text).not.toContain(unmasked.thumbnail);
+  expect((await request(app).get(`/cv/vitrine?id=${item.id}`)).text).not.toContain(unmasked.image);
+  await upload(true);
+  showcase.invalidate();
+  const masked = await CvShowcase.findByPk(item.id);
+  expect((await request(app).get('/')).text).toContain(masked.thumbnail);
 });
 
 test('order, hide and remove', async () => {
@@ -152,4 +185,13 @@ test('a candidate who changes their mind (box unticked) can be shown again; the 
   for (const path of ['/conditions', '/confidentialite']) expect((await request(app).get(path)).text).toContain('id="vitrine"');
   expect((await addMember(candidate.id)).status).toBe(302);
   expect(await CvShowcase.count({ where: { userId: candidate.id } })).toBe(1);
+});
+
+test('the first card imports an existing CV and comes back to the page', async () => {
+  const pdf = await pdfBuffer();
+  const res = await cand.agent.post(`/cv/importer?_csrf=${cand.csrf}`).field('retour', '/offres').attach('cv', pdf, 'mon-cv.pdf');
+  expect(res.status).toBe(302);
+  expect(res.headers.location).toBe('/offres');
+  expect((await User.findByPk(candidate.id)).cvName).toBe('mon-cv.pdf');
+  expect((await cand.agent.get('/')).text).toContain('/cv/importer?_csrf=');
 });

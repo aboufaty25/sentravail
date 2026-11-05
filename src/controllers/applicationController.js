@@ -283,14 +283,15 @@ function myCv(req, res) {
 }
 
 async function uploadMyCv(req, res) {
+  const back = require('../utils/returnTo').safeReturn(req.body?.retour) || '/cv';
   if (!req.file) {
     req.flash('error', 'Choisissez un fichier PDF ou Word.');
-    return res.redirect('/cv');
+    return res.redirect(back);
   }
   const cv = await cvStorage.saveCv(req.file.buffer, req.file.originalname);
   await req.user.update({ cvUrl: cv.key, cvName: cv.name });
-  req.flash('success', 'CV enregistré. Il sera proposé automatiquement quand vous postulez.');
-  return res.redirect('/cv');
+  req.flash('success', 'CV importé. Il sera proposé automatiquement quand vous postulez.');
+  return res.redirect(back);
 }
 
 async function removeMyCv(req, res) {

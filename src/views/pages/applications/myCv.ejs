@@ -19,7 +19,7 @@
         <input type="file" name="cv" accept=".pdf,.doc,.docx" class="sr-only" required @change="name = $event.target.files[0]?.name || ''">
       </label>
       <button type="submit" class="btn-primary" x-show="name" x-cloak>Enregistrer</button>
-      <span class="w-full text-xs text-gray-500">PDF ou Word, 5 Mo maximum. Un CV importé peut être mis en avant dans la <a href="/conditions#vitrine" class="underline">vitrine des CV</a>, tel quel ; vous pouvez refuser dans <a href="/parametres/profil" class="underline">votre profil</a>.</span>
+      <span class="w-full text-xs text-gray-500">PDF ou Word, 5 Mo maximum. Un CV importé peut être mis en avant dans la <a href="/conditions#vitrine" class="underline">vitrine des CV</a> (email et téléphone visibles seulement par les recruteurs) ; vous pouvez refuser dans <a href="/parametres/profil" class="underline">votre profil</a>.</span>
     </form>
   </section>
   <section class="card px-4 py-5">

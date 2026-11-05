@@ -247,6 +247,24 @@
       lib = await import('/vendor/pdfjs/pdf.min.mjs');
       lib.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.min.mjs';
     } catch (_) { return; }
+    // Contact details are for recruiters only: every text line holding an email, a phone
+    // number or a link is blacked out on the images shown to the public.
+    const CONTACT = /[\w.+-]+@[\w-]+\.[\w.-]+|(?:\+?\d[\s.\-/()]*){8,}|https?:\/\/|www\.|linkedin|wa\.me/i;
+    const contactBoxes = async (page, viewport) => {
+      const { items } = await page.getTextContent();
+      const lines = new Map();
+      for (const it of items) {
+        if (!it.str || !it.str.trim()) continue;
+        const [x, y] = lib.Util.applyTransform([it.transform[4], it.transform[5]], viewport.transform);
+        const h = Math.max(6, Math.hypot(it.transform[2], it.transform[3]) * viewport.scale);
+        const key = Math.round(y / 4);
+        const line = lines.get(key) || { text: '', boxes: [] };
+        line.text += ` ${it.str}`;
+        line.boxes.push({ x, y: y - h, w: it.width * viewport.scale, h: h * 1.25 });
+        lines.set(key, line);
+      }
+      return [...lines.values()].filter((l) => CONTACT.test(l.text)).flatMap((l) => l.boxes);
+    };
     const render = async (page, width) => {
       const base = page.getViewport({ scale: 1 });
       const viewport = page.getViewport({ scale: width / base.width });
@@ -257,6 +275,8 @@
       ctx.fillStyle = '#fff';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       await page.render({ canvasContext: ctx, viewport }).promise;
+      ctx.fillStyle = '#9ca3af';
+      for (const b of await contactBoxes(page, viewport)) ctx.fillRect(b.x - 2, b.y - 1, b.w + 4, b.h + 2);
       return new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.82));
     };
     for (const el of pending) {
@@ -269,6 +289,7 @@
         const body = new FormData();
         body.append('small', small, 'small.jpg');
         body.append('large', large, 'large.jpg');
+        body.append('masked', '1');
         const res = await fetch(el.dataset.upload, { method: 'POST', body, headers: { 'X-CSRF-Token': csrf(), Accept: 'application/json' } });
         const json = await res.json();
         if (!res.ok) throw new Error(json.error || 'upload');

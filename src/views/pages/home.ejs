@@ -1,5 +1,7 @@
 <div class="space-y-2 sm:space-y-4">
   <%- include('../partials/composer') %>
+  <%# CV slider ("Vitrine des CV"): at the top of the feed, before the first offer. %>
+  <%- include('../partials/cvReels', { items: locals.cvSlider }) %>
   <% if (locals.fresh) { %><%- include('../partials/postCard', { post: fresh }) %><% } %>
   <% if (!posts.length && !locals.fresh) { %>
     <section class="card px-4 py-10 text-center" aria-label="Fil d'actualité">
@@ -10,6 +12,6 @@
     </section>
   <% } %>
   <div id="feed" class="space-y-2 sm:space-y-4">
-    <%- include('../partials/feedItems', { posts, hasMore, page, since, offersBefore: 0, cvSlider }) %>
+    <%- include('../partials/feedItems', { posts, hasMore, page, since, offersBefore: 0 }) %>
   </div>
 </div>

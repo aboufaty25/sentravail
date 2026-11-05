@@ -249,7 +249,7 @@
         <button type="button" class="btn-primary w-full !py-3 text-base" :disabled="saving" @click="download()">
           <%- icon('download', 'w-5 h-5') %> <span x-text="saving ? 'Création du PDF…' : 'Télécharger mon CV (PDF)'"></span>
         </button>
-        <p class="text-center text-xs text-gray-500">Votre CV est enregistré dans votre profil et proposé automatiquement quand vous postulez. Il peut être mis en avant dans la <a href="/conditions#vitrine" class="underline">vitrine des CV</a>, sans votre email, téléphone ni adresse ; vous pouvez refuser dans <a href="/parametres/profil" class="underline">votre profil</a>.</p>
+        <p class="text-center text-xs text-gray-500">Votre CV est enregistré dans votre profil et proposé automatiquement quand vous postulez. Il peut être mis en avant dans la <a href="/conditions#vitrine" class="underline">vitrine des CV</a>, votre email et votre téléphone n'étant visibles que par les recruteurs ; vous pouvez refuser dans <a href="/parametres/profil" class="underline">votre profil</a>.</p>
         <p class="text-center"><button type="button" class="text-xs text-gray-400 hover:underline" @click="restart()">Recommencer depuis mon profil</button></p>
       </div>
 

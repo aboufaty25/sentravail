@@ -117,6 +117,7 @@ router.get('/cv/telecharger', application.downloadCv);
 // CV showcase (public viewer, PDFs of the CVs currently shown)
 router.get('/cv/vitrine', cvShowcase.viewer);
 router.get('/cv/vitrine/:id/cv.pdf', require('../middlewares/rateLimit').showcasePdfLimiter, cvShowcase.publicPdf);
+router.get('/cv/vitrine/:id/complet', requireAuth, require('../middlewares/rateLimit').showcasePdfLimiter, cvShowcase.fullPdf);
 // CV builder: members only (the apply modal asks guests to log in)
 router.get('/cv/creer', requireAuth, cv.builder);
 router.post('/cv/creer', requireAuth, cvBuildLimiter, cv.save);

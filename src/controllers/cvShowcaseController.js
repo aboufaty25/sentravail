@@ -141,24 +141,29 @@ async function adminImages(req, res) {
     return res.status(422).json({ error: 'Images manquantes.' });
   }
   const [thumbnail, image] = await Promise.all([saveImage(small.buffer, 'cv-showcase'), saveImage(large.buffer, 'cv-showcase')]);
-  await showcase.setImages(item, { thumbnail, image });
+  // masked=1: the admin page blacked out emails, phone numbers and links before sending.
+  await showcase.setImages(item, { thumbnail, image, masked: req.body?.masked === '1' });
   return res.json({ ok: true, thumbnail });
 }
 
 // The stored PDF, for the admin (even when hidden): used to render the images.
 async function adminPdf(req, res) {
   const item = await loadItem(req);
-  return sendPdf(res, item, 'private, no-store');
+  return sendFile(res, { key: item.cvKey, name: `CV-${item.id}.pdf` }, 'private, no-store');
 }
 
-async function sendPdf(res, item, cacheControl) {
-  const file = cvStorage.filePath(item.cvKey);
+async function sendFile(res, { key, name }, cacheControl) {
+  const file = cvStorage.filePath(key);
   if (!file) throw fail(404, 'CV introuvable.');
   const data = await fs.readFile(file).catch(() => null);
   if (!data) throw fail(404, 'CV introuvable.');
-  res.set({ 'Cache-Control': cacheControl, 'X-Robots-Tag': 'noindex', 'Content-Disposition': `inline; filename="CV-${item.id}.pdf"` });
-  return res.type('application/pdf').send(data);
+  const safeName = String(name || 'CV.pdf').replace(/[^\w.\- ]+/g, '');
+  res.set({ 'Cache-Control': cacheControl, 'X-Robots-Tag': 'noindex', 'Content-Disposition': `inline; filename="${safeName}"` });
+  return res.type(cvStorage.mimeOf(key) || 'application/pdf').send(data);
 }
+
+// Contact details (email, phone) are shown to recruiters and admins only.
+const seesContacts = (user) => !!user && ['recruiter', 'admin'].includes(user.role);
 
 // ---------- Public ----------
 
@@ -173,16 +178,29 @@ async function viewer(req, res) {
     metaDescription: 'Découvrez les CV des candidats sur SenTravail, le réseau social de l’emploi au Sénégal.',
     noindex: true,
     noAds: true,
-    items,
+    items: items.map((r) => ({ r, ...showcase.publicImages(r) })),
     startId,
+    seesContacts: seesContacts(req.user),
   });
 }
 
 async function publicPdf(req, res, next) {
   const item = await showcase.findVisible(parseId(req.params.id));
   if (!item) return next(fail(404, "Ce CV n'est plus disponible."));
+  // Public copy: only builder CVs, published without contact details. An imported PDF keeps its
+  // contact details, so the public only gets its images (contacts blacked out).
+  if (item.source !== 'built') return next(fail(404, 'Le CV complet est réservé aux recruteurs.'));
   await showcase.countView(item.id);
-  return sendPdf(res, item, 'private, max-age=300');
+  return sendFile(res, { key: item.cvKey, name: `CV-${item.id}.pdf` }, 'private, max-age=300');
 }
 
-module.exports = { adminShowcase, adminBuilt, adminImported, adminAddMember, adminUpload, adminItemAction, adminImages, adminPdf, viewer, publicPdf, appUrl: env.APP_URL };
+// Complete CV with contact details: recruiters and admins (checked here, server-side).
+async function fullPdf(req, res, next) {
+  if (!seesContacts(req.user)) return next(fail(403, 'Le CV complet, avec les coordonnées, est réservé aux recruteurs.'));
+  const item = await showcase.findVisible(parseId(req.params.id));
+  if (!item) return next(fail(404, "Ce CV n'est plus disponible."));
+  await showcase.countView(item.id);
+  return sendFile(res, await showcase.fullFile(item), 'private, no-store');
+}
+
+module.exports = { adminShowcase, adminBuilt, adminImported, adminAddMember, adminUpload, adminItemAction, adminImages, adminPdf, viewer, publicPdf, fullPdf, seesContacts, appUrl: env.APP_URL };

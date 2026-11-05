@@ -4,7 +4,10 @@
 // - the admin may show any CV created or imported on the site, unless the member refused
 //   (users.cvShowcaseRefused, profile settings): refusing deletes the member's items at once;
 // - a suspended account is never shown;
-// - a CV made with the builder is published WITHOUT email, phone, address or website.
+// - contact details are for recruiters only: a CV made with the builder is published WITHOUT
+//   email, phone, address or website; an imported PDF is never served to the public (only its
+//   first-page images, rendered with contact details blacked out); recruiters and admins get
+//   the complete CV (fullFile).
 const fs = require('fs/promises');
 const { Op } = require('sequelize');
 const { CvShowcase, User } = require('../models');
@@ -141,14 +144,30 @@ async function refresh(item) {
   const cv = maskCv(user.cvBuilt);
   const stored = await cvStorage.saveCv(await buildCvPdf(cv), `CV ${displayName(user)}.pdf`);
   const old = { cvKey: item.cvKey, thumbnail: item.thumbnail, image: item.image };
-  await item.update({ cvKey: stored.key, thumbnail: null, image: null, title: (cv.title || item.title || '').slice(0, 120) || null, color: cv.color, name: displayName(user).slice(0, 120) });
+  await item.update({ cvKey: stored.key, thumbnail: null, image: null, masked: false, title: (cv.title || item.title || '').slice(0, 120) || null, color: cv.color, name: displayName(user).slice(0, 120) });
   await removeFiles(old);
   invalidate();
 }
 
-async function setImages(item, { thumbnail, image }) {
+// Images may be shown publicly when they cannot contain contact details.
+function publicImages(item) {
+  const safe = item.source === 'built' || item.masked;
+  return { thumbnail: safe ? item.thumbnail : null, image: safe ? item.image : null };
+}
+
+// The complete CV (with contact details), for recruiters and admins: the member's current CV
+// for a builder CV, the original PDF otherwise.
+async function fullFile(item) {
+  if (item.source === 'built' && item.userId) {
+    const user = await User.findByPk(item.userId, { attributes: ['cvUrl', 'cvName'] });
+    if (user?.cvUrl && cvStorage.filePath(user.cvUrl)) return { key: user.cvUrl, name: user.cvName || 'CV.pdf' };
+  }
+  return { key: item.cvKey, name: `CV-${item.id}.pdf` };
+}
+
+async function setImages(item, { thumbnail, image, masked = false }) {
   const old = [item.thumbnail, item.image];
-  await item.update({ thumbnail, image });
+  await item.update({ thumbnail, image, masked: !!masked });
   await removeLocalMedia(old.filter((u) => u && u !== thumbnail && u !== image));
   invalidate();
 }
@@ -198,5 +217,5 @@ async function importedCvs({ q = '', limit = 100 } = {}) {
 
 module.exports = {
   MAX_ITEMS, maskCv, slider, visibleItems, findVisible, addMemberCv, addUpload, remove, removeForUser, refresh,
-  setImages, move, toggle, countView, builtCvs, importedCvs, invalidate,
+  setImages, publicImages, fullFile, move, toggle, countView, builtCvs, importedCvs, invalidate,
 };

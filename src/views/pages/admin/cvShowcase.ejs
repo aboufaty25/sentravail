@@ -4,7 +4,7 @@
 <section class="card mb-3 rounded-lg p-4" aria-labelledby="sc-title">
   <h2 id="sc-title" class="text-lg font-semibold">Vitrine des CV</h2>
   <p class="text-sm text-gray-500">Ces CV défilent dans le fil (après la 3ᵉ offre), en bas de chaque offre et dans la vitrine plein écran (<a href="/cv/vitrine" class="font-semibold text-brand-600 hover:underline">/cv/vitrine</a>). Les premiers de la liste s'affichent en premier (<%= items.filter((i) => i.isActive).length %> affiché(s), 20 au maximum).</p>
-  <p class="mt-2 text-xs text-gray-500">Vous pouvez afficher tout CV créé ou importé sur le site (prévu dans les Conditions et la Politique de confidentialité). Un membre peut refuser depuis son profil : son CV est alors retiré automatiquement. Les CV créés sur SenTravail sont publiés sans email, téléphone ni adresse ; un PDF importé est affiché tel quel. Les miniatures se préparent automatiquement sur cette page.</p>
+  <p class="mt-2 text-xs text-gray-500">Vous pouvez afficher tout CV créé ou importé sur le site (prévu dans les Conditions et la Politique de confidentialité). Un membre peut refuser depuis son profil : son CV est alors retiré automatiquement. Email et téléphone ne sont visibles que par les recruteurs : un CV créé sur SenTravail est publié sans coordonnées, un PDF importé n'est montré au public qu'en image, coordonnées masquées. Les miniatures se préparent automatiquement sur cette page.</p>
 </section>
 
 <% if (!items.length) { %>
@@ -14,11 +14,12 @@
     <% items.forEach((it, i) => { const gone = it.userId && (!it.user || it.user.cvShowcaseRefused || it.user.isBanned); %>
       <li class="card overflow-hidden rounded-lg">
         <div class="relative aspect-[9/16] max-h-64 w-full overflow-hidden bg-gray-100">
-          <% if (it.thumbnail) { %>
+          <% if (it.thumbnail && it.masked) { %>
             <img src="<%= it.thumbnail %>" alt="" loading="lazy" class="h-full w-full object-cover object-top">
           <% } else { %>
+            <%# (Re)made here with emails, phone numbers and links blacked out. %>
             <div class="flex h-full w-full items-center justify-center text-center text-xs text-gray-500" data-cv-thumb="/admin/cv/vitrine/<%= it.id %>/cv.pdf" data-upload="/admin/cv/vitrine/<%= it.id %>/images">
-              <span data-thumb-msg>Préparation de la miniature…</span>
+              <span data-thumb-msg>Préparation de la miniature (coordonnées masquées)…</span>
             </div>
           <% } %>
           <span class="absolute left-2 top-2 rounded-full px-2 py-0.5 text-[11px] font-semibold <%= !it.isActive || gone ? 'bg-gray-800 text-white' : 'bg-green-600 text-white' %>"><%= gone ? 'Refusé par le membre' : it.isActive ? 'Affiché' : 'Masqué' %></span>
@@ -46,7 +47,7 @@
 
 <section class="card rounded-lg p-4" aria-labelledby="add-title">
   <h2 id="add-title" class="text-lg font-semibold">Ajouter un CV (PDF)</h2>
-  <p class="mb-3 text-sm text-gray-500">Pour une personne sans compte, ou un CV reçu par l'équipe. Le PDF est affiché tel quel (coordonnées comprises).</p>
+  <p class="mb-3 text-sm text-gray-500">Pour une personne sans compte, ou un CV reçu par l'équipe. Le public voit l'image du CV avec email, téléphone et liens masqués ; les recruteurs connectés voient le PDF complet.</p>
   <form method="post" action="/admin/cv/vitrine/ajouter?_csrf=<%= csrfToken %>" enctype="multipart/form-data" class="space-y-3" novalidate>
     <div class="grid gap-3 sm:grid-cols-3">
       <div>
