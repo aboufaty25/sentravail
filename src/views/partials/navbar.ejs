@@ -17,7 +17,7 @@
       <% if (brand.customLogo) { %>
         <img src="<%= brand.logo %>" alt="SenTravail" class="h-9 w-auto max-w-[180px] object-contain lg:h-10">
       <% } else { %>
-        <img src="/icons/logo.svg" alt="" class="hidden lg:block w-10 h-10">
+        <img src="<%= brand.customIcon ? brand.icon192 : '/icons/logo.svg' %>" alt="" class="hidden lg:block w-10 h-10 rounded-xl">
         <span class="lg:hidden text-[26px] font-extrabold tracking-tight text-brand-600">sentravail</span>
       <% } %>
     </a>

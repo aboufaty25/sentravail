@@ -69,6 +69,12 @@ test('app icon must be PNG; updates favicon and manifest', async () => {
   const ico = await request(app).get('/favicon.ico');
   expect(ico.status).toBe(302);
   expect(ico.headers.location).toBe(b.icon192);
+  // The header (computer) and the TikTok "open in your browser" window use the new icon too.
+  const home = (await request(app).get('/')).text;
+  expect(home).toContain(`<img src="${b.icon192}" alt="" class="hidden lg:block`);
+  const tiktok = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) Mobile/15E148 musical_ly_34.8.0';
+  const guide = (await request(app).get('/').set('User-Agent', tiktok)).text;
+  expect(guide.slice(guide.indexOf('inAppGuide()'))).toContain(`src="${b.icon192}"`);
   // Branding files must not be converted (WebP) by a CDN.
   const file = await request(app).get(b.icon512);
   expect(file.status).toBe(200);
