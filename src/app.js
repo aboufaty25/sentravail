@@ -12,6 +12,7 @@ const { csrfProtection } = require('./middlewares/csrf');
 const { globalLimiter } = require('./middlewares/rateLimit');
 const { notFound, errorHandler } = require('./middlewares/errors');
 const viewHelpers = require('./utils/viewHelpers');
+const { detectInApp } = require('./utils/inAppBrowser');
 const branding = require('./services/branding');
 const adsConfig = require('./services/adsConfig');
 const googleConfig = require('./services/googleConfig');
@@ -147,6 +148,8 @@ app.use((req, res, next) => {
     // AdSense (admin settings, .env as fallback)
     ...(() => { const a = adsConfig.current(); return { adsEnabled: a.enabled, adsClient: a.client, adSlots: a.slots }; })(),
     brand: branding.current(),
+    // TikTok's in-app browser: the page opens a guide to continue in the real browser.
+    inApp: detectInApp(req.get('User-Agent')),
     oauthProviders: require('./services/oauth').enabledProviders(),
     google: googleConfig.current(),
     // Analytics events queued by the server for this page (sign_up, login…), sent once.

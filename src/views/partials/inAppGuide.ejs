@@ -1,0 +1,55 @@
+<%# Opened automatically in TikTok's in-app browser (inApp: utils/inAppBrowser.js): file pickers,
+    downloads and Google/Apple sign-in break there, so we guide the visitor to their real browser.
+    "Continuer dans <app>" hides it for the rest of the visit (sessionStorage). %>
+<% if (locals.inApp) { %>
+<div x-data="inAppGuide()" x-show="open" x-effect="document.documentElement.classList.toggle('overflow-hidden', open)"
+  class="fixed inset-0 z-[70] overflow-y-auto bg-[#0b0d12]/95 text-white backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="inapp-title">
+  <%# Arrow pointing at the app's ••• menu (top right on iOS and Android). %>
+  <div class="pointer-events-none absolute right-3 top-3 flex flex-col items-end gap-3" aria-hidden="true">
+    <span class="inapp-pulse flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-600 text-white shadow-[0_0_30px_rgba(42,122,243,0.75)]">
+      <svg viewBox="0 0 24 24" class="h-9 w-9" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg>
+    </span>
+    <span class="flex items-center gap-1.5 rounded-full border border-white/25 bg-black/70 px-3.5 py-2 text-[13px] font-extrabold uppercase tracking-wide">
+      Touchez <span class="inline-flex gap-[3px]"><i class="h-1.5 w-1.5 rounded-full bg-senegal-green"></i><i class="h-1.5 w-1.5 rounded-full bg-senegal-yellow"></i><i class="h-1.5 w-1.5 rounded-full bg-senegal-red"></i></span> en haut
+    </span>
+  </div>
+
+  <div class="flex min-h-full items-center justify-center px-4 pb-10 pt-36">
+    <div class="w-full max-w-sm rounded-3xl border border-white/10 bg-[#17191f] p-5 text-center shadow-[0_0_60px_rgba(42,122,243,0.18)]">
+      <span class="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[13px] font-semibold text-white/85">
+        <svg viewBox="0 0 24 24" class="h-4 w-4 text-[#fe2c55]" fill="currentColor" aria-hidden="true"><path d="M16.6 5.8A4.3 4.3 0 0 1 15.5 3h-3.1v12.4a2.6 2.6 0 1 1-2.6-2.6c.3 0 .5 0 .8.1V9.7a5.7 5.7 0 1 0 4.9 5.7V9a7.4 7.4 0 0 0 4.3 1.4V7.3a4.3 4.3 0 0 1-3.2-1.5z"/></svg>
+        Navigateur interne <%= inApp.name %>
+      </span>
+      <div class="mt-4 flex items-center justify-center gap-2.5">
+        <img src="<%= brand.icon192 %>" alt="" width="40" height="40" class="h-10 w-10 rounded-xl">
+        <span class="text-[28px] font-extrabold tracking-tight">SenTravail</span>
+      </div>
+      <span class="mt-2 inline-block rounded-full border border-senegal-green/50 bg-senegal-green/15 px-3 py-0.5 text-[11px] font-bold uppercase tracking-wider text-emerald-300">Emploi &amp; recrutement</span>
+      <h2 id="inapp-title" class="mt-4 text-[17px] font-bold leading-snug">Pour postuler et envoyer votre CV sans blocage, ouvrez SenTravail dans votre navigateur</h2>
+
+      <ol class="mt-5 space-y-3 text-left text-[15px] font-semibold">
+        <li class="flex items-center gap-3 rounded-2xl border border-white/10 border-l-4 border-l-brand-500 bg-white/[0.04] px-3 py-3.5">
+          <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-500/20 text-brand-200">1</span>
+          <span>Touchez les <span class="mx-0.5 inline-flex rounded-md bg-white/15 px-1.5 align-middle font-black leading-5">•••</span> en haut à droite.</span>
+        </li>
+        <li class="flex items-center gap-3 rounded-2xl border border-white/10 border-l-4 border-l-senegal-green bg-white/[0.04] px-3 py-3.5">
+          <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-senegal-green/20 text-emerald-300">2</span>
+          <span>Choisissez <span class="border-b-2 border-senegal-green">Ouvrir dans le navigateur</span> <span class="inline-block align-middle text-emerald-300"><%- icon('globe', 'w-4 h-4') %></span></span>
+        </li>
+      </ol>
+
+      <% if (inApp.os === 'android') { %>
+        <a :href="intentUrl" class="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-brand-600 px-4 py-3.5 font-bold text-white hover:bg-brand-700">Ouvrir dans Chrome</a>
+      <% } %>
+
+      <div class="my-4 flex items-center gap-3 text-xs font-bold text-white/50"><span class="h-px flex-1 bg-white/15"></span>OU<span class="h-px flex-1 bg-white/15"></span></div>
+      <button type="button" @click="copy()" class="flex w-full items-center justify-center gap-2 rounded-2xl border border-white/20 bg-white/5 px-4 py-3.5 font-bold hover:bg-white/10">
+        <%- icon('link', 'w-5 h-5') %><span x-text="copied ? 'Lien copié !' : 'Copier le lien direct du site'">Copier le lien direct du site</span>
+      </button>
+      <p x-cloak x-show="copied" class="mt-2 text-[13px] text-emerald-300">Collez-le dans <%= inApp.os === 'ios' ? 'Safari' : 'Chrome' %> pour continuer.</p>
+
+      <button type="button" @click="dismiss()" class="mt-5 text-[13px] text-white/50 underline underline-offset-2 hover:text-white/80">Continuer dans <%= inApp.name %></button>
+    </div>
+  </div>
+</div>
+<% } %>

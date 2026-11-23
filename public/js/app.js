@@ -842,6 +842,35 @@
       },
     }));
 
+    // "Open in your browser" guide, rendered only in TikTok's in-app browser (partials/inAppGuide.ejs).
+    Alpine.data('inAppGuide', () => ({
+      open: true,
+      copied: false,
+      url: location.href,
+      // Android: ask Chrome to open the same page (ignored if the app blocks intents).
+      intentUrl: `intent://${location.host}${location.pathname}${location.search}#Intent;scheme=https;package=com.android.chrome;end`,
+      init() {
+        try { if (sessionStorage.getItem('st-inapp-dismissed')) this.open = false; } catch (_) { /* ignore */ }
+      },
+      async copy() {
+        let ok = false;
+        try { await navigator.clipboard.writeText(this.url); ok = true; } catch (_) { /* in-app browsers often block it */ }
+        if (!ok) {
+          const t = document.createElement('textarea');
+          t.value = this.url; t.setAttribute('readonly', ''); t.style.position = 'fixed'; t.style.opacity = '0';
+          document.body.appendChild(t); t.select(); t.setSelectionRange(0, t.value.length);
+          try { ok = document.execCommand('copy'); } catch (_) { ok = false; }
+          t.remove();
+        }
+        if (ok) this.copied = true;
+        else window.prompt('Copiez ce lien puis collez-le dans votre navigateur :', this.url);
+      },
+      dismiss() {
+        this.open = false;
+        try { sessionStorage.setItem('st-inapp-dismissed', '1'); } catch (_) { /* ignore */ }
+      },
+    }));
+
     Alpine.data('loginPrompt', () => ({
       open: false,
       message: '',

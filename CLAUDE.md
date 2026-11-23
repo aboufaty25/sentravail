@@ -103,6 +103,11 @@ Aucun réel, aucun upload vidéo : ni onglet, ni route, ni modèle, ni code fron
 - **Connexion obligatoire** pour : publier, commenter, aimer, partager dans son fil, s'abonner, enregistrer, signaler, créer un CV. Côté visiteur, ces boutons portent `data-login="message"` et ouvrent la fenêtre « Connectez-vous pour continuer » (Se connecter / Créer un compte) ; après connexion ou inscription, retour à la page d'origine via `?retour=` (chemins du site uniquement, `src/utils/returnTo.js`). Côté serveur, `requireAuth` répond 401 + `require-login` aux actions htmx et redirige les pages vers `/connexion?retour=…`.
 - Le partage externe (WhatsApp, Facebook, copier le lien) reste ouvert à tous.
 
+## Navigateur interne TikTok (`src/utils/inAppBrowser.js`, `partials/inAppGuide.ejs`)
+
+- Détecté **côté serveur** par le User-Agent (`BytedanceWebview`, `musical_ly`, `trill_`…) → `res.locals.inApp` ; les pages HTML sont `private, no-cache`, donc sans risque de cache partagé.
+- Une fenêtre plein écran s'ouvre d'elle-même (toutes les pages, connexion et inscription comprises) : flèche vers les ••• en haut à droite, étapes « Touchez les ••• » puis « Ouvrir dans le navigateur », **« Ouvrir dans Chrome »** sur Android (lien `intent://`), « Copier le lien direct du site » (repli `execCommand` puis `prompt`), « Continuer dans TikTok » (masquée pour la visite, `sessionStorage`). Composant Alpine `inAppGuide` dans `public/js/app.js`.
+
 ## Connexion Google / Apple (`src/services/oauth.js`, `src/controllers/oauthController.js`)
 
 - OpenID Connect : `/auth/:provider` → fournisseur → `/auth/:provider/callback`. Google : code d'autorisation échangé contre le jeton. **Apple : flux hybride `code id_token` en POST `form_post`** (exempté du CSRF, protégé par l'état signé) : le jeton d'identité est **vérifié avec les clés publiques d'Apple** (RS256, `appleid.apple.com/auth/keys`, mises en cache 1 h) ; **seule variable : `APPLE_CLIENT_ID`** (Services ID), pas de clé `.p8`. État, nonce et `retour` dans le cookie signé `st_oauth` (10 min, SameSite=None en https). Le jeton d'identité est vérifié (émetteur, audience, expiration, nonce).

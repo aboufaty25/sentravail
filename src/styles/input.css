@@ -60,3 +60,8 @@
 .rich-text a { color: #1668e3; text-decoration: underline; word-break: break-word; }
 .rich-text strong { font-weight: 700; color: #111827; }
 .rich-editor:focus { outline: none; }
+
+/* Pulsing arrow of the in-app browser guide (partials/inAppGuide.ejs). */
+@keyframes inapp-pulse { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(3px, -5px); } }
+.inapp-pulse { animation: inapp-pulse 1.2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .inapp-pulse { animation: none; } }
