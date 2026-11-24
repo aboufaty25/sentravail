@@ -75,9 +75,14 @@ test('no lazy loading: every unit is requested at once (not in hidden columns); 
   expect(js).toContain('offsetParent');
   expect(js).toContain('ad-filled');
   const css = (await request(app).get('/css/app.css')).text;
-  expect(css).toMatch(/\.ad-unit:not\(\.ad-filled\)\{[^}]*max-height:0/);
+  // Folded without constraining or clipping it (Google refuses to size an ad in a parent with a
+  // fixed height or overflow: hidden, notably full-width ads on phones).
+  const folded = css.match(/\.ad-unit:not\(\.ad-filled\)\{([^}]*)\}/)[1];
+  expect(folded).not.toMatch(/max-height|overflow|height:0/);
+  expect(css).toMatch(/\.ad-unit:not\(\.ad-filled\)>p\{display:none\}/);
   const home = (await s.agent.get('/')).text;
   expect(home).toMatch(/data-ad-slot-wrapper[^>]*class="ad-unit /);
+  expect(home).not.toMatch(/data-ad-slot-wrapper[^>]*class="[^"]*overflow-hidden/);
   // adsbygoogle.push() fills the FIRST empty <ins> of the page: no <ins> may exist before its
   // unit is requested, otherwise Google fills the wrong unit and the requested one stays folded.
   expect(home).not.toContain('<ins');

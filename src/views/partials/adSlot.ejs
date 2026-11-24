@@ -6,7 +6,7 @@
 <% const place = locals.slot || 'feed'; const slotId = adSlots[place]; %>
 <% if (adsEnabled && !noAds && slotId) { %>
   <div data-ad-slot-wrapper data-ad-place="<%= place %>" data-ad-client="<%= adsClient %>" data-ad-slot="<%= slotId %>" data-ad-format="auto"
-    class="ad-unit <%= locals.inline ? 'my-3' : 'card overflow-hidden px-3 py-2 sm:rounded-lg' %>" aria-label="Publicité">
+    class="ad-unit <%= locals.inline ? 'my-3' : 'card px-3 py-2 sm:rounded-lg' %>" aria-label="Publicité">
     <p class="mb-1 text-[11px] uppercase tracking-wide text-gray-400">Publicité</p>
   </div>
 <% } %>

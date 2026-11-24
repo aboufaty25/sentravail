@@ -31,17 +31,20 @@
 .app-header.is-collapsed { transform: translateY(-56px); }
 @media (min-width: 1024px) { .app-header.is-collapsed { transform: none; } }
 
-/* AdSense: a unit stays folded (but keeps its width, which Google needs to size the ad)
-   until it is filled; an unfilled unit never shows (public/js/ads.js). */
+/* AdSense: until a unit is filled it has no frame, label or spacing, so nothing shows (the empty
+   <ins> is 0 px high); an unfilled unit never shows (public/js/ads.js). Never constrain its height
+   or clip it (max-height, overflow: hidden): Google then refuses to size the ad, above all on
+   phones, where it stretches responsive ads to the full screen width. */
 .ad-unit:not(.ad-filled) {
-  max-height: 0 !important;
   margin-top: 0 !important;
   margin-bottom: 0 !important;
   padding-top: 0 !important;
   padding-bottom: 0 !important;
   border-width: 0 !important;
   box-shadow: none !important;
-  overflow: hidden;
+}
+.ad-unit:not(.ad-filled) > p {
+  display: none;
 }
 .ad-unit:has(ins[data-ad-status='unfilled']) {
   display: none !important;
