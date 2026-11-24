@@ -1,9 +1,7 @@
 <%- include('../../partials/adminNav') %>
 <% const PLACES = [
-  ['feed', "Fil d'actualité", 'Après la 1ʳᵉ publication, puis toutes les 3 publications.'],
-  ['sidebar', 'Barres latérales (ordinateur)', 'Colonne de gauche et colonne de droite.'],
-  ['jobTop', "Page d'une offre — sous le titre", ''],
-  ['jobBottom', "Page d'une offre — après « Postuler »", 'Entre le bouton Postuler et les offres similaires.'],
+  ['feed', "Fil d'actualité", 'Un seul bloc, en haut : après la 1ʳᵉ offre.'],
+  ['jobTop', "Page d'une offre", 'Un seul bloc, en haut : sous le titre.'],
 ]; %>
 <form method="post" action="/admin/publicites" class="space-y-3" novalidate>
   <input type="hidden" name="_csrf" value="<%= csrfToken %>">
@@ -11,7 +9,7 @@
     <div class="flex items-start justify-between gap-2">
       <div>
         <h2 id="ads-account" class="text-lg font-semibold">Google AdSense</h2>
-        <p class="text-sm text-gray-500">Chaque emplacement est demandé environ un écran avant d'être vu et ne s'affiche qu'une fois rempli par Google : pas d'espace vide, meilleur taux de visibilité.</p>
+        <p class="text-sm text-gray-500">Un seul bloc manuel par page, en haut. Il est demandé dès le chargement et ne s'affiche qu'une fois rempli par Google (pas d'espace vide). Le reste est laissé aux annonces automatiques.</p>
       </div>
       <span class="shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold <%= ads.enabled ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-600' %>"><%= ads.enabled ? 'Actives' : 'Désactivées' %></span>
     </div>

@@ -58,7 +58,7 @@ hPanel → **Sites web → Node.js** (ou « Ajouter un site → Application Node
 | `SMTP_USER` / `SMTP_PASSWORD` | adresse et mot de passe du §3 | recommandé |
 | `MAIL_FROM` | `SenTravail <no-reply@sentravail.com>` | recommandé |
 | `ADSENSE_CLIENT_ID` | `ca-pub-…` (après acceptation par Google) | non |
-| `ADSENSE_SLOT_FEED` / `_SIDEBAR` / `_JOB` | identifiants des 3 blocs d'annonces | non |
+| `ADSENSE_SLOT_FEED` / `_JOB` | blocs d'annonces manuels (fil, page offre ; un seul par page) | non |
 | `UPLOAD_DIR` | vide = `~/sentravail-uploads` | non |
 | `CV_DIR` | vide = `~/sentravail-private/cvs` | non |
 | `CLOUDINARY_*` | vide = images stockées sur Hostinger | non |

@@ -3,7 +3,9 @@
 const env = require('../config/env');
 const { SiteSetting } = require('../models');
 
-const PLACEMENTS = ['feed', 'sidebar', 'jobTop', 'jobBottom'];
+// One manual unit per page, at the top: the feed (after the 1st offer) and the job page (under
+// the title). Everything else is left to AdSense auto ads.
+const PLACEMENTS = ['feed', 'jobTop'];
 const KEYS = ['ads.enabled', 'ads.client', 'ads.slot.default', ...PLACEMENTS.map((p) => `ads.slot.${p}`)];
 const REFRESH_MS = 30 * 1000; // several Node processes: each re-reads the settings every 30 s
 
@@ -27,7 +29,7 @@ async function refresh(req, res, next) {
 function current() {
   const has = (k) => Object.prototype.hasOwnProperty.call(stored, k);
   const client = has('ads.client') ? stored['ads.client'] || '' : env.ADSENSE_CLIENT_ID;
-  const fallback = { feed: env.ADSENSE_SLOT_FEED, sidebar: env.ADSENSE_SLOT_SIDEBAR, jobTop: env.ADSENSE_SLOT_JOB, jobBottom: env.ADSENSE_SLOT_JOB };
+  const fallback = { feed: env.ADSENSE_SLOT_FEED, jobTop: env.ADSENSE_SLOT_JOB };
   const def = stored['ads.slot.default'] || '';
   const slots = {};
   for (const p of PLACEMENTS) slots[p] = stored[`ads.slot.${p}`] || def || fallback[p] || '';

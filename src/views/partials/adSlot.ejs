@@ -2,10 +2,10 @@
     The <ins> tag is created by public/js/ads.js when the unit is requested (adsbygoogle.push
     fills the first empty <ins> of the page); the frame stays folded until Google has filled it.
     Every unit is requested as soon as it is on the page (no lazy loading).
-    slot: feed | sidebar | jobTop | jobBottom. inline: no card frame (inside another card). %>
+    slot: feed | jobTop (one manual unit per page, at the top). inline: no card frame (inside another card). %>
 <% const place = locals.slot || 'feed'; const slotId = adSlots[place]; %>
 <% if (adsEnabled && !noAds && slotId) { %>
-  <div data-ad-slot-wrapper data-ad-place="<%= place %>" data-ad-client="<%= adsClient %>" data-ad-slot="<%= slotId %>" data-ad-format="<%= place === 'sidebar' ? 'rectangle' : 'auto' %>"
+  <div data-ad-slot-wrapper data-ad-place="<%= place %>" data-ad-client="<%= adsClient %>" data-ad-slot="<%= slotId %>" data-ad-format="auto"
     class="ad-unit <%= locals.inline ? 'my-3' : 'card overflow-hidden px-3 py-2 sm:rounded-lg' %>" aria-label="Publicité">
     <p class="mb-1 text-[11px] uppercase tracking-wide text-gray-400">Publicité</p>
   </div>

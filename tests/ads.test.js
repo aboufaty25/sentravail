@@ -1,7 +1,6 @@
 // AdSense configured for this file only (env is read when modules load).
 process.env.ADSENSE_CLIENT_ID = 'ca-pub-1234567890123456';
 process.env.ADSENSE_SLOT_FEED = '1111111111';
-process.env.ADSENSE_SLOT_SIDEBAR = '2222222222';
 process.env.ADSENSE_SLOT_JOB = '3333333333';
 
 const { app, request, resetDb, closeDb, createUser, loginAs } = require('./helpers');
@@ -45,11 +44,11 @@ test('ads load directly (no cookie banner), with early connections to Google', a
   expect(js).toContain('pagead2.googlesyndication.com/pagead/js/adsbygoogle.js');
 });
 
-test('ad placements: feed after the 1st offer then every 3 offers, both side columns, job page under the title and after Postuler', async () => {
+test('one manual ad per page, at the top: feed after the 1st offer only, job page under the title only, none in the side columns', async () => {
   // Walk the whole feed (FEED_PAGE_SIZE is 3 in tests) as infinite scroll does, then count the
   // offers shown before each feed ad.
   const home = await s.agent.get('/');
-  expect((home.text.match(/data-ad-slot="2222222222"/g) || []).length).toBe(2); // left and right columns
+  expect((home.text.match(/data-ad-slot-wrapper/g) || []).length).toBe(1); // no side-column units
   let html = home.text.slice(home.text.indexOf('id="feed"'));
   let next = html.match(/hx-get="(\/fil\?[^"]+)"/);
   while (next) {
@@ -59,13 +58,14 @@ test('ad placements: feed after the 1st offer then every 3 offers, both side col
   }
   const ads = [...html.matchAll(/<div data-ad-slot-wrapper data-ad-place="feed"/g)];
   const offersBefore = ads.map((m) => (html.slice(0, m.index).match(/data-post-type="job"/g) || []).length);
-  expect(offersBefore).toEqual([1, 4, 7, 10]);
+  expect(offersBefore).toEqual([1]); // a single unit in the whole feed
   expect(html).not.toContain('data-ad-lazy'); // no lazy loading
   const jobPage = (await request(app).get(`/offres/${job.slug}`)).text;
-  expect((jobPage.match(/data-ad-slot="3333333333"/g) || []).length).toBe(2);
+  expect((jobPage.match(/data-ad-slot-wrapper/g) || []).length).toBe(1);
   expect(jobPage.indexOf('data-ad-place="jobTop"')).toBeGreaterThan(jobPage.indexOf('id="job-title"'));
   expect(jobPage.indexOf('data-ad-place="jobTop"')).toBeLessThan(jobPage.indexOf('Description du poste'));
-  expect(jobPage.indexOf('data-ad-place="jobBottom"')).toBeGreaterThan(jobPage.indexOf('id="postuler"'));
+  expect(jobPage).not.toContain('data-ad-place="jobBottom"');
+  expect(jobPage).not.toContain('data-ad-place="sidebar"');
 });
 
 test('no lazy loading: every unit is requested at once (not in hidden columns); no empty box', async () => {
@@ -94,8 +94,8 @@ test('admin settings override .env: publisher id, default unit, on/off switch, a
   const post = (body) => adm.agent.post('/admin/publicites').type('form').send({ _csrf: adm.csrf, ...body });
   expect((await post({ enabled: 'on', client: 'pub-123', defaultSlot: '6556069017' })).status).toBe(422);
   expect((await s.agent.post('/admin/publicites').type('form').send({ _csrf: s.csrf, client: 'ca-pub-1531184274736744' })).status).toBe(403);
-  expect((await post({ enabled: 'on', client: 'ca-pub-1531184274736744', defaultSlot: '6556069017', feed: '', sidebar: '', jobTop: '', jobBottom: '' })).status).toBe(302);
-  expect(adsConfig.current().slots).toEqual({ feed: '6556069017', sidebar: '6556069017', jobTop: '6556069017', jobBottom: '6556069017' });
+  expect((await post({ enabled: 'on', client: 'ca-pub-1531184274736744', defaultSlot: '6556069017', feed: '', jobTop: '' })).status).toBe(302);
+  expect(adsConfig.current().slots).toEqual({ feed: '6556069017', jobTop: '6556069017' });
   expect((await request(app).get('/ads.txt')).text).toBe('google.com, pub-1531184274736744, DIRECT, f08c47fec0942fa0\n');
   expect((await request(app).get(`/offres/${job.slug}`)).text).toContain('data-ad-slot="6556069017"');
   // Switched off: no ad code at all.
